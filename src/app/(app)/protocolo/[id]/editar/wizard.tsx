@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -16,6 +16,7 @@ import {
 } from "@/lib/protocolos/schemas";
 import {
   guardarDatosBasicosAction,
+  guardarDatosClinicosAction,
   agregarCoInvestigadorAction,
   eliminarCoInvestigadorAction,
   subirDocumentoAction,
@@ -27,36 +28,68 @@ import type {
   ProtocoloCompleto,
   CoInvestigadorRow,
   DocumentoRow,
+  ResultadoExtraccion,
+  CampoExtraido,
 } from "@/lib/protocolos/queries";
 
-type Paso = 1 | 2 | 3 | 4;
+type Paso = 1 | 2 | 3 | 4 | 5;
 
 const PASOS: { num: Paso; titulo: string; descripcion: string }[] = [
-  { num: 1, titulo: "Datos del proyecto", descripcion: "Título, área y clasificación" },
-  { num: 2, titulo: "Equipo de investigación", descripcion: "Co-investigadores" },
-  { num: 3, titulo: "Documentos", descripcion: "Carga los 7 documentos" },
-  { num: 4, titulo: "Revisar y enviar", descripcion: "Confirmación final" },
+  { num: 1, titulo: "Datos del proyecto", descripcion: "Título, área y riesgo" },
+  { num: 2, titulo: "Detalles clínicos", descripcion: "Objetivos, criterios, método" },
+  { num: 3, titulo: "Equipo", descripcion: "Co-investigadores" },
+  { num: 4, titulo: "Documentos", descripcion: "7 documentos del paquete" },
+  { num: 5, titulo: "Revisar y enviar", descripcion: "Confirmación final" },
 ];
 
 type WizardProps = {
   protocolo: ProtocoloCompleto;
   coInvestigadores: CoInvestigadorRow[];
   documentos: DocumentoRow[];
+  extraccion: ResultadoExtraccion | null;
+  aviso: string | null;
 };
 
-export function ProtocoloWizard({ protocolo, coInvestigadores, documentos }: WizardProps) {
+export function ProtocoloWizard({
+  protocolo,
+  coInvestigadores,
+  documentos,
+  extraccion,
+  aviso,
+}: WizardProps) {
   const router = useRouter();
   const [paso, setPaso] = useState<Paso>(1);
-  const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(
+  const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error" | "info"; texto: string } | null>(
     null,
   );
   const [pending, startTransition] = useTransition();
+  const camposIA = extraccion?.campos ?? {};
+
+  useEffect(() => {
+    if (aviso === "ia_completada") {
+      setMensaje({
+        tipo: "info",
+        texto:
+          "✨ La IA pre-llenó los campos. Revisa cada paso y corrige lo que veas necesario antes de enviar.",
+      });
+    } else if (aviso === "ia_error") {
+      setMensaje({
+        tipo: "error",
+        texto: "La extracción IA falló. Puedes llenar los campos manualmente.",
+      });
+    } else if (aviso === "extraccion_fallida") {
+      setMensaje({
+        tipo: "error",
+        texto: "No pudimos leer el texto del archivo. Llena el formulario manualmente.",
+      });
+    }
+  }, [aviso]);
 
   function refrescar() {
     router.refresh();
   }
 
-  function notificar(tipo: "ok" | "error", texto: string) {
+  function notificar(tipo: "ok" | "error" | "info", texto: string) {
     setMensaje({ tipo, texto });
     setTimeout(() => setMensaje(null), 5000);
   }
@@ -68,6 +101,11 @@ export function ProtocoloWizard({ protocolo, coInvestigadores, documentos }: Wiz
           <p className="text-eyebrow text-ink-500">
             {protocolo.clave ? `Protocolo ${protocolo.clave}` : "Nuevo protocolo"} ·{" "}
             {protocolo.estado === "borrador" ? "Borrador" : "Con observaciones"}
+            {extraccion && (
+              <span className="ml-2 inline-flex items-center rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-xs text-[var(--accent)]">
+                ✨ Pre-llenado por IA
+              </span>
+            )}
           </p>
           <h1 className="text-display-1 mt-1 line-clamp-2">{protocolo.titulo}</h1>
         </div>
@@ -81,10 +119,23 @@ export function ProtocoloWizard({ protocolo, coInvestigadores, documentos }: Wiz
           className={`rounded-md px-4 py-3 text-sm ${
             mensaje.tipo === "ok"
               ? "border border-good/20 bg-good-soft text-good"
-              : "border border-bad/20 bg-bad-soft text-bad"
+              : mensaje.tipo === "info"
+                ? "border border-info/20 bg-info-soft text-info"
+                : "border border-bad/20 bg-bad-soft text-bad"
           }`}
         >
           {mensaje.texto}
+        </div>
+      )}
+
+      {extraccion?.alertas && extraccion.alertas.length > 0 && paso === 1 && (
+        <div className="rounded-md border border-warn/20 bg-warn-soft px-4 py-3 text-sm text-warn">
+          <strong>Alertas de la IA al analizar tu protocolo:</strong>
+          <ul className="mt-1 list-disc pl-5">
+            {extraccion.alertas.map((a, i) => (
+              <li key={i}>{a}</li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -92,6 +143,7 @@ export function ProtocoloWizard({ protocolo, coInvestigadores, documentos }: Wiz
         {paso === 1 && (
           <PasoDatosBasicos
             protocolo={protocolo}
+            camposIA={camposIA}
             pending={pending}
             onGuardar={(payload) => {
               startTransition(async () => {
@@ -109,8 +161,27 @@ export function ProtocoloWizard({ protocolo, coInvestigadores, documentos }: Wiz
         )}
 
         {paso === 2 && (
+          <PasoDatosClinicos
+            protocolo={protocolo}
+            camposIA={camposIA}
+            pending={pending}
+            onGuardar={(payload) => {
+              startTransition(async () => {
+                const res = await guardarDatosClinicosAction(protocolo.id, payload);
+                if (res.ok) {
+                  notificar("ok", "Detalles clínicos guardados ✓");
+                  refrescar();
+                  setPaso(3);
+                } else {
+                  notificar("error", res.error);
+                }
+              });
+            }}
+          />
+        )}
+
+        {paso === 3 && (
           <PasoCoInvestigadores
-            protocoloId={protocolo.id}
             coInvestigadores={coInvestigadores}
             pending={pending}
             onAgregar={(payload) => {
@@ -138,7 +209,7 @@ export function ProtocoloWizard({ protocolo, coInvestigadores, documentos }: Wiz
           />
         )}
 
-        {paso === 3 && (
+        {paso === 4 && (
           <PasoDocumentos
             protocolo={protocolo}
             documentos={documentos}
@@ -171,7 +242,7 @@ export function ProtocoloWizard({ protocolo, coInvestigadores, documentos }: Wiz
           />
         )}
 
-        {paso === 4 && (
+        {paso === 5 && (
           <PasoRevisarEnviar
             protocolo={protocolo}
             coInvestigadores={coInvestigadores}
@@ -198,12 +269,12 @@ export function ProtocoloWizard({ protocolo, coInvestigadores, documentos }: Wiz
 }
 
 // =============================================================
-// Componentes del wizard
+// Componentes generales
 // =============================================================
 
 function Stepper({ paso, onClick }: { paso: Paso; onClick: (p: Paso) => void }) {
   return (
-    <ol className="grid grid-cols-4 gap-3">
+    <ol className="grid grid-cols-5 gap-2">
       {PASOS.map((p) => {
         const completo = p.num < paso;
         const activo = p.num === paso;
@@ -211,7 +282,7 @@ function Stepper({ paso, onClick }: { paso: Paso; onClick: (p: Paso) => void }) 
           <li key={p.num}>
             <button
               onClick={() => onClick(p.num)}
-              className={`group w-full rounded-md border px-3 py-3 text-left transition ${
+              className={`w-full rounded-md border px-2 py-3 text-left transition ${
                 activo
                   ? "border-[var(--accent)] bg-white shadow-sm"
                   : completo
@@ -221,7 +292,7 @@ function Stepper({ paso, onClick }: { paso: Paso; onClick: (p: Paso) => void }) 
             >
               <div className="flex items-center gap-2">
                 <span
-                  className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                     activo
                       ? "bg-[var(--accent)] text-white"
                       : completo
@@ -232,14 +303,14 @@ function Stepper({ paso, onClick }: { paso: Paso; onClick: (p: Paso) => void }) 
                   {completo ? "✓" : p.num}
                 </span>
                 <span
-                  className={`text-sm font-medium ${
+                  className={`text-xs font-medium ${
                     activo ? "text-ink-900" : "text-ink-600"
                   }`}
                 >
                   {p.titulo}
                 </span>
               </div>
-              <div className="ml-8 text-xs text-ink-400">{p.descripcion}</div>
+              <div className="ml-7 mt-0.5 text-[10px] text-ink-400">{p.descripcion}</div>
             </button>
           </li>
         );
@@ -258,10 +329,10 @@ function Navegacion({ paso, onCambiar }: { paso: Paso; onCambiar: (p: Paso) => v
       >
         ← Anterior
       </button>
-      <div className="text-xs text-ink-400">Paso {paso} de 4</div>
+      <div className="text-xs text-ink-400">Paso {paso} de 5</div>
       <button
-        onClick={() => onCambiar(Math.min(4, paso + 1) as Paso)}
-        disabled={paso === 4}
+        onClick={() => onCambiar(Math.min(5, paso + 1) as Paso)}
+        disabled={paso === 5}
         className="btn-secondary disabled:opacity-30"
       >
         Siguiente →
@@ -297,21 +368,72 @@ function BotonEliminarBorrador({ protocoloId }: { protocoloId: string }) {
   );
 }
 
+/** Badge visual que muestra si un campo viene de IA y con qué confianza. */
+function BadgeIA({ campo }: { campo: CampoExtraido | undefined }) {
+  if (!campo) return null;
+  const config = {
+    alta: { color: "bg-[var(--accent)]/10 text-[var(--accent)]", emoji: "✨", label: "IA" },
+    media: { color: "bg-warn-soft text-warn", emoji: "⚠", label: "IA · revisar" },
+    baja: { color: "bg-bad-soft text-bad", emoji: "⚠", label: "IA · poca confianza" },
+  }[campo.confianza];
+
+  return (
+    <span
+      title={campo.fuente ? `Extraído de: "${campo.fuente.slice(0, 200)}"` : "Extraído por IA"}
+      className={`ml-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${config.color}`}
+    >
+      {config.emoji} {config.label}
+    </span>
+  );
+}
+
+function Checkbox({
+  label,
+  checked,
+  onChange,
+  hint,
+  badge,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  hint?: string;
+  badge?: React.ReactNode;
+}) {
+  return (
+    <label className="flex items-start gap-2">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-1"
+      />
+      <span className="flex-1">
+        <span className="text-ink-900">{label}</span>
+        {badge}
+        {hint && <span className="ml-2 text-xs text-ink-500">{hint}</span>}
+      </span>
+    </label>
+  );
+}
+
 // =============================================================
 // Paso 1: Datos básicos
 // =============================================================
 
 function PasoDatosBasicos({
   protocolo,
+  camposIA,
   pending,
   onGuardar,
 }: {
   protocolo: ProtocoloCompleto;
+  camposIA: Record<string, CampoExtraido>;
   pending: boolean;
   onGuardar: (payload: Record<string, unknown>) => void;
 }) {
   const [form, setForm] = useState({
-    titulo: protocolo.titulo === "Protocolo sin título" ? "" : protocolo.titulo,
+    titulo: protocolo.titulo.startsWith("Protocolo sin título") ? "" : protocolo.titulo,
     resumen: protocolo.resumen ?? "",
     area_conocimiento_id: protocolo.area_conocimiento_id ?? 3,
     tipo_investigacion_id: protocolo.tipo_investigacion_id ?? "clinica",
@@ -345,6 +467,7 @@ function PasoDatosBasicos({
       <div>
         <label htmlFor="titulo" className="mb-1 block text-sm font-medium text-ink-700">
           Título del protocolo <span className="text-bad">*</span>
+          <BadgeIA campo={camposIA.titulo} />
         </label>
         <textarea
           id="titulo"
@@ -363,6 +486,7 @@ function PasoDatosBasicos({
       <div>
         <label htmlFor="resumen" className="mb-1 block text-sm font-medium text-ink-700">
           Resumen ejecutivo <span className="text-bad">*</span>
+          <BadgeIA campo={camposIA.resumen} />
         </label>
         <textarea
           id="resumen"
@@ -380,11 +504,9 @@ function PasoDatosBasicos({
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
-          <label
-            htmlFor="area"
-            className="mb-1 block text-sm font-medium text-ink-700"
-          >
+          <label htmlFor="area" className="mb-1 block text-sm font-medium text-ink-700">
             Área de conocimiento (SECIHTI) <span className="text-bad">*</span>
+            <BadgeIA campo={camposIA.area_conocimiento_id} />
           </label>
           <select
             id="area"
@@ -401,11 +523,9 @@ function PasoDatosBasicos({
         </div>
 
         <div>
-          <label
-            htmlFor="tipo"
-            className="mb-1 block text-sm font-medium text-ink-700"
-          >
+          <label htmlFor="tipo" className="mb-1 block text-sm font-medium text-ink-700">
             Tipo de investigación <span className="text-bad">*</span>
+            <BadgeIA campo={camposIA.tipo_investigacion_id} />
           </label>
           <select
             id="tipo"
@@ -431,6 +551,7 @@ function PasoDatosBasicos({
         <label className="mb-2 block text-sm font-medium text-ink-700">
           Clasificación de riesgo (NOM-012-SSA3 / Art. 17 Reglamento){" "}
           <span className="text-bad">*</span>
+          <BadgeIA campo={camposIA.clasificacion_riesgo} />
         </label>
         <div className="space-y-2">
           {(["sin_riesgo", "riesgo_minimo", "riesgo_mayor_minimo"] as const).map((nivel) => (
@@ -469,22 +590,26 @@ function PasoDatosBasicos({
             checked={form.involucra_humanos}
             onChange={(v) => update("involucra_humanos", v)}
             hint="Activa la obligatoriedad del consentimiento informado."
+            badge={<BadgeIA campo={camposIA.involucra_humanos} />}
           />
           <Checkbox
             label="Involucra menores de edad (población pediátrica)"
             checked={form.involucra_menores}
             onChange={(v) => update("involucra_menores", v)}
             hint="Activa la obligatoriedad de la carta de asentimiento."
+            badge={<BadgeIA campo={camposIA.involucra_menores} />}
           />
           <Checkbox
             label="Involucra muestras o datos genéticos"
             checked={form.involucra_datos_geneticos}
             onChange={(v) => update("involucra_datos_geneticos", v)}
+            badge={<BadgeIA campo={camposIA.involucra_datos_geneticos} />}
           />
           <Checkbox
             label="Involucra administración de medicamento o producto de investigación"
             checked={form.involucra_medicamento}
             onChange={(v) => update("involucra_medicamento", v)}
+            badge={<BadgeIA campo={camposIA.involucra_medicamento} />}
           />
         </div>
       </fieldset>
@@ -498,45 +623,303 @@ function PasoDatosBasicos({
   );
 }
 
-function Checkbox({
+// =============================================================
+// Paso 2: Detalles clínicos
+// =============================================================
+
+function PasoDatosClinicos({
+  protocolo,
+  camposIA,
+  pending,
+  onGuardar,
+}: {
+  protocolo: ProtocoloCompleto;
+  camposIA: Record<string, CampoExtraido>;
+  pending: boolean;
+  onGuardar: (payload: Record<string, unknown>) => void;
+}) {
+  const [form, setForm] = useState({
+    objetivo_general: protocolo.objetivo_general ?? "",
+    objetivos_especificos:
+      protocolo.objetivos_especificos.length > 0 ? protocolo.objetivos_especificos : [""],
+    criterios_inclusion:
+      protocolo.criterios_inclusion.length > 0 ? protocolo.criterios_inclusion : [""],
+    criterios_exclusion:
+      protocolo.criterios_exclusion.length > 0 ? protocolo.criterios_exclusion : [""],
+    metodologia: protocolo.metodologia ?? "",
+    cronograma:
+      protocolo.cronograma.length > 0 ? protocolo.cronograma : [{ etapa: "", inicio: "", fin: "" }],
+  });
+
+  function setListItem(
+    key: "objetivos_especificos" | "criterios_inclusion" | "criterios_exclusion",
+    idx: number,
+    value: string,
+  ) {
+    setForm((prev) => ({
+      ...prev,
+      [key]: prev[key].map((v, i) => (i === idx ? value : v)),
+    }));
+  }
+
+  function addToList(
+    key: "objetivos_especificos" | "criterios_inclusion" | "criterios_exclusion",
+  ) {
+    setForm((prev) => ({ ...prev, [key]: [...prev[key], ""] }));
+  }
+
+  function removeFromList(
+    key: "objetivos_especificos" | "criterios_inclusion" | "criterios_exclusion",
+    idx: number,
+  ) {
+    setForm((prev) => ({
+      ...prev,
+      [key]: prev[key].filter((_, i) => i !== idx),
+    }));
+  }
+
+  function setCronoItem(
+    idx: number,
+    campo: "etapa" | "inicio" | "fin",
+    value: string,
+  ) {
+    setForm((prev) => ({
+      ...prev,
+      cronograma: prev.cronograma.map((c, i) => (i === idx ? { ...c, [campo]: value } : c)),
+    }));
+  }
+
+  function addCronoItem() {
+    setForm((prev) => ({
+      ...prev,
+      cronograma: [...prev.cronograma, { etapa: "", inicio: "", fin: "" }],
+    }));
+  }
+
+  function removeCronoItem(idx: number) {
+    setForm((prev) => ({
+      ...prev,
+      cronograma: prev.cronograma.filter((_, i) => i !== idx),
+    }));
+  }
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        // Limpiar items vacíos antes de mandar
+        const payload = {
+          objetivo_general: form.objetivo_general,
+          objetivos_especificos: form.objetivos_especificos.map((s) => s.trim()).filter(Boolean),
+          criterios_inclusion: form.criterios_inclusion.map((s) => s.trim()).filter(Boolean),
+          criterios_exclusion: form.criterios_exclusion.map((s) => s.trim()).filter(Boolean),
+          metodologia: form.metodologia,
+          cronograma: form.cronograma.filter((c) => c.etapa.trim().length > 0),
+        };
+        onGuardar(payload);
+      }}
+      className="space-y-6"
+    >
+      <div>
+        <h2 className="text-display-2">2. Detalles clínicos</h2>
+        <p className="mt-1 text-sm text-ink-500">
+          Objetivos, criterios y metodología que aparecerán en el dictamen del comité.
+        </p>
+      </div>
+
+      <div>
+        <label htmlFor="obj_gral" className="mb-1 block text-sm font-medium text-ink-700">
+          Objetivo general <span className="text-bad">*</span>
+          <BadgeIA campo={camposIA.objetivo_general} />
+        </label>
+        <textarea
+          id="obj_gral"
+          rows={3}
+          required
+          minLength={30}
+          maxLength={2000}
+          value={form.objetivo_general}
+          onChange={(e) => setForm({ ...form, objetivo_general: e.target.value })}
+          className="input-field"
+          placeholder="Verbo en infinitivo + objeto + finalidad medible."
+        />
+      </div>
+
+      <ListaDinamica
+        label="Objetivos específicos"
+        badge={<BadgeIA campo={camposIA.objetivos_especificos} />}
+        placeholder="Ej: Determinar la prevalencia de..."
+        items={form.objetivos_especificos}
+        onChange={(idx, v) => setListItem("objetivos_especificos", idx, v)}
+        onAdd={() => addToList("objetivos_especificos")}
+        onRemove={(idx) => removeFromList("objetivos_especificos", idx)}
+        required
+      />
+
+      <ListaDinamica
+        label="Criterios de inclusión"
+        badge={<BadgeIA campo={camposIA.criterios_inclusion} />}
+        placeholder="Ej: Pacientes mayores de 18 años con diagnóstico de..."
+        items={form.criterios_inclusion}
+        onChange={(idx, v) => setListItem("criterios_inclusion", idx, v)}
+        onAdd={() => addToList("criterios_inclusion")}
+        onRemove={(idx) => removeFromList("criterios_inclusion", idx)}
+        required
+      />
+
+      <ListaDinamica
+        label="Criterios de exclusión"
+        badge={<BadgeIA campo={camposIA.criterios_exclusion} />}
+        placeholder="Ej: Embarazo, enfermedad oncológica activa..."
+        items={form.criterios_exclusion}
+        onChange={(idx, v) => setListItem("criterios_exclusion", idx, v)}
+        onAdd={() => addToList("criterios_exclusion")}
+        onRemove={(idx) => removeFromList("criterios_exclusion", idx)}
+        required
+      />
+
+      <div>
+        <label htmlFor="metodo" className="mb-1 block text-sm font-medium text-ink-700">
+          Metodología y técnica de recolección de datos <span className="text-bad">*</span>
+          <BadgeIA campo={camposIA.metodologia} />
+        </label>
+        <textarea
+          id="metodo"
+          rows={5}
+          required
+          minLength={50}
+          maxLength={5000}
+          value={form.metodologia}
+          onChange={(e) => setForm({ ...form, metodologia: e.target.value })}
+          className="input-field"
+          placeholder="Tipo de estudio, técnica de muestreo, instrumentos, procedimientos..."
+        />
+      </div>
+
+      <div>
+        <label className="mb-2 block text-sm font-medium text-ink-700">
+          Cronograma de actividades
+          <BadgeIA campo={camposIA.cronograma} />
+        </label>
+        <div className="space-y-2">
+          {form.cronograma.map((c, idx) => (
+            <div key={idx} className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_auto_auto_auto]">
+              <input
+                placeholder="Etapa o actividad"
+                value={c.etapa}
+                onChange={(e) => setCronoItem(idx, "etapa", e.target.value)}
+                className="input-field"
+              />
+              <input
+                type="month"
+                placeholder="Inicio"
+                value={c.inicio ?? ""}
+                onChange={(e) => setCronoItem(idx, "inicio", e.target.value)}
+                className="input-field"
+              />
+              <input
+                type="month"
+                placeholder="Fin"
+                value={c.fin ?? ""}
+                onChange={(e) => setCronoItem(idx, "fin", e.target.value)}
+                className="input-field"
+              />
+              <button
+                type="button"
+                onClick={() => removeCronoItem(idx)}
+                className="text-xs text-bad hover:underline"
+                disabled={form.cronograma.length === 1}
+              >
+                Quitar
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={addCronoItem}
+            className="text-xs font-medium text-[var(--accent)] hover:underline"
+          >
+            + Agregar etapa
+          </button>
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <button type="submit" disabled={pending} className="btn-primary">
+          {pending ? "Guardando..." : "Guardar y continuar →"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function ListaDinamica({
   label,
-  checked,
+  badge,
+  placeholder,
+  items,
   onChange,
-  hint,
+  onAdd,
+  onRemove,
+  required,
 }: {
   label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  hint?: string;
+  badge?: React.ReactNode;
+  placeholder: string;
+  items: string[];
+  onChange: (idx: number, value: string) => void;
+  onAdd: () => void;
+  onRemove: (idx: number) => void;
+  required?: boolean;
 }) {
   return (
-    <label className="flex items-start gap-2">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="mt-1"
-      />
-      <span className="flex-1">
-        <span className="text-ink-900">{label}</span>
-        {hint && <span className="ml-2 text-xs text-ink-500">{hint}</span>}
-      </span>
-    </label>
+    <div>
+      <label className="mb-2 block text-sm font-medium text-ink-700">
+        {label} {required && <span className="text-bad">*</span>}
+        {badge}
+      </label>
+      <div className="space-y-2">
+        {items.map((item, idx) => (
+          <div key={idx} className="flex gap-2">
+            <span className="mt-2 w-6 shrink-0 text-xs text-ink-400">{idx + 1}.</span>
+            <input
+              value={item}
+              onChange={(e) => onChange(idx, e.target.value)}
+              placeholder={placeholder}
+              className="input-field flex-1"
+            />
+            <button
+              type="button"
+              onClick={() => onRemove(idx)}
+              disabled={items.length === 1}
+              className="text-xs text-bad hover:underline disabled:opacity-30"
+            >
+              Quitar
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={onAdd}
+          className="ml-8 text-xs font-medium text-[var(--accent)] hover:underline"
+        >
+          + Agregar
+        </button>
+      </div>
+    </div>
   );
 }
 
 // =============================================================
-// Paso 2: Co-investigadores
+// Paso 3: Co-investigadores
 // =============================================================
 
 function PasoCoInvestigadores({
-  protocoloId: _protocoloId,
   coInvestigadores,
   pending,
   onAgregar,
   onEliminar,
 }: {
-  protocoloId: string;
   coInvestigadores: CoInvestigadorRow[];
   pending: boolean;
   onAgregar: (payload: Record<string, unknown>) => void;
@@ -563,10 +946,10 @@ function PasoCoInvestigadores({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-display-2">2. Equipo de investigación</h2>
+        <h2 className="text-display-2">3. Equipo de investigación</h2>
         <p className="mt-1 text-sm text-ink-500">
-          Lista a los co-investigadores que participan en el estudio. El Investigador Principal eres
-          tú y no necesitas agregarte aquí. Si trabajas solo/a, puedes saltar este paso.
+          Lista a los co-investigadores que participan en el estudio. El IP eres tú y no necesitas
+          agregarte aquí. Si trabajas solo/a, puedes saltar este paso.
         </p>
       </div>
 
@@ -666,7 +1049,7 @@ function PasoCoInvestigadores({
 }
 
 // =============================================================
-// Paso 3: Documentos
+// Paso 4: Documentos
 // =============================================================
 
 function PasoDocumentos({
@@ -692,7 +1075,7 @@ function PasoDocumentos({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-display-2">3. Documentos del protocolo</h2>
+        <h2 className="text-display-2">4. Documentos del protocolo</h2>
         <p className="mt-1 text-sm text-ink-500">
           Sube cada documento en formato PDF o Word (máx. 25 MB). Los marcados con asterisco son
           obligatorios según las características que indicaste en el paso 1.
@@ -704,7 +1087,7 @@ function PasoDocumentos({
           const subido = subidosPorTipo.get(tipo);
           const esObligatorio = obligatorios.includes(tipo);
           return (
-            <DocumentoRow
+            <DocumentoRowComp
               key={tipo}
               tipo={tipo}
               subido={subido}
@@ -720,7 +1103,7 @@ function PasoDocumentos({
   );
 }
 
-function DocumentoRow({
+function DocumentoRowComp({
   tipo,
   subido,
   esObligatorio,
@@ -810,7 +1193,7 @@ function DocumentoRow({
 }
 
 // =============================================================
-// Paso 4: Revisar y enviar
+// Paso 5: Revisar y enviar
 // =============================================================
 
 function PasoRevisarEnviar({
@@ -838,33 +1221,38 @@ function PasoRevisarEnviar({
 
   const datosCompletos =
     protocolo.titulo &&
-    protocolo.titulo !== "Protocolo sin título" &&
+    !protocolo.titulo.startsWith("Protocolo sin título") &&
     protocolo.resumen &&
     protocolo.resumen.length >= 100 &&
     protocolo.area_conocimiento_id &&
     protocolo.tipo_investigacion_id &&
     protocolo.clasificacion_riesgo;
 
-  const todoListo = datosCompletos && faltantes.length === 0;
+  const clinicosCompletos =
+    protocolo.objetivo_general &&
+    protocolo.objetivo_general.length >= 30 &&
+    protocolo.objetivos_especificos.length > 0 &&
+    protocolo.criterios_inclusion.length > 0 &&
+    protocolo.criterios_exclusion.length > 0 &&
+    protocolo.metodologia &&
+    protocolo.metodologia.length >= 50;
+
+  const todoListo = datosCompletos && clinicosCompletos && faltantes.length === 0;
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-display-2">4. Revisar y enviar</h2>
+        <h2 className="text-display-2">5. Revisar y enviar</h2>
         <p className="mt-1 text-sm text-ink-500">
           Confirma que toda la información es correcta antes de enviar al CEICS. Después del envío,
           el protocolo entrará en evaluación y no podrás editarlo.
         </p>
       </div>
 
-      {/* Resumen de datos */}
       <section className="space-y-2">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-ink-700">Datos del proyecto</h3>
-          <button
-            onClick={() => onIr(1)}
-            className="text-xs text-[var(--accent)] hover:underline"
-          >
+          <button onClick={() => onIr(1)} className="text-xs text-[var(--accent)] hover:underline">
             Editar
           </button>
         </div>
@@ -873,9 +1261,7 @@ function PasoRevisarEnviar({
           <Dato
             label="Área"
             value={
-              protocolo.area_conocimiento_id
-                ? ETIQUETAS_AREA[protocolo.area_conocimiento_id]
-                : "—"
+              protocolo.area_conocimiento_id ? ETIQUETAS_AREA[protocolo.area_conocimiento_id] : "—"
             }
           />
           <Dato
@@ -891,36 +1277,53 @@ function PasoRevisarEnviar({
           <Dato
             label="Riesgo"
             value={
-              protocolo.clasificacion_riesgo
-                ? ETIQUETAS_RIESGO[protocolo.clasificacion_riesgo]
-                : "—"
+              protocolo.clasificacion_riesgo ? ETIQUETAS_RIESGO[protocolo.clasificacion_riesgo] : "—"
             }
-          />
-          <Dato
-            label="Humanos / menores / genéticos / medicamento"
-            value={`${b(protocolo.involucra_humanos)} / ${b(protocolo.involucra_menores)} / ${b(
-              protocolo.involucra_datos_geneticos,
-            )} / ${b(protocolo.involucra_medicamento)}`}
           />
         </dl>
       </section>
 
-      {/* Equipo */}
+      <section className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-ink-700">Detalles clínicos</h3>
+          <button onClick={() => onIr(2)} className="text-xs text-[var(--accent)] hover:underline">
+            Editar
+          </button>
+        </div>
+        <div className="rounded-md border border-ink-200 bg-white p-4 text-sm">
+          {clinicosCompletos ? (
+            <>
+              <p className="text-ink-700">
+                {protocolo.objetivos_especificos.length} objetivo
+                {protocolo.objetivos_especificos.length === 1 ? "" : "s"} específico
+                {protocolo.objetivos_especificos.length === 1 ? "" : "s"} ·{" "}
+                {protocolo.criterios_inclusion.length} inclusión ·{" "}
+                {protocolo.criterios_exclusion.length} exclusión ·{" "}
+                {protocolo.cronograma.length} etapa{protocolo.cronograma.length === 1 ? "" : "s"}
+              </p>
+              <p className="mt-2 line-clamp-2 text-ink-500">
+                Obj. general: {protocolo.objetivo_general}
+              </p>
+            </>
+          ) : (
+            <p className="text-bad">Faltan datos clínicos por capturar.</p>
+          )}
+        </div>
+      </section>
+
       <section className="space-y-2">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-ink-700">
-            Equipo ({coInvestigadores.length} co-investigador{coInvestigadores.length === 1 ? "" : "es"})
+            Equipo ({coInvestigadores.length} co-investigador
+            {coInvestigadores.length === 1 ? "" : "es"})
           </h3>
-          <button
-            onClick={() => onIr(2)}
-            className="text-xs text-[var(--accent)] hover:underline"
-          >
+          <button onClick={() => onIr(3)} className="text-xs text-[var(--accent)] hover:underline">
             Editar
           </button>
         </div>
         <div className="rounded-md border border-ink-200 bg-white p-4 text-sm">
           {coInvestigadores.length === 0 ? (
-            <p className="text-ink-500">Sin co-investigadores. Tú serás el único responsable.</p>
+            <p className="text-ink-500">Sin co-investigadores.</p>
           ) : (
             <ul className="space-y-1">
               {coInvestigadores.map((c) => (
@@ -934,16 +1337,12 @@ function PasoRevisarEnviar({
         </div>
       </section>
 
-      {/* Documentos */}
       <section className="space-y-2">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-ink-700">
             Documentos ({documentos.length} subido{documentos.length === 1 ? "" : "s"})
           </h3>
-          <button
-            onClick={() => onIr(3)}
-            className="text-xs text-[var(--accent)] hover:underline"
-          >
+          <button onClick={() => onIr(4)} className="text-xs text-[var(--accent)] hover:underline">
             Editar
           </button>
         </div>
@@ -962,12 +1361,10 @@ function PasoRevisarEnviar({
         </ul>
       </section>
 
-      {/* Acciones */}
       {!todoListo && (
         <div className="rounded-md border border-warn/20 bg-warn-soft px-4 py-3 text-sm text-warn">
-          {!datosCompletos && (
-            <div>⚠ Faltan datos en el paso 1. Por favor complétalos antes de enviar.</div>
-          )}
+          {!datosCompletos && <div>⚠ Faltan datos en el paso 1.</div>}
+          {!clinicosCompletos && <div>⚠ Faltan datos clínicos en el paso 2.</div>}
           {faltantes.length > 0 && (
             <div>
               ⚠ Faltan documentos obligatorios:{" "}
@@ -1008,8 +1405,4 @@ function Dato({ label, value }: { label: string; value: string | null | undefine
       <dd className="mt-0.5 text-ink-900">{value || "—"}</dd>
     </div>
   );
-}
-
-function b(v: boolean): string {
-  return v ? "Sí" : "No";
 }

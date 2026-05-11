@@ -13,8 +13,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { obtenerUsuarioActual } from "@/lib/auth/usuario-actual";
+import { extraerTextoDeBuffer } from "./extraccion";
 import {
   datosBasicosSchema,
+  datosClinicosSchema,
   coInvestigadorSchema,
   TIPOS_DOCUMENTO,
   type TipoDocumento,
@@ -143,6 +145,45 @@ export async function guardarDatosBasicosAction(
       involucra_menores: parsed.data.involucra_menores,
       involucra_datos_geneticos: parsed.data.involucra_datos_geneticos,
       involucra_medicamento: parsed.data.involucra_medicamento,
+    })
+    .eq("id", protocoloId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/protocolo/${protocoloId}`);
+  revalidatePath(`/protocolo/${protocoloId}/editar`);
+  return { ok: true };
+}
+
+// ============================================================
+// guardarDatosClinicos
+// ============================================================
+
+export async function guardarDatosClinicosAction(
+  protocoloId: string,
+  payload: unknown,
+): Promise<ActionResult> {
+  const check = await verificarPropiedadEditable(protocoloId);
+  if (!check.ok) return check;
+
+  const parsed = datosClinicosSchema.safeParse(payload);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.errors[0]?.message ?? "Datos inválidos",
+    };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("protocolos")
+    .update({
+      objetivo_general: parsed.data.objetivo_general,
+      objetivos_especificos: parsed.data.objetivos_especificos,
+      criterios_inclusion: parsed.data.criterios_inclusion,
+      criterios_exclusion: parsed.data.criterios_exclusion,
+      metodologia: parsed.data.metodologia,
+      cronograma: parsed.data.cronograma,
     })
     .eq("id", protocoloId);
 
@@ -437,6 +478,221 @@ export async function enviarProtocoloAction(
   revalidatePath(`/protocolo/${protocoloId}`);
   revalidatePath("/dashboard");
   return { ok: true };
+}
+
+// ============================================================
+// Extracción IA — punto de entrada
+// ============================================================
+
+/**
+ * Server Action que crea un borrador desde un .docx/.pdf subido por el investigador.
+ *
+ * Flujo:
+ *   1. Crea borrador con título placeholder
+ *   2. Sube el archivo como formato_protocolo en Storage
+ *   3. Extrae texto plano del archivo
+ *   4. Crea fila en extracciones_ia con estado='pendiente' + texto_fuente
+ *   5. Marca protocolos.esperando_extraccion = true
+ *   6. Redirige a /protocolo/[id]/procesando que auto-refresca
+ *
+ * El Scheduled Task de Cowork lee los pendientes cada 5 min, llama a Claude
+ * y al terminar marca estado='completado'. El trigger SQL aplica los campos
+ * al protocolo y desactiva esperando_extraccion.
+ */
+export async function crearProtocoloConIAAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const usuarioId = await obtenerUsuarioId();
+  if (!usuarioId)
+    return { ok: false, error: "Completa tu perfil antes de someter un protocolo." };
+
+  const file = formData.get("archivo") as File | null;
+  if (!file || file.size === 0)
+    return { ok: false, error: "Selecciona el archivo del protocolo (.docx o .pdf)." };
+  if (file.size > MAX_BYTES)
+    return { ok: false, error: "El archivo excede el límite de 25 MB." };
+  if (!MIME_PERMITIDOS.includes(file.type))
+    return { ok: false, error: "Formato no permitido. Sube PDF o Word (.doc/.docx)." };
+
+  const admin = createAdminClient();
+
+  // 1. Crear borrador
+  const { data: prot, error: errProt } = await admin
+    .from("protocolos")
+    .insert({
+      titulo: "Protocolo sin título (analizando con IA…)",
+      investigador_principal_id: usuarioId,
+      estado: "borrador",
+      esperando_extraccion: true,
+      involucra_humanos: true,
+      involucra_menores: false,
+      involucra_datos_geneticos: false,
+      involucra_medicamento: false,
+    })
+    .select("id")
+    .single();
+  if (errProt || !prot)
+    return { ok: false, error: errProt?.message ?? "No se pudo crear el borrador." };
+
+  // 2. Subir archivo a Storage
+  const ext = file.name.split(".").pop() ?? "bin";
+  const storagePath = `${prot.id}/formato_protocolo-${Date.now()}.${ext}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  const { error: errUpload } = await admin.storage
+    .from(BUCKET)
+    .upload(storagePath, buffer, { contentType: file.type, upsert: false });
+  if (errUpload) {
+    // Rollback
+    await admin.from("protocolos").delete().eq("id", prot.id);
+    return { ok: false, error: "Error al subir archivo: " + errUpload.message };
+  }
+
+  // 3. Registrar documento
+  const { data: doc, error: errDoc } = await admin
+    .from("protocolo_documentos")
+    .insert({
+      protocolo_id: prot.id,
+      tipo_documento_id: "formato_protocolo",
+      nombre_original: file.name,
+      storage_path: storagePath,
+      mime_type: file.type,
+      tamano_bytes: file.size,
+      uploaded_by: usuarioId,
+    })
+    .select("id")
+    .single();
+  if (errDoc || !doc) {
+    await admin.storage.from(BUCKET).remove([storagePath]);
+    await admin.from("protocolos").delete().eq("id", prot.id);
+    return { ok: false, error: errDoc?.message ?? "Error al registrar documento." };
+  }
+
+  // 4. Extraer texto del archivo
+  let texto: string;
+  let warnings: string[] = [];
+  try {
+    const result = await extraerTextoDeBuffer(buffer, file.type);
+    texto = result.texto;
+    warnings = result.warnings;
+  } catch (e) {
+    // Mantener el archivo y el protocolo, pero marcar la extracción como error
+    await admin.from("extracciones_ia").insert({
+      protocolo_id: prot.id,
+      documento_id: doc.id,
+      estado: "error",
+      error_mensaje: e instanceof Error ? e.message : "Error desconocido al extraer texto",
+    });
+    await admin
+      .from("protocolos")
+      .update({ esperando_extraccion: false })
+      .eq("id", prot.id);
+    revalidatePath("/dashboard");
+    redirect(`/protocolo/${prot.id}/editar?aviso=extraccion_fallida`);
+  }
+
+  // 5. Crear extracción pendiente con el texto
+  const { error: errExt } = await admin.from("extracciones_ia").insert({
+    protocolo_id: prot.id,
+    documento_id: doc.id,
+    texto_fuente: texto,
+    estado: "pendiente",
+    resultado_json: warnings.length > 0 ? { warnings_extraccion: warnings } : null,
+  });
+  if (errExt) {
+    return { ok: false, error: "Error al guardar extracción: " + errExt.message };
+  }
+
+  // 6. Registrar evento
+  await admin.from("protocolo_eventos").insert({
+    protocolo_id: prot.id,
+    tipo: "extraccion_solicitada",
+    descripcion: `IA analizará el protocolo (texto: ${texto.length.toLocaleString()} caracteres)`,
+    actor_id: usuarioId,
+    datos: { caracteres: texto.length, archivo: file.name },
+  });
+
+  revalidatePath("/dashboard");
+  redirect(`/protocolo/${prot.id}/procesando`);
+}
+
+/** Re-disparar extracción si falló o el investigador quiere intentar de nuevo. */
+export async function reintentarExtraccionAction(
+  protocoloId: string,
+): Promise<ActionResult> {
+  const check = await verificarPropiedadEditable(protocoloId);
+  if (!check.ok) return check;
+
+  const admin = createAdminClient();
+
+  // Buscar el documento formato_protocolo
+  const { data: doc } = await admin
+    .from("protocolo_documentos")
+    .select("id, storage_path, mime_type")
+    .eq("protocolo_id", protocoloId)
+    .eq("tipo_documento_id", "formato_protocolo")
+    .maybeSingle();
+  if (!doc) return { ok: false, error: "No hay formato_protocolo subido en este protocolo." };
+
+  // Descargar el archivo, re-extraer texto
+  const { data: fileData, error: errDl } = await admin.storage
+    .from(BUCKET)
+    .download(doc.storage_path);
+  if (errDl || !fileData) {
+    return { ok: false, error: "No se pudo leer el archivo desde Storage." };
+  }
+  const buffer = Buffer.from(await fileData.arrayBuffer());
+  let texto: string;
+  try {
+    const result = await extraerTextoDeBuffer(buffer, doc.mime_type);
+    texto = result.texto;
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Error al extraer texto",
+    };
+  }
+
+  // Nueva extracción pendiente (no borramos las anteriores; quedan como historial)
+  await admin.from("extracciones_ia").insert({
+    protocolo_id: protocoloId,
+    documento_id: doc.id,
+    texto_fuente: texto,
+    estado: "pendiente",
+  });
+
+  await admin
+    .from("protocolos")
+    .update({ esperando_extraccion: true })
+    .eq("id", protocoloId);
+
+  await admin.from("protocolo_eventos").insert({
+    protocolo_id: protocoloId,
+    tipo: "extraccion_reintentada",
+    descripcion: "El investigador solicitó re-analizar el protocolo con IA",
+    actor_id: check.usuarioId,
+  });
+
+  revalidatePath(`/protocolo/${protocoloId}/procesando`);
+  revalidatePath(`/protocolo/${protocoloId}/editar`);
+  return { ok: true };
+}
+
+/** Saltar la extracción y abrir el wizard manual directo. */
+export async function saltarExtraccionAction(
+  protocoloId: string,
+): Promise<ActionResult> {
+  const check = await verificarPropiedadEditable(protocoloId);
+  if (!check.ok) return check;
+
+  const admin = createAdminClient();
+  await admin
+    .from("protocolos")
+    .update({ esperando_extraccion: false })
+    .eq("id", protocoloId);
+
+  revalidatePath(`/protocolo/${protocoloId}/editar`);
+  redirect(`/protocolo/${protocoloId}/editar`);
 }
 
 // ============================================================

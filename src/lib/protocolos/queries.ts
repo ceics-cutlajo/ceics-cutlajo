@@ -36,12 +36,36 @@ export type ProtocoloCompleto = {
   involucra_menores: boolean;
   involucra_datos_geneticos: boolean;
   involucra_medicamento: boolean;
+  // Campos clínicos (pueden venir de IA o capturarse a mano)
+  objetivo_general: string | null;
+  objetivos_especificos: string[];
+  criterios_inclusion: string[];
+  criterios_exclusion: string[];
+  metodologia: string | null;
+  cronograma: { etapa: string; inicio?: string; fin?: string }[];
+  // Estado de extracción IA
+  esperando_extraccion: boolean;
+  extraccion_id: string | null;
   numero_oficio: string | null;
   created_at: string;
   submitted_at: string | null;
   dictaminado_at: string | null;
   fecha_aprobacion: string | null;
   fecha_vencimiento: string | null;
+};
+
+/** Metadata de campos extraídos por IA (confianza por campo, fragmento-fuente). */
+export type CampoExtraido = {
+  valor: unknown;
+  confianza: "alta" | "media" | "baja";
+  fuente?: string;
+};
+
+export type ResultadoExtraccion = {
+  campos: Record<string, CampoExtraido>;
+  alertas?: string[];
+  tokens_input?: number;
+  tokens_output?: number;
 };
 
 export type CoInvestigadorRow = {
@@ -122,6 +146,7 @@ export async function obtenerProtocolo(
   documentos: DocumentoRow[];
   eventos: EventoRow[];
   esPropietario: boolean;
+  extraccion: ResultadoExtraccion | null;
 } | null> {
   const usuario = await obtenerUsuarioActual();
   const admin = createAdminClient();
@@ -149,7 +174,7 @@ export async function obtenerProtocolo(
   if (!esPropietario && !esComite) return null;
   if (!esPropietario && protocolo.estado === "borrador") return null;
 
-  const [{ data: coInvs }, { data: docs }, { data: eventos }] = await Promise.all([
+  const [{ data: coInvs }, { data: docs }, { data: eventos }, extPromise] = await Promise.all([
     admin
       .from("protocolo_co_investigadores")
       .select("id, nombre, apellido_paterno, apellido_materno, adscripcion, email, orden")
@@ -166,14 +191,34 @@ export async function obtenerProtocolo(
       .eq("protocolo_id", protocoloId)
       .order("created_at", { ascending: false })
       .limit(50),
+    protocolo.extraccion_id
+      ? admin
+          .from("extracciones_ia")
+          .select("resultado_json")
+          .eq("id", protocolo.extraccion_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
+  const extraccionRaw = (extPromise as { data: { resultado_json: ResultadoExtraccion | null } | null }).data;
+  const extraccion = extraccionRaw?.resultado_json ?? null;
+
+  // Normalizar campos JSON que pueden venir como null
+  const protocoloNorm: ProtocoloCompleto = {
+    ...protocolo,
+    objetivos_especificos: protocolo.objetivos_especificos ?? [],
+    criterios_inclusion: protocolo.criterios_inclusion ?? [],
+    criterios_exclusion: protocolo.criterios_exclusion ?? [],
+    cronograma: protocolo.cronograma ?? [],
+  } as ProtocoloCompleto;
+
   return {
-    protocolo: protocolo as ProtocoloCompleto,
+    protocolo: protocoloNorm,
     coInvestigadores: (coInvs ?? []) as CoInvestigadorRow[],
     documentos: (docs ?? []) as DocumentoRow[],
     eventos: (eventos ?? []) as EventoRow[],
     esPropietario,
+    extraccion,
   };
 }
 
@@ -297,6 +342,50 @@ export async function listarBandejaComite(): Promise<ProtocoloBandeja[]> {
       conflictoInteres,
     };
   });
+}
+
+export type ExtraccionStatus = {
+  protocolo_id: string;
+  esperando_extraccion: boolean;
+  extraccion: {
+    id: string;
+    estado: "pendiente" | "procesando" | "completado" | "error";
+    created_at: string;
+    procesando_desde: string | null;
+    completed_at: string | null;
+    error_mensaje: string | null;
+    texto_caracteres: number | null;
+    modelo: string | null;
+  } | null;
+};
+
+/** Estado actual de la extracción IA del protocolo (la más reciente). */
+export async function obtenerEstadoExtraccion(
+  protocoloId: string,
+): Promise<ExtraccionStatus | null> {
+  const admin = createAdminClient();
+  const { data: prot } = await admin
+    .from("protocolos")
+    .select("id, esperando_extraccion")
+    .eq("id", protocoloId)
+    .single();
+  if (!prot) return null;
+
+  const { data: ext } = await admin
+    .from("extracciones_ia")
+    .select(
+      "id, estado, created_at, procesando_desde, completed_at, error_mensaje, texto_caracteres, modelo",
+    )
+    .eq("protocolo_id", protocoloId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return {
+    protocolo_id: prot.id,
+    esperando_extraccion: prot.esperando_extraccion,
+    extraccion: ext,
+  };
 }
 
 /** URL firmada para descargar un documento desde Storage (válida 60 s). */

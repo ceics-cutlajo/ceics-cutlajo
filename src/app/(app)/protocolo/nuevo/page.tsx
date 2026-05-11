@@ -1,8 +1,9 @@
-import { crearYEditarProtocoloAction } from "@/lib/protocolos/actions";
+import { NuevoProtocoloForm } from "./form";
 
 /**
- * Entry point para iniciar un nuevo protocolo.
- * Server Action que crea borrador y redirige al editor del wizard.
+ * Pantalla "Nuevo protocolo" — el investigador elige entre:
+ *   A) Subir su .docx/.pdf y dejar que la IA pre-llene el wizard
+ *   B) Empezar desde cero con el wizard manual
  */
 export default function NuevoProtocoloPage() {
   return (
@@ -11,43 +12,30 @@ export default function NuevoProtocoloPage() {
         <p className="text-eyebrow text-ink-500">Sometimiento</p>
         <h1 className="text-display-1 mt-1">Nuevo protocolo</h1>
         <p className="mt-2 text-ink-600">
-          Antes de comenzar, asegúrate de tener listos los 7 documentos requeridos por el CEICS en
-          formato PDF o Word.
+          Elige cómo quieres empezar. Si ya tienes el protocolo redactado en Word o PDF, la IA lee
+          el documento y rellena el formulario por ti.
         </p>
       </header>
 
-      <div className="card p-8">
-        <h2 className="text-display-2">Documentos requeridos</h2>
-        <ol className="mt-4 list-decimal space-y-2 pl-6 text-sm text-ink-700">
+      <NuevoProtocoloForm />
+
+      <details className="text-sm text-ink-500">
+        <summary className="cursor-pointer hover:text-ink-700">
+          ¿Qué documentos necesito tener listos?
+        </summary>
+        <ol className="mt-3 list-decimal space-y-1 pl-6">
           <li>Carta dirigida al Presidente del CEICS</li>
           <li>Formato de protocolo CEICS (28 secciones)</li>
           <li>Carta de delegación de responsabilidades firmada</li>
           <li>CV resumido del Investigador Principal (máx. 5 cuartillas)</li>
-          <li>
-            Constancia de Buenas Prácticas Clínicas{" "}
-            <span className="text-ink-400">(solo investigación clínica)</span>
-          </li>
-          <li>
-            Consentimiento informado{" "}
-            <span className="text-ink-400">(si involucra humanos)</span>
-          </li>
-          <li>
-            Asentimiento pediátrico{" "}
-            <span className="text-ink-400">(si involucra menores de edad)</span>
-          </li>
+          <li>Constancia de Buenas Prácticas Clínicas (solo investigación clínica)</li>
+          <li>Consentimiento informado (si involucra humanos)</li>
+          <li>Asentimiento pediátrico (si involucra menores de edad)</li>
         </ol>
-
-        <form action={crearYEditarProtocoloAction} className="mt-6">
-          <button type="submit" className="btn-primary">
-            Crear borrador y comenzar →
-          </button>
-        </form>
-
-        <p className="mt-4 text-xs text-ink-500">
-          Crearemos un borrador asociado a tu cuenta. Podrás editarlo cuantas veces quieras antes de
-          enviarlo al CEICS.
+        <p className="mt-2 text-ink-400">
+          Solo el formato de protocolo se necesita para arrancar; los demás se suben en el wizard.
         </p>
-      </div>
+      </details>
     </div>
   );
 }

@@ -47,6 +47,44 @@ export const datosBasicosSchema = z.object({
 
 export type DatosBasicosInput = z.infer<typeof datosBasicosSchema>;
 
+// ---------------- Paso 2: Detalles clínicos ----------------
+
+export const datosClinicosSchema = z.object({
+  objetivo_general: z
+    .string()
+    .trim()
+    .min(30, "El objetivo general debe tener al menos 30 caracteres")
+    .max(2000),
+  objetivos_especificos: z
+    .array(z.string().trim().min(5).max(500))
+    .min(1, "Agrega al menos un objetivo específico")
+    .max(15),
+  criterios_inclusion: z
+    .array(z.string().trim().min(3).max(500))
+    .min(1, "Agrega al menos un criterio de inclusión")
+    .max(20),
+  criterios_exclusion: z
+    .array(z.string().trim().min(3).max(500))
+    .min(1, "Agrega al menos un criterio de exclusión")
+    .max(20),
+  metodologia: z
+    .string()
+    .trim()
+    .min(50, "La metodología debe tener al menos 50 caracteres")
+    .max(5000),
+  cronograma: z
+    .array(
+      z.object({
+        etapa: z.string().trim().min(2).max(200),
+        inicio: z.string().optional(),
+        fin: z.string().optional(),
+      }),
+    )
+    .max(20),
+});
+
+export type DatosClinicosInput = z.infer<typeof datosClinicosSchema>;
+
 // ---------------- Paso 2: Co-investigador ----------------
 
 export const coInvestigadorSchema = z.object({
