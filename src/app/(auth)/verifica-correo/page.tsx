@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { Mail } from "lucide-react";
 
-export default function VerificaCorreoPage({
+export default async function VerificaCorreoPage({
   searchParams,
 }: {
-  searchParams: { email?: string };
+  searchParams: Promise<{ email?: string }>;
 }) {
-  const email = searchParams.email ?? "tu correo institucional";
+  const params = await searchParams;
+  const email = params.email ?? "tu correo institucional";
 
   return (
     <div className="space-y-6 text-center">
