@@ -177,6 +177,128 @@ export async function obtenerProtocolo(
   };
 }
 
+/** Métricas agregadas para el Tablero del Presidente. */
+export type KpisPresidencia = {
+  recibidosMes: number;
+  enEvaluacion: number;
+  listosDictamen: number;
+  aprobadosAno: number;
+};
+
+export async function obtenerKpisPresidencia(): Promise<KpisPresidencia> {
+  const admin = createAdminClient();
+  const ahora = new Date();
+  const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString();
+  const inicioAno = new Date(ahora.getFullYear(), 0, 1).toISOString();
+
+  const [recibidos, enEval, listos, aprobados] = await Promise.all([
+    admin
+      .from("protocolos")
+      .select("id", { count: "exact", head: true })
+      .gte("submitted_at", inicioMes)
+      .not("submitted_at", "is", null),
+    admin
+      .from("protocolos")
+      .select("id", { count: "exact", head: true })
+      .in("estado", ["en_evaluacion_ia", "en_revision_comite", "observaciones"]),
+    admin
+      .from("protocolos")
+      .select("id", { count: "exact", head: true })
+      .eq("estado", "listo_dictamen"),
+    admin
+      .from("protocolos")
+      .select("id", { count: "exact", head: true })
+      .in("estado", ["aprobado", "aprobado_con_observaciones"])
+      .gte("fecha_aprobacion", inicioAno.slice(0, 10)),
+  ]);
+
+  return {
+    recibidosMes: recibidos.count ?? 0,
+    enEvaluacion: enEval.count ?? 0,
+    listosDictamen: listos.count ?? 0,
+    aprobadosAno: aprobados.count ?? 0,
+  };
+}
+
+/** Bandeja del comité: protocolos en estados intermedios, con badge de conflicto de interés. */
+export type ProtocoloBandeja = ProtocoloResumen & {
+  resumen: string | null;
+  ip_nombre: string;
+  conflictoInteres: boolean;
+};
+
+export async function listarBandejaComite(): Promise<ProtocoloBandeja[]> {
+  const usuario = await obtenerUsuarioActual();
+  const admin = createAdminClient();
+  const emailUsuario = usuario.email.toLowerCase();
+
+  const { data: prots } = await admin
+    .from("protocolos")
+    .select(
+      "id, clave, titulo, resumen, estado, created_at, submitted_at, numero_oficio, investigador_principal_id",
+    )
+    .in("estado", [
+      "en_evaluacion_ia",
+      "en_revision_comite",
+      "observaciones",
+      "listo_dictamen",
+    ])
+    .order("submitted_at", { ascending: false, nullsFirst: false });
+
+  if (!prots || prots.length === 0) return [];
+
+  const ipIds = Array.from(new Set(prots.map((p) => p.investigador_principal_id)));
+  const protocoloIds = prots.map((p) => p.id);
+
+  const [ipsResult, coInvsResult] = await Promise.all([
+    admin
+      .from("usuarios")
+      .select("id, nombre, apellido_paterno, apellido_materno, email")
+      .in("id", ipIds),
+    admin
+      .from("protocolo_co_investigadores")
+      .select("protocolo_id, email")
+      .in("protocolo_id", protocoloIds),
+  ]);
+
+  const ipPorId = new Map<
+    string,
+    { nombre: string; apellido_paterno: string; apellido_materno: string | null; email: string }
+  >();
+  (ipsResult.data ?? []).forEach((u) => ipPorId.set(u.id, u));
+
+  const emailsPorProtocolo = new Map<string, Set<string>>();
+  (coInvsResult.data ?? []).forEach((c) => {
+    if (!c.email) return;
+    const set = emailsPorProtocolo.get(c.protocolo_id) ?? new Set<string>();
+    set.add(c.email.toLowerCase());
+    emailsPorProtocolo.set(c.protocolo_id, set);
+  });
+
+  return prots.map((p) => {
+    const ipData = ipPorId.get(p.investigador_principal_id);
+    const ipEmail = ipData?.email.toLowerCase();
+    const emailsCoInv = emailsPorProtocolo.get(p.id) ?? new Set<string>();
+    const conflictoInteres = ipEmail === emailUsuario || emailsCoInv.has(emailUsuario);
+    return {
+      id: p.id,
+      clave: p.clave,
+      titulo: p.titulo,
+      resumen: p.resumen,
+      estado: p.estado,
+      created_at: p.created_at,
+      submitted_at: p.submitted_at,
+      numero_oficio: p.numero_oficio,
+      ip_nombre: ipData
+        ? `${ipData.nombre} ${ipData.apellido_paterno}${
+            ipData.apellido_materno ? " " + ipData.apellido_materno : ""
+          }`
+        : "—",
+      conflictoInteres,
+    };
+  });
+}
+
 /** URL firmada para descargar un documento desde Storage (válida 60 s). */
 export async function urlFirmadaDocumento(storagePath: string): Promise<string | null> {
   const admin = createAdminClient();
