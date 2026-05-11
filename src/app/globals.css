@@ -3,12 +3,8 @@
 @tailwind utilities;
 
 /* ============================================================
-   Tipografías
-   ============================================================ */
-@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
-
-/* ============================================================
    Variables CSS (sincronizadas con tailwind.config.ts)
+   Las fuentes se cargan vía next/font/google en src/app/layout.tsx
    ============================================================ */
 :root {
   --accent: #ed1e77;
@@ -31,7 +27,7 @@ body {
 }
 
 body {
-  font-family: var(--font-body, "Barlow"), "Inter", system-ui, sans-serif;
+  font-family: var(--font-barlow), "Inter", system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   color: theme("colors.ink.800");
@@ -44,7 +40,7 @@ h1,
 h2,
 h3,
 h4 {
-  font-family: var(--font-display, "Barlow"), system-ui, sans-serif;
+  font-family: var(--font-barlow), system-ui, sans-serif;
   font-weight: 600;
   letter-spacing: -0.01em;
   margin: 0;

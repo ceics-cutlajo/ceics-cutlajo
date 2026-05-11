@@ -53,8 +53,8 @@ export default {
         },
       },
       fontFamily: {
-        display: ['"Barlow"', '"Barlow Condensed"', "system-ui", "sans-serif"],
-        body: ['"Barlow"', '"Inter"', "system-ui", "sans-serif"],
+        display: ["var(--font-barlow)", "system-ui", "sans-serif"],
+        body: ["var(--font-barlow)", "Inter", "system-ui", "sans-serif"],
         mono: ['"JetBrains Mono"', '"IBM Plex Mono"', "ui-monospace", "monospace"],
       },
       fontSize: {
