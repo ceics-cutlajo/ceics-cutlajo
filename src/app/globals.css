@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Tipografías
+   ============================================================ */
+@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+/* ============================================================
+   Variables CSS (sincronizadas con tailwind.config.ts)
+   ============================================================ */
+:root {
+  --accent: #ed1e77;
+  --accent-deep: #680538;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body, "Barlow"), "Inter", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: theme("colors.ink.800");
+  background: theme("colors.ink.50");
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display, "Barlow"), system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: theme("colors.ink.900");
+}
+
+/* ============================================================
+   Componentes utilitarios
+   ============================================================ */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply btn bg-[var(--accent)] text-white hover:bg-[var(--accent-deep)] focus-visible:ring-[var(--accent)];
+  }
+  .btn-secondary {
+    @apply btn bg-ink-100 text-ink-800 hover:bg-ink-150 focus-visible:ring-ink-300;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-ink-700 hover:bg-ink-100;
+  }
+
+  .input-field {
+    @apply w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm placeholder:text-ink-400 focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)];
+  }
+
+  .card {
+    @apply rounded-lg bg-white shadow-sm border border-ink-150;
+  }
+}
