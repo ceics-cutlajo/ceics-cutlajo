@@ -18,8 +18,9 @@ export async function extraerTextoDeBuffer(
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
     mimeType === "application/msword"
   ) {
-    // @ts-expect-error mammoth no tiene types instalados localmente, ok en Vercel
+    // @ts-ignore — mammoth puede o no tener types resueltos según el entorno
     const mammoth = await import("mammoth");
+    // @ts-ignore
     const result = await mammoth.extractRawText({ buffer });
     return {
       texto: limpiarTexto(result.value),
@@ -28,7 +29,7 @@ export async function extraerTextoDeBuffer(
   }
 
   if (mimeType === "application/pdf") {
-    // @ts-expect-error pdf-parse no tiene types instalados localmente
+    // @ts-ignore — pdf-parse importa por subpath sin types modernos
     const pdfParseModule = await import("pdf-parse/lib/pdf-parse.js");
     const pdfParse = pdfParseModule.default ?? pdfParseModule;
     const result = await pdfParse(buffer);
