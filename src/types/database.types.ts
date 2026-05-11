@@ -1,50 +1,46 @@
 /**
- * Tipos generados de Supabase.
+ * Tipos del schema de Supabase.
  *
- * Este archivo se REEMPLAZA con `pnpm db:types` una vez que el proyecto
- * Supabase esté creado y conectado. Por ahora es un placeholder mínimo.
+ * Placeholder permisivo hasta que se conecte el CLI de Supabase y se generen
+ * los tipos automáticamente con `pnpm db:types` (que ejecuta
+ * `supabase gen types typescript --linked > src/types/database.types.ts`).
+ *
+ * Mientras tanto, este Database genérico permite cualquier operación contra
+ * cualquier tabla sin perder la integración con @supabase/ssr y @supabase/supabase-js.
+ *
+ * TODO sesión 5: ejecutar `pnpm db:types` y reemplazar este archivo con los tipos generados.
  */
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyRow = Record<string, any>;
+
+type GenericTable = {
+  Row: AnyRow;
+  Insert: AnyRow;
+  Update: AnyRow;
+  Relationships: [];
+};
+
 export interface Database {
   public: {
     Tables: {
-      usuarios: {
-        Row: {
-          id: string;
-          email: string;
-          nombre: string;
-          apellido_paterno: string;
-          apellido_materno: string | null;
-          codigo_udg: string;
-          centro_universitario: string;
-          division: string | null;
-          departamento: string | null;
-          telefono: string | null;
-          activo: boolean;
-          email_verificado: boolean;
-          created_at: string;
-          updated_at: string;
-          last_login: string | null;
-        };
-        Insert: Omit<Database["public"]["Tables"]["usuarios"]["Row"], "id" | "created_at" | "updated_at">;
-        Update: Partial<Database["public"]["Tables"]["usuarios"]["Insert"]>;
-      };
-      usuario_roles: {
-        Row: {
-          usuario_id: string;
-          rol: "investigador" | "comite_vocal" | "comite_secretario" | "presidente" | "admin_sistema";
-          asignado_en: string;
-          asignado_por: string | null;
-        };
-        Insert: Omit<Database["public"]["Tables"]["usuario_roles"]["Row"], "asignado_en">;
-        Update: Partial<Database["public"]["Tables"]["usuario_roles"]["Insert"]>;
-      };
+      [key: string]: GenericTable;
     };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
-    Enums: Record<string, never>;
-    CompositeTypes: Record<string, never>;
+    Views: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      [key: string]: { Row: AnyRow; Insert: AnyRow; Update: AnyRow; Relationships: [] };
+    };
+    Functions: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      [key: string]: { Args: AnyRow; Returns: any };
+    };
+    Enums: {
+      [key: string]: string;
+    };
+    CompositeTypes: {
+      [key: string]: AnyRow;
+    };
   };
 }
