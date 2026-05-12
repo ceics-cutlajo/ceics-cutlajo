@@ -11,6 +11,8 @@ import type {
 import { ETIQUETAS_DOCUMENTO, type TipoDocumento } from "@/lib/protocolos/schemas";
 import { ETIQUETAS_CATEGORIA, CATEGORIAS, type Categoria } from "@/lib/checklist";
 import type { PreDictamen, BloqueEvaluado, ItemEvaluado } from "@/lib/ia/schema-pre-dictamen";
+import type { EvaluacionConBloques } from "@/lib/evaluaciones/queries";
+import { FormularioVoto } from "./formulario-voto";
 
 type DocumentoConUrl = DocumentoRow & { urlDescarga: string | null };
 
@@ -39,6 +41,9 @@ type Props = {
   documentos: DocumentoConUrl[];
   ipNombre: string;
   conflictoInteres: boolean;
+  esPresidente: boolean;
+  evaluacionPrevia: EvaluacionConBloques | null;
+  progresoVotacion: { emitidos: number; total: number };
   preInforme: PreInforme | null;
 };
 
@@ -120,11 +125,10 @@ export function Revisar(props: Props) {
         </p>
       </header>
 
-      {props.conflictoInteres && (
+      {props.conflictoInteres && !props.evaluacionPrevia && (
         <div className="rounded-md border border-bad/30 bg-bad-soft px-4 py-3 text-sm text-bad">
           ⚠ <strong>Conflicto de interés.</strong> Eres el Investigador Principal de este
-          protocolo. La votación quedará marcada automáticamente como abstención obligatoria
-          cuando se implemente el formulario de voto (sesión 8b).
+          protocolo. Debes confirmar abstención por COI más abajo.
         </div>
       )}
 
@@ -312,10 +316,14 @@ export function Revisar(props: Props) {
         )}
       </section>
 
-      <div className="rounded-md bg-info-soft px-4 py-3 text-sm text-info">
-        🛠️ El formulario para validar/discrepar bloque por bloque y emitir tu voto se implementa
-        en la siguiente sesión (8b). Por ahora puedes leer el pre-dictamen y los documentos.
-      </div>
+      <FormularioVoto
+        protocoloId={props.protocoloId}
+        preDictamen={props.preInforme?.contenido ?? null}
+        conflictoInteres={props.conflictoInteres}
+        esPresidente={props.esPresidente}
+        evaluacionPrevia={props.evaluacionPrevia}
+        progresoVotacion={props.progresoVotacion}
+      />
     </div>
   );
 }

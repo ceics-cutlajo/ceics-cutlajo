@@ -4,6 +4,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { obtenerUsuarioActual } from "@/lib/auth/usuario-actual";
 import { Revisar } from "./revisar";
 import type { PreDictamen } from "@/lib/ia/schema-pre-dictamen";
+import {
+  obtenerEvaluacionUsuario,
+  listarEvaluacionesProtocolo,
+  listarMiembrosElegiblesComite,
+} from "@/lib/evaluaciones/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -52,14 +57,33 @@ export default async function ComiteProtocoloPage({
     ? `${ipUsuario.nombre} ${ipUsuario.apellido_paterno}${ipUsuario.apellido_materno ? " " + ipUsuario.apellido_materno : ""}`
     : "(IP no encontrado)";
 
+  // Resolver id del usuario actual
+  const { data: usuarioActualRow } = await admin
+    .from("usuarios")
+    .select("id")
+    .eq("email", usuario.email)
+    .single();
+  const usuarioActualId = usuarioActualRow?.id ?? null;
+
   // Detectar conflicto de interés del usuario actual
   const conflictoInteres =
-    datos.protocolo.investigador_principal_id ===
-    (await admin
-      .from("usuarios")
-      .select("id")
-      .eq("email", usuario.email)
-      .single()).data?.id;
+    !!usuarioActualId &&
+    datos.protocolo.investigador_principal_id === usuarioActualId;
+
+  // Evaluación previa del usuario actual (si ya votó)
+  const evaluacionPrevia = usuarioActualId
+    ? await obtenerEvaluacionUsuario(id, usuarioActualId)
+    : null;
+
+  // Progreso de la votación: cuántos miembros han emitido y el total elegible
+  const miembrosElegibles = await listarMiembrosElegiblesComite();
+  const evaluacionesEmitidas = await listarEvaluacionesProtocolo(id);
+  const progresoVotacion = {
+    emitidos: evaluacionesEmitidas.length,
+    total: miembrosElegibles.length,
+  };
+
+  const esPresidente = usuario.roles.includes("presidente");
 
   // URLs firmadas para los documentos (TTL 1h por default en el helper)
   const documentosConUrl = await Promise.all(
@@ -77,6 +101,9 @@ export default async function ComiteProtocoloPage({
       documentos={documentosConUrl}
       ipNombre={ipNombre}
       conflictoInteres={conflictoInteres}
+      esPresidente={esPresidente}
+      evaluacionPrevia={evaluacionPrevia}
+      progresoVotacion={progresoVotacion}
       preInforme={
         preInformeRow
           ? {
