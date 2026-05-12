@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -47,6 +47,34 @@ export function Procesando({ protocoloId, estadoInicial }: Props) {
   useEffect(() => {
     setEstado(estadoInicial);
   }, [estadoInicial]);
+
+  // Disparar el procesamiento IA: si la extracción está pendiente, llamar al
+  // route handler /api/ia/procesar-extraccion. Idempotente: la atomic UPDATE
+  // del servidor garantiza un único ganador aunque varios clientes disparen.
+  const dispatchedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const ext = estado.extraccion;
+    if (!ext || ext.estado !== "pendiente") return;
+    if (dispatchedRef.current.has(ext.id)) return;
+    dispatchedRef.current.add(ext.id);
+
+    fetch("/api/ia/procesar-extraccion", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ extraccionId: ext.id }),
+    })
+      .then(() => {
+        // Sea éxito o error, el servidor ya actualizó el estado de la fila.
+        // Refrescamos para reflejarlo en pantalla.
+        router.refresh();
+      })
+      .catch((e) => {
+        // Error de red antes de tocar el servidor → permitir reintento en el
+        // próximo refresh quitando el marcador local.
+        dispatchedRef.current.delete(ext.id);
+        console.error("Dispatch IA — error de red:", e);
+      });
+  }, [estado.extraccion, router]);
 
   const ext = estado.extraccion;
   const faseActual = ext?.estado ?? "pendiente";

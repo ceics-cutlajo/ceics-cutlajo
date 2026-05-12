@@ -495,9 +495,10 @@ export async function enviarProtocoloAction(
  *   5. Marca protocolos.esperando_extraccion = true
  *   6. Redirige a /protocolo/[id]/procesando que auto-refresca
  *
- * El Scheduled Task de Cowork lee los pendientes cada 5 min, llama a Claude
- * y al terminar marca estado='completado'. El trigger SQL aplica los campos
- * al protocolo y desactiva esperando_extraccion.
+ * Desde la pantalla `procesando`, el cliente dispara POST /api/ia/procesar-extraccion
+ * que llama a Claude Sonnet 4.6 y al terminar marca estado='completado'. El
+ * trigger SQL `aplicar_extraccion_ia` aplica los campos al protocolo y desactiva
+ * esperando_extraccion. Ver `docs/08_MOTOR_IA.md`.
  */
 export async function crearProtocoloConIAAction(
   formData: FormData,
