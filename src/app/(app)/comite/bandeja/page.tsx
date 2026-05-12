@@ -55,11 +55,6 @@ export default async function BandejaComitePage() {
         </section>
       )}
 
-      <div className="rounded-md bg-info-soft px-4 py-3 text-sm text-info">
-        🛠️ La interfaz de votación con voto por sección y el pre-dictamen IA están en
-        construcción (sesión 8). Por ahora puedes abrir cada protocolo y revisar sus documentos y
-        datos.
-      </div>
     </div>
   );
 }

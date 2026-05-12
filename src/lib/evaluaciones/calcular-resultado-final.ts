@@ -15,6 +15,12 @@ export type ResultadoFinal = {
    * conservador y deja la marca para revisión humana.
    */
   desempate_no_resuelto?: boolean;
+  /**
+   * True si TODOS los miembros que votaron lo hicieron como abstención
+   * (incluido COI), por lo que no hay votos decisivos. El protocolo NO debe
+   * cerrarse automáticamente en este caso — requiere intervención del comité.
+   */
+  sin_votos_decisivos?: boolean;
 };
 
 /** Tipos de voto "decisivos" (excluye `abstener`). */
@@ -60,6 +66,17 @@ export function calcularResultadoFinal(
   };
   for (const e of evaluaciones) {
     conteo[e.voto_global] += 1;
+  }
+
+  const totalDecisivos =
+    conteo.aprobar + conteo.aprobar_con_observaciones + conteo.no_aprobar;
+  if (totalDecisivos === 0) {
+    return {
+      ganador: "abstener",
+      conteo,
+      voto_calidad_aplicado: false,
+      sin_votos_decisivos: true,
+    };
   }
 
   const ranking = TIPOS_DECISIVOS.map((t) => ({ tipo: t, count: conteo[t] })).sort(

@@ -357,6 +357,18 @@ async function cerrarYNotificarSiCorresponde(
   }
 
   const resultado = calcularResultadoFinal(evals, presidente.id);
+
+  if (resultado.sin_votos_decisivos) {
+    // Todos los miembros que votaron lo hicieron como abstención (COI u otro).
+    // No hay base para cerrar automáticamente: el protocolo permanece en
+    // revisión y requerirá ampliación del padrón (más miembros con cuenta)
+    // o intervención manual del comité.
+    return {
+      ok: true,
+      data: { ganador: "(sin decisivos)", estadoNuevo: prot.estado as string },
+    };
+  }
+
   const estadoNuevo = estadoFinalDesdeVoto(resultado.ganador);
 
   // UPDATE atómico con guardia: solo si sigue en votación
