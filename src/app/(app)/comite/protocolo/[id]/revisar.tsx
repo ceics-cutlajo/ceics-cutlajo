@@ -387,17 +387,24 @@ function BloqueCard({
           <span className={`text-xs ${tono.texto}`}>· {bloque.resultado}</span>
         </span>
         <span className="text-xs text-ink-500">
-          {bloque.items_evaluados.length} ítem
-          {bloque.items_evaluados.length === 1 ? "" : "s"}
+          {bloque.items_evaluados?.length ?? 0} ítem
+          {(bloque.items_evaluados?.length ?? 0) === 1 ? "" : "s"} detallado
+          {(bloque.items_evaluados?.length ?? 0) === 1 ? "" : "s"}
         </span>
       </summary>
       <div className="border-t border-ink-150 bg-white px-4 py-3 text-sm">
         <p className="mb-3 leading-relaxed text-ink-800">{bloque.justificacion}</p>
-        <ul className="space-y-2">
-          {bloque.items_evaluados.map((item) => (
-            <ItemRow key={item.id} item={item} />
-          ))}
-        </ul>
+        {bloque.items_evaluados && bloque.items_evaluados.length > 0 ? (
+          <ul className="space-y-2">
+            {bloque.items_evaluados.map((item) => (
+              <ItemRow key={item.id} item={item} />
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs italic text-ink-500">
+            Detalle por ítem disponible bajo demanda (función de sesión 8b).
+          </p>
+        )}
       </div>
     </details>
   );
