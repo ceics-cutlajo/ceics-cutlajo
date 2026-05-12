@@ -23,7 +23,10 @@ const itemEvaluadoSchema = z.object({
 const bloqueEvaluadoSchema = z.object({
   resultado: resultadoSchema,
   justificacion: z.string().min(15).max(800),
-  items_evaluados: z.array(itemEvaluadoSchema).max(40),
+  // items_evaluados opcional: en sesión 8a no lo pedimos al modelo (ahorra
+  // tokens y tiempo). Si en 8b queremos detalle por ítem para un bloque
+  // específico, lo solicitamos bajo demanda con una llamada acotada.
+  items_evaluados: z.array(itemEvaluadoSchema).max(40).optional(),
 });
 
 export const CATEGORIAS_BLOQUE = [

@@ -250,7 +250,7 @@ export async function POST(req: NextRequest) {
     for (const bloque of Object.values(validated.data.bloques)) {
       if (!bloque) continue;
       if (bloque.resultado === "no_cumple") hayNoCumple = true;
-      for (const item of bloque.items_evaluados) {
+      for (const item of bloque.items_evaluados ?? []) {
         totalItems++;
         if (item.resultado === "cumple") cumple++;
         else if (item.resultado === "no_cumple") noCumple++;
