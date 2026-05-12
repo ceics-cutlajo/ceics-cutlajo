@@ -32,4 +32,7 @@ export const MAX_TOKENS_EXTRACCION = 4096;
 // del límite Hobby. Si en producción se ven veredictos mediocres en bloques
 // críticos (consentimiento, riesgo-beneficio), considerar híbrido Haiku+Sonnet.
 export const MODELO_PRE_DICTAMEN = "claude-haiku-4-5-20251001";
-export const MAX_TOKENS_PRE_DICTAMEN = 4096;
+// 8000 deja margen amplio para evitar truncación. El prompt instruye al modelo
+// a reportar solo items relevantes (no_cumple/parcial/severidad alta), no los
+// 100, así que en la práctica usa 2-3K tokens.
+export const MAX_TOKENS_PRE_DICTAMEN = 8000;

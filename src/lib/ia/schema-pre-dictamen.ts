@@ -16,14 +16,14 @@ const resultadoSchema = z.enum(["cumple", "no_cumple", "parcial", "no_aplica"]);
 const itemEvaluadoSchema = z.object({
   id: z.string().regex(/^CHK-\d{3}$/),
   resultado: resultadoSchema,
-  observacion: z.string().min(3).max(800),
-  fuente_protocolo: z.string().max(800).optional(),
+  observacion: z.string().min(3).max(300),
+  fuente_protocolo: z.string().max(300).optional(),
 });
 
 const bloqueEvaluadoSchema = z.object({
   resultado: resultadoSchema,
-  justificacion: z.string().min(15).max(2000),
-  items_evaluados: z.array(itemEvaluadoSchema).max(50),
+  justificacion: z.string().min(15).max(800),
+  items_evaluados: z.array(itemEvaluadoSchema).max(40),
 });
 
 export const CATEGORIAS_BLOQUE = [

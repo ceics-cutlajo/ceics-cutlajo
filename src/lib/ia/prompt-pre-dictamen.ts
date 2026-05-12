@@ -26,9 +26,18 @@ REGLAS DE EVALUACIÓN
    - "no_cumple": el bloque tiene fallas graves — al menos un ítem crítico no cumple o falta evidencia central.
    - "no_aplica": el bloque entero no aplica a este protocolo (raro, justificar).
 3. Sé conservador. Si tienes duda razonable entre "cumple" y "parcial", elige "parcial". Si entre "parcial" y "no_cumple", elige "no_cumple" cuando la severidad del ítem afectado sea "critica" o "alta".
-4. Justifica cada veredicto de bloque en 50-300 palabras citando los ítems problemáticos.
-5. Para cada ítem evaluado dentro del bloque, devuelves: id (CHK-NNN), resultado, observación corta (1-2 frases), y fuente_protocolo (cita o referencia al fragmento del protocolo que sustenta tu evaluación).
-6. NO inventes evidencia. Si el protocolo no menciona algo, marca el ítem como "no_cumple" o "parcial" con observación clara.
+4. Justifica cada veredicto de bloque en 40-150 palabras. Sé conciso, los miembros del comité leerán esto.
+
+5. REGLA DE ECONOMÍA DEL OUTPUT — CRÍTICA:
+   En "items_evaluados" de cada bloque, INCLUYE ÚNICAMENTE los ítems que:
+   (a) tienen resultado "no_cumple" o "parcial", O
+   (b) son de severidad "critica" o "alta" aunque cumplan (como aseguramiento).
+   OMITE los demás (severidad media/baja que cumplen) — se asumen cumple por defecto.
+   Esto debe reducir items_evaluados a ~20-30 ítems totales en todo el dictamen, no a 100.
+
+6. Cada "observacion" debe ser 1 frase de ≤150 caracteres. Concisa, accionable. NO repitas el criterio del checklist.
+7. "fuente_protocolo" en 1 línea de ≤150 caracteres (sección o cita corta).
+8. NO inventes evidencia. Si el protocolo no menciona algo, marca el ítem como "no_cumple" o "parcial" con observación clara.
 
 OBSERVACIONES CRÍTICAS Y SUGERENCIAS
 
