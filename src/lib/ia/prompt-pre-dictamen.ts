@@ -137,9 +137,14 @@ export function buildUserMessagePreDictamen(
   }
 
   if (datos.texto_fuente && datos.texto_fuente.length > 0) {
+    // Truncar a 20K chars (~5K tokens) para mantener el total bajo 60s en
+    // Vercel Hobby. El texto típico de un protocolo cabe en este límite; si
+    // se excede, lo importante (intro, objetivos, métodos, consentimiento)
+    // suele estar en los primeros tramos del documento.
     const recortado =
-      datos.texto_fuente.length > 60000
-        ? datos.texto_fuente.slice(0, 60000) + "\n\n[...texto truncado a 60k caracteres por límite de contexto...]"
+      datos.texto_fuente.length > 20000
+        ? datos.texto_fuente.slice(0, 20000) +
+          "\n\n[...texto truncado a 20k caracteres por límite de tiempo de inferencia...]"
         : datos.texto_fuente;
     partes.push(`\n=== TEXTO ÍNTEGRO DEL DOCUMENTO DEL INVESTIGADOR ===\n${recortado}`);
   } else {
@@ -150,7 +155,7 @@ export function buildUserMessagePreDictamen(
 
   partes.push("\n=== CHECKLIST MAESTRO POR BLOQUE ===");
   partes.push(
-    "Estos son los ítems contra los que debes evaluar. Solo se incluyen los aplicables a las características declaradas del protocolo.\n",
+    "Estos son los ítems contra los que debes evaluar. Solo se incluyen los aplicables a las características declaradas del protocolo. Cada ítem se presenta en forma compacta: [ID] (severidad) → guía de evaluación.\n",
   );
 
   for (const [categoria, items] of Object.entries(itemsPorCategoria) as [
@@ -160,12 +165,7 @@ export function buildUserMessagePreDictamen(
     if (items.length === 0) continue;
     partes.push(`\n--- BLOQUE: ${categoria} (${ETIQUETAS_CATEGORIA[categoria]}) ---`);
     for (const item of items) {
-      partes.push(
-        `\n[${item.id}] severidad=${item.severidad}, peso=${item.peso}, sec_protocolo=${item.seccion_protocolo}`,
-      );
-      partes.push(`  Criterio: ${item.criterio}`);
-      partes.push(`  Evidencia esperada: ${item.evidencia_esperada}`);
-      partes.push(`  Guía IA: ${item.ai_prompt_hint}`);
+      partes.push(`[${item.id}] (${item.severidad}) → ${item.ai_prompt_hint}`);
     }
   }
 

@@ -67,9 +67,20 @@ export function Revisar(props: Props) {
       body: JSON.stringify({ protocoloId: props.protocoloId }),
     })
       .then(async (r) => {
+        // Vercel devuelve 504 con HTML cuando la función excede maxDuration —
+        // no es JSON parseable, así que damos un mensaje específico.
+        if (r.status === 504) {
+          setErrorGen(
+            "La IA tardó más de 60 segundos (límite de Vercel Hobby). Reintentar suele funcionar; si vuelve a fallar, el protocolo es demasiado largo y necesitamos optimizar más el prompt.",
+          );
+          setGenerando(false);
+          return;
+        }
         const data = await r.json().catch(() => ({}));
         if (!r.ok && !data.skipped) {
-          setErrorGen(data.message ?? "Error generando pre-dictamen");
+          setErrorGen(
+            data.message ?? `Error ${r.status}: ${r.statusText || "respuesta no parseable"}`,
+          );
         }
         setGenerando(false);
         router.refresh();
