@@ -328,7 +328,7 @@ function PreDictamenContenido({ pre }: { pre: PreInforme }) {
       </p>
 
       <dl className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-5">
-        <Kpi label="Ítems totales" valor={pre.total_items_evaluados} tono="ink" />
+        <Kpi label="Bloques totales" valor={pre.total_items_evaluados} tono="ink" />
         <Kpi label="Cumple" valor={pre.items_cumple} tono="good" />
         <Kpi label="Parcial" valor={pre.items_parcial} tono="warn" />
         <Kpi label="No cumple" valor={pre.items_no_cumple} tono="bad" />
@@ -386,11 +386,13 @@ function BloqueCard({
           <strong>{ETIQUETAS_CATEGORIA[categoria]}</strong>
           <span className={`text-xs ${tono.texto}`}>· {bloque.resultado}</span>
         </span>
-        <span className="text-xs text-ink-500">
-          {bloque.items_evaluados?.length ?? 0} ítem
-          {(bloque.items_evaluados?.length ?? 0) === 1 ? "" : "s"} detallado
-          {(bloque.items_evaluados?.length ?? 0) === 1 ? "" : "s"}
-        </span>
+        {bloque.items_evaluados && bloque.items_evaluados.length > 0 && (
+          <span className="text-xs text-ink-500">
+            {bloque.items_evaluados.length} ítem
+            {bloque.items_evaluados.length === 1 ? "" : "s"} detallado
+            {bloque.items_evaluados.length === 1 ? "" : "s"}
+          </span>
+        )}
       </summary>
       <div className="border-t border-ink-150 bg-white px-4 py-3 text-sm">
         <p className="mb-3 leading-relaxed text-ink-800">{bloque.justificacion}</p>

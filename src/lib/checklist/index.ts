@@ -64,6 +64,26 @@ type RawChecklist = {
 
 const checklist = rawChecklist as unknown as RawChecklist;
 
+/**
+ * Ítems del checklist que son responsabilidad del CEI evaluador, NO del
+ * investigador. La IA no debe penalizar al protocolo por su ausencia: esa
+ * información ni siquiera debería estar en el documento del investigador.
+ *
+ * El bloque "gobernanza_cei" mantiene los ítems restantes (CHK-087, 089, 090)
+ * que sí tocan al investigador (entrega de informes parciales/finales,
+ * cumplimiento de procedimientos del CEI durante seguimiento).
+ */
+export const ITEMS_RESPONSABILIDAD_COMITE = new Set([
+  "CHK-080", // Registro CONBIOETICA del CEI
+  "CHK-081", // Composición del CEI (≥7 miembros)
+  "CHK-082", // Independencia operativa/financiera del CEI
+  "CHK-083", // POEs del CEI
+  "CHK-084", // COI de miembros del CEI
+  "CHK-085", // Quorum/decisiones del CEI
+  "CHK-086", // Capacitación anual de miembros del CEI
+  "CHK-088", // Notificación de dictámenes del CEI al investigador
+]);
+
 export function obtenerTodosLosItems(): ChecklistItem[] {
   return checklist.items;
 }
@@ -104,6 +124,10 @@ export function filtrarPorAplicabilidad(
   },
 ): ChecklistItem[] {
   return items.filter((item) => {
+    // Excluir ítems de responsabilidad del CEI — el protocolo del investigador
+    // no debe ser penalizado por ausencia de información que el CEI debe proveer.
+    if (ITEMS_RESPONSABILIDAD_COMITE.has(item.id)) return false;
+
     const a = item.aplicabilidad;
     if (
       caracteristicas.tipo_investigacion &&

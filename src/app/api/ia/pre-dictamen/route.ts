@@ -289,25 +289,24 @@ export async function POST(req: NextRequest) {
       throw new Error(`Pre-dictamen combinado no cumple schema: ${issues}`);
     }
 
-    // 9. Calcular agregados de items
-    let totalItems = 0;
+    // 9. Calcular agregados POR BLOQUE (no por ítem). Desde que el modelo ya
+    // no devuelve items_evaluados, los conteos significativos son a nivel
+    // bloque. Las columnas pre_informes.items_* (heredadas de migración 007)
+    // se reutilizan con nueva semántica: ahora cuentan BLOQUES, no ítems.
+    let totalBloques = 0;
     let cumple = 0;
     let noCumple = 0;
     let parcial = 0;
     let noAplica = 0;
-    let hayNoCumple = false;
     for (const bloque of Object.values(validated.data.bloques)) {
       if (!bloque) continue;
-      if (bloque.resultado === "no_cumple") hayNoCumple = true;
-      for (const item of bloque.items_evaluados ?? []) {
-        totalItems++;
-        if (item.resultado === "cumple") cumple++;
-        else if (item.resultado === "no_cumple") noCumple++;
-        else if (item.resultado === "parcial") parcial++;
-        else if (item.resultado === "no_aplica") noAplica++;
-      }
+      totalBloques++;
+      if (bloque.resultado === "cumple") cumple++;
+      else if (bloque.resultado === "no_cumple") noCumple++;
+      else if (bloque.resultado === "parcial") parcial++;
+      else if (bloque.resultado === "no_aplica") noAplica++;
     }
-    const cumpleGlobal = !hayNoCumple && noCumple === 0;
+    const cumpleGlobal = noCumple === 0 && parcial === 0;
 
     // 10. Insertar pre_informe
     const duracionSegundos = Math.round((Date.now() - inicio) / 1000);
@@ -321,7 +320,9 @@ export async function POST(req: NextRequest) {
         contenido: validated.data,
         resumen_ejecutivo: validated.data.resumen_ejecutivo,
         cumple_global: cumpleGlobal,
-        total_items_evaluados: totalItems,
+        // Estas 5 columnas heredadas de migración 007 ahora cuentan BLOQUES,
+        // no ítems individuales (los items_evaluados ya no se piden al modelo).
+        total_items_evaluados: totalBloques,
         items_cumple: cumple,
         items_no_cumple: noCumple,
         items_parcial: parcial,
@@ -350,13 +351,13 @@ export async function POST(req: NextRequest) {
     await admin.from("protocolo_eventos").insert({
       protocolo_id: body.protocoloId,
       tipo: "pre_dictamen_generado",
-      descripcion: `Pre-dictamen IA generado (${totalItems} ítems evaluados, cumple_global=${cumpleGlobal})`,
+      descripcion: `Pre-dictamen IA generado (${totalBloques} bloques evaluados, cumple_global=${cumpleGlobal})`,
       datos: {
         pre_informe_id: nuevoPreInforme.id,
         modelo: MODELO_PRE_DICTAMEN,
         duracion_segundos: duracionSegundos,
-        items_no_cumple: noCumple,
-        items_parcial: parcial,
+        bloques_no_cumple: noCumple,
+        bloques_parcial: parcial,
       },
     });
 
