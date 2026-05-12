@@ -16,8 +16,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getAnthropicClient,
-  MAX_TOKENS_EXTRACCION,
-  MODELO_EXTRACCION,
+  MAX_TOKENS_PRE_DICTAMEN,
+  MODELO_PRE_DICTAMEN,
 } from "@/lib/ia/anthropic-client";
 import {
   SYSTEM_PROMPT_PRE_DICTAMEN,
@@ -178,8 +178,8 @@ export async function POST(req: NextRequest) {
   try {
     const anthropic = getAnthropicClient();
     const response = await anthropic.messages.create({
-      model: MODELO_EXTRACCION,
-      max_tokens: MAX_TOKENS_EXTRACCION,
+      model: MODELO_PRE_DICTAMEN,
+      max_tokens: MAX_TOKENS_PRE_DICTAMEN,
       system: SYSTEM_PROMPT_PRE_DICTAMEN,
       messages: [
         {
@@ -268,7 +268,7 @@ export async function POST(req: NextRequest) {
         protocolo_id: body.protocoloId,
         version: 1,
         generado_por: "route-handler-sonnet-4-6",
-        modelo_usado: MODELO_EXTRACCION,
+        modelo_usado: MODELO_PRE_DICTAMEN,
         contenido: validated.data,
         resumen_ejecutivo: validated.data.resumen_ejecutivo,
         cumple_global: cumpleGlobal,
@@ -304,7 +304,7 @@ export async function POST(req: NextRequest) {
       descripcion: `Pre-dictamen IA generado (${totalItems} ítems evaluados, cumple_global=${cumpleGlobal})`,
       datos: {
         pre_informe_id: nuevoPreInforme.id,
-        modelo: MODELO_EXTRACCION,
+        modelo: MODELO_PRE_DICTAMEN,
         duracion_segundos: duracionSegundos,
         items_no_cumple: noCumple,
         items_parcial: parcial,

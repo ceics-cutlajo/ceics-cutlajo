@@ -21,11 +21,15 @@ export function getAnthropicClient(): Anthropic {
   return _client;
 }
 
-// Modelo por defecto para todos los jobs IA del CEICS. Ver memoria
-// project-modelo-ia-protocolos: Sonnet 4.6 para extracción, fallback a Opus solo
-// para casos límite documentados.
+// Extracción de protocolos (sesión 7): Sonnet 4.6 — 14 campos estructurados
+// con confianza y citas. Requiere precisión, vale la latencia.
 export const MODELO_EXTRACCION = "claude-sonnet-4-6";
-
-// Tope alto pero finito de tokens de salida. Un resultado típico (14 campos con
-// valor/confianza/fuente + alertas) cabe en 2-3K tokens; 4096 deja margen.
 export const MAX_TOKENS_EXTRACCION = 4096;
+
+// Pre-dictamen del comité (sesión 8a): Haiku 4.5 — evaluación guiada por
+// `ai_prompt_hint` muy específicos por ítem. Tarea mecánica, no razonamiento
+// abierto. Haiku genera 3-5× más rápido que Sonnet y cumple el budget de 60s
+// del límite Hobby. Si en producción se ven veredictos mediocres en bloques
+// críticos (consentimiento, riesgo-beneficio), considerar híbrido Haiku+Sonnet.
+export const MODELO_PRE_DICTAMEN = "claude-haiku-4-5-20251001";
+export const MAX_TOKENS_PRE_DICTAMEN = 4096;
