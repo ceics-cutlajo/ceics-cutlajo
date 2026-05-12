@@ -118,8 +118,10 @@ export function NuevoProtocoloForm() {
         <div className="flex-1">
           <h2 className="text-display-2">Subir mi protocolo</h2>
           <p className="mt-2 text-sm text-ink-600">
-            Sube el archivo Word o PDF de tu protocolo (formato CEICS u otro). Después la IA va a
-            leerlo y rellenar el wizard con los campos que detecte.
+            Sube aquí el <strong>documento principal del protocolo</strong> (formato CEICS u otro).
+            La IA lo analiza en ~1 minuto y pre-llena el formulario. Los demás documentos del
+            paquete (carta, CV, consentimientos, etc.) los añadirás después en el paso 4 del
+            wizard.
           </p>
         </div>
       </div>
@@ -168,9 +170,9 @@ export function NuevoProtocoloForm() {
       )}
 
       <div className="mt-4 rounded-md bg-info-soft px-4 py-3 text-xs text-info">
-        💡 La IA tarda entre 5 y 15 minutos en procesar tu protocolo (corre por lotes, no
-        instantáneo). Mientras tanto puedes cerrar la pantalla — te aparecerá listo en tu
-        dashboard cuando termine.
+        💡 La IA tarda 30-60 segundos en procesar tu protocolo. Puedes esperar en la pantalla
+        siguiente o cerrar y volver — el wizard te aparecerá pre-llenado en tu dashboard cuando
+        termine.
       </div>
 
       <div className="mt-6 flex justify-between">
