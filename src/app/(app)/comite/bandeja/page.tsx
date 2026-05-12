@@ -72,7 +72,7 @@ function ProtocoloRow({
   return (
     <li>
       <Link
-        href={`/protocolo/${p.id}`}
+        href={`/comite/protocolo/${p.id}`}
         className="flex items-start gap-4 px-6 py-4 hover:bg-ink-50"
       >
         <div className="flex-1">

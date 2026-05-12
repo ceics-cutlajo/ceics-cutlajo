@@ -1,0 +1,1746 @@
+{
+  "_schema": {
+    "version": "1.0",
+    "fecha_generacion": "2026-05-11",
+    "elaborado_por": "CEIC CUTLAJO - Plataforma de evaluacion etica",
+    "fuentes_fusionadas": [
+      "01_NORMATIVIDAD_MEXICANA.md (60 items, 9 bloques A-I)",
+      "02_NORMATIVIDAD_INTERNACIONAL.md (80 items, 13 bloques A-M)"
+    ],
+    "total_items": 100,
+    "categorias_unificadas": [
+      "identificacion",
+      "estructura_cientifica",
+      "metodologia",
+      "riesgo_beneficio",
+      "consentimiento",
+      "poblaciones_vulnerables",
+      "confidencialidad_datos",
+      "productos_salud",
+      "gobernanza_cei",
+      "transparencia_publicacion",
+      "aspectos_economicos"
+    ],
+    "campos_por_item": {
+      "id": "string (CHK-NNN)",
+      "categoria": "enum 11 categorias",
+      "subcategoria": "string opcional",
+      "criterio": "string - que verifica el evaluador",
+      "evidencia_esperada": "string - donde se demuestra cumplimiento",
+      "fuentes": "array de {ref, url}",
+      "severidad": "enum critica|alta|media|baja",
+      "peso": "int 1-5",
+      "aplicabilidad": "object con tipo_investigacion, involucra_humanos, involucra_menores, involucra_datos_geneticos",
+      "seccion_protocolo": "int 1-28",
+      "ai_prompt_hint": "string - guia para evaluacion automatica"
+    },
+    "destino_supabase": "tabla checklist_items"
+  },
+  "items": [
+    {
+      "id": "CHK-001",
+      "categoria": "identificacion",
+      "subcategoria": "portada",
+      "criterio": "El protocolo presenta identificacion completa: titulo en espanol sin abreviaturas, codigo interno, version, fecha, idioma y lista de centros participantes.",
+      "evidencia_esperada": "Portada del protocolo y Seccion 1 del Formato CEIC con titulo identico al de la carta dirigida al Presidente del Comite.",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 6.2.1", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "ICH-GCP E6(R3) Sec. 5 Protocolo", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"},
+        {"ref": "Helsinki 2024 §22", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 1,
+      "ai_prompt_hint": "Verifica que el titulo (1) este en espanol, (2) no exceda 250 caracteres, (3) no use abreviaturas no definidas, (4) coincida exactamente con el titulo de la carta de solicitud y de la portada del protocolo."
+    },
+    {
+      "id": "CHK-002",
+      "categoria": "identificacion",
+      "subcategoria": "investigador_principal",
+      "criterio": "El Investigador Principal (IP) esta acreditado: nombramiento UdeG/CUTlajo, CV vigente, cedula profesional, formacion en BPC y autorizacion escrita del titular del Centro.",
+      "evidencia_esperada": "Anexo con CV firmado, copia de cedula profesional, constancia BPC/ICH-GCP vigente y oficio de autorizacion del Director del Centro.",
+      "fuentes": [
+        {"ref": "RLGSMIS art. 113", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "NOM-012-SSA3-2012 Sec. 8", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "ICH-GCP E6(R3) Principio 9", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"},
+        {"ref": "Codigo Nuremberg principio 8", "url": "https://research.unc.edu/human-research-ethics/resources/ccm3_019064/"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 2,
+      "ai_prompt_hint": "Verifica presencia de los 4 documentos: (1) CV con firma, (2) cedula profesional vigente, (3) constancia BPC con fecha de emision <=3 anos, (4) oficio del titular. Si falta cualquiera, marcar como NO cumple."
+    },
+    {
+      "id": "CHK-003",
+      "categoria": "identificacion",
+      "subcategoria": "equipo_investigacion",
+      "criterio": "Cada miembro del equipo de investigacion presenta CV, formacion documentada en BPC/ICH-GCP y capacitacion en bioetica.",
+      "evidencia_esperada": "Tabla de equipo con nombre, rol, CV resumido, fecha de ultima capacitacion BPC y bioetica.",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 8", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "CONBIOETICA Acuerdo Disp. 16a", "url": "https://www.dof.gob.mx/nota_detalle.php?codigo=5276107&fecha=31/10/2012"},
+        {"ref": "ICH-GCP E6(R3) Principio 9", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"},
+        {"ref": "Codigo Nuremberg principio 8", "url": "https://research.unc.edu/human-research-ethics/resources/ccm3_019064/"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 2,
+      "ai_prompt_hint": "Cuenta los miembros del equipo y verifica que cada uno tenga: (a) rol asignado, (b) CV adjunto, (c) constancia BPC vigente. Senalar miembros sin documentacion."
+    },
+    {
+      "id": "CHK-004",
+      "categoria": "identificacion",
+      "subcategoria": "patrocinador",
+      "criterio": "Si existe patrocinador externo, esta identificado con datos legales y carta firmada de aceptacion de obligaciones.",
+      "evidencia_esperada": "Carta del patrocinador en hoja membretada con razon social, RFC, representante legal y obligaciones aceptadas; o declaracion de ausencia de patrocinador.",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 9", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "ICH-GCP E6(R3) Sec. 4 Sponsor", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"},
+        {"ref": "COFEPRIS Modulo III", "url": "https://www.gob.mx/cofepris/articulos/guia-para-el-ingreso-de-protocolos-de-investigacion"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "aplicada"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 3,
+      "ai_prompt_hint": "Si el protocolo tiene financiamiento externo, busca carta de aceptacion en anexos. Si dice 'sin patrocinador', verifica que el IP/institucion asuma las funciones del patrocinador en el texto."
+    },
+    {
+      "id": "CHK-005",
+      "categoria": "identificacion",
+      "subcategoria": "sedes",
+      "criterio": "Las sedes de la investigacion estan identificadas y autorizadas por escrito por sus titulares.",
+      "evidencia_esperada": "Oficio de autorizacion firmado por el titular de cada sede; en multicentricos, lista de sedes con autorizacion local.",
+      "fuentes": [
+        {"ref": "LGS art. 100 frac. V", "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf_mov/Ley_General_de_Salud.pdf"},
+        {"ref": "NOM-012-SSA3-2012 Sec. 10", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "Common Rule §46.114 Single IRB", "url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-A/part-46"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 4,
+      "ai_prompt_hint": "Lista todas las sedes mencionadas en el protocolo y para cada una busca oficio de autorizacion firmado por el titular (Director/Jefe). En multicentrico verifica al menos una autorizacion por sede."
+    },
+    {
+      "id": "CHK-006",
+      "categoria": "identificacion",
+      "subcategoria": "tipo_estudio",
+      "criterio": "El tipo de estudio esta clasificado correctamente: observacional/experimental, retro/prospectivo, mono/multicentrico, nacional/internacional.",
+      "evidencia_esperada": "Apartado 'Tipo de estudio' con clasificacion explicita y congruente con el diseno descrito.",
+      "fuentes": [
+        {"ref": "RLGSMIS art. 17", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "CIOMS 2016 Pauta 1", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"}
+      ],
+      "severidad": "media",
+      "peso": 2,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 5,
+      "ai_prompt_hint": "Identifica en el texto las cuatro dimensiones: (1) observacional vs experimental, (2) retrospectivo vs prospectivo, (3) mono vs multicentrico, (4) nacional vs internacional. Si falta alguna, marcar incompleto."
+    },
+    {
+      "id": "CHK-007",
+      "categoria": "identificacion",
+      "subcategoria": "registro_publico",
+      "criterio": "El protocolo esta registrado o sera registrado previo al inicio en una base publica (ClinicalTrials.gov, ISRCTN, REPEC, RENIS u otro registro reconocido).",
+      "evidencia_esperada": "Numero de registro NCT/ISRCTN/equivalente o compromiso explicito con fecha estimada de registro pre-reclutamiento.",
+      "fuentes": [
+        {"ref": "Helsinki 2024 §35", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"},
+        {"ref": "CIOMS 2016 Pauta 24", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "OPS Preguntas Guia 9", "url": "https://iris.paho.org/handle/10665.2/67780"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 1,
+      "ai_prompt_hint": "Para ensayos clinicos (intervencionistas) busca numero de registro tipo NCTxxxxxxxx o ISRCTN. Si es estudio observacional puro puede no aplicar; documentar en observaciones."
+    },
+    {
+      "id": "CHK-008",
+      "categoria": "estructura_cientifica",
+      "subcategoria": "marco_teorico",
+      "criterio": "El protocolo presenta marco teorico actualizado, sustentado en bibliografia reciente y pertinente.",
+      "evidencia_esperada": "Seccion 'Marco teorico' con citas bibliograficas, mayoria de los ultimos 5-10 anos.",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 6.2.2", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "CIOMS 2016 Pauta 1", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "Helsinki 2024 §22", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"}
+      ],
+      "severidad": "media",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 6,
+      "ai_prompt_hint": "Cuenta numero de citas en el marco teorico y porcentaje publicadas en los ultimos 5 anos (debe ser >=60%). Senala si predomina bibliografia >10 anos."
+    },
+    {
+      "id": "CHK-009",
+      "categoria": "estructura_cientifica",
+      "subcategoria": "problema",
+      "criterio": "Existe una definicion clara, especifica y delimitada del problema de investigacion.",
+      "evidencia_esperada": "Apartado 'Planteamiento del problema' con magnitud, trascendencia y vacio de conocimiento identificado.",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 6.2.3", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "OPS Preguntas Guia 1", "url": "https://iris.paho.org/handle/10665.2/67780"}
+      ],
+      "severidad": "media",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 7,
+      "ai_prompt_hint": "Verifica que el planteamiento contenga: (1) descripcion del fenomeno, (2) magnitud o prevalencia con cifras, (3) vacio de conocimiento que el estudio cubrira."
+    },
+    {
+      "id": "CHK-010",
+      "categoria": "estructura_cientifica",
+      "subcategoria": "antecedentes",
+      "criterio": "Los antecedentes incluyen literatura nacional e internacional pertinente y reciente.",
+      "evidencia_esperada": "Seccion de antecedentes con citas internacionales y nacionales y revision sistematica del estado del arte.",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 6.2.4", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "Codigo Nuremberg principio 3", "url": "https://research.unc.edu/human-research-ethics/resources/ccm3_019064/"},
+        {"ref": "Helsinki 2024 §22", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"}
+      ],
+      "severidad": "media",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 8,
+      "ai_prompt_hint": "Verifica presencia de al menos: (1) 3 referencias internacionales recientes, (2) 1 referencia nacional/latinoamericana, (3) sintesis del estado del arte."
+    },
+    {
+      "id": "CHK-011",
+      "categoria": "estructura_cientifica",
+      "subcategoria": "justificacion",
+      "criterio": "La justificacion demuestra valor cientifico y social del estudio y relevancia para necesidades de salud locales/regionales.",
+      "evidencia_esperada": "Apartado 'Justificacion' que articula valor cientifico, beneficio esperado para la poblacion CUTlajomulco/Jalisco/Mexico y vacio que cubre.",
+      "fuentes": [
+        {"ref": "LGS art. 96", "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf_mov/Ley_General_de_Salud.pdf"},
+        {"ref": "NOM-012-SSA3-2012 Sec. 6.2.5", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "Helsinki 2024 §4", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"},
+        {"ref": "CIOMS 2016 Pauta 1", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "UNESCO Bioetica 2005 art. 14", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000146180"},
+        {"ref": "OPS Preguntas Guia 1", "url": "https://iris.paho.org/handle/10665.2/67780"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 9,
+      "ai_prompt_hint": "Identifica 3 elementos: (1) valor cientifico (que conocimiento aporta), (2) valor social (a quien beneficia y como), (3) pertinencia local para Tlajomulco/Jalisco/Mexico."
+    },
+    {
+      "id": "CHK-012",
+      "categoria": "estructura_cientifica",
+      "subcategoria": "subsidiariedad",
+      "criterio": "Se demuestra que el conocimiento perseguido no puede obtenerse por otro metodo idoneo menos riesgoso.",
+      "evidencia_esperada": "Parrafo explicito de subsidiariedad: por que se requiere investigacion en humanos y por que este diseno y no otro alternativo.",
+      "fuentes": [
+        {"ref": "LGS art. 100 frac. II", "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf_mov/Ley_General_de_Salud.pdf"},
+        {"ref": "RLGSMIS art. 14 frac. III", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "Codigo Nuremberg principio 2", "url": "https://research.unc.edu/human-research-ethics/resources/ccm3_019064/"},
+        {"ref": "Convenio Oviedo art. 16(i)", "url": "https://rm.coe.int/168007cf98"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 9,
+      "ai_prompt_hint": "Busca explicitamente parrafo que diga por que no es posible responder la pregunta con (a) datos secundarios, (b) modelos animales, (c) simulacion. Si no hay justificacion, marcar como NO cumple."
+    },
+    {
+      "id": "CHK-013",
+      "categoria": "estructura_cientifica",
+      "subcategoria": "hipotesis",
+      "criterio": "Cuando aplica al diseno, se enuncia hipotesis de investigacion clara y verificable.",
+      "evidencia_esperada": "Seccion 'Hipotesis' con enunciado falsable; o declaracion explicita de que no aplica (estudio descriptivo/cualitativo).",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 6.2.6", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"}
+      ],
+      "severidad": "media",
+      "peso": 2,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 10,
+      "ai_prompt_hint": "Si el diseno es analitico/experimental, debe haber hipotesis. Si es descriptivo/cualitativo, debe declarar 'no aplica' con justificacion. Marcar inconsistente si es ECA sin hipotesis."
+    },
+    {
+      "id": "CHK-014",
+      "categoria": "estructura_cientifica",
+      "subcategoria": "objetivos",
+      "criterio": "Existen objetivo general y objetivos especificos, congruentes entre si, con la pregunta y con la metodologia.",
+      "evidencia_esperada": "Apartado 'Objetivos' con un objetivo general y al menos 2 especificos, redactados con verbos medibles.",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 6.2.7", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "ICH-GCP E6(R3) Principio 2", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 11,
+      "ai_prompt_hint": "Verifica: (1) existe objetivo general, (2) existen >=2 objetivos especificos, (3) los verbos son medibles (determinar, evaluar, comparar, etc.), (4) son congruentes con la pregunta."
+    },
+    {
+      "id": "CHK-015",
+      "categoria": "estructura_cientifica",
+      "subcategoria": "referencias",
+      "criterio": "Las referencias bibliograficas son suficientes, actualizadas y siguen un estilo consistente.",
+      "evidencia_esperada": "Lista de referencias en estilo Vancouver/APA, >=20 referencias en clinicos, mayoria <5 anos.",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 6.2.10", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"}
+      ],
+      "severidad": "media",
+      "peso": 2,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 28,
+      "ai_prompt_hint": "Cuenta numero total de referencias y porcentaje <5 anos. Verifica estilo consistente. Senalar si <15 referencias en estudios clinicos."
+    },
+    {
+      "id": "CHK-016",
+      "categoria": "metodologia",
+      "subcategoria": "diseno",
+      "criterio": "El diseno metodologico es apropiado para la pregunta y objetivos, y esta descrito con detalle reproducible.",
+      "evidencia_esperada": "Seccion 'Material y metodos' con tipo de estudio, intervenciones, mediciones, instrumentos, y suficiente detalle para replicacion.",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 6.2.8", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "ICH-GCP E6(R3) Principio 2", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"},
+        {"ref": "CIOMS 2016 Pauta 1", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "OPS Preguntas Guia 2", "url": "https://iris.paho.org/handle/10665.2/67780"}
+      ],
+      "severidad": "alta",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 12,
+      "ai_prompt_hint": "Aplica criterios SPIRIT/STROBE/CONSORT segun tipo. Verifica: (1) tipo de estudio congruente con pregunta, (2) procedimientos paso a paso, (3) instrumentos validados, (4) variables operacionalizadas."
+    },
+    {
+      "id": "CHK-017",
+      "categoria": "metodologia",
+      "subcategoria": "muestra",
+      "criterio": "Existe calculo justificado del tamano de muestra con formula, parametros y software citados.",
+      "evidencia_esperada": "Subseccion 'Calculo de muestra' con formula, valores de alpha/beta/efecto esperado, y software (G*Power, EpiInfo, etc.).",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 6.2.9", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "CIOMS 2016 Pauta 1", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "OPS Preguntas Guia 2", "url": "https://iris.paho.org/handle/10665.2/67780"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 13,
+      "ai_prompt_hint": "Busca: (1) formula explicita, (2) alpha (usualmente 0.05), (3) poder/beta (>=0.8), (4) tamano de efecto, (5) software citado. Estudios cualitativos pueden usar saturacion teorica."
+    },
+    {
+      "id": "CHK-018",
+      "categoria": "metodologia",
+      "subcategoria": "criterios_seleccion",
+      "criterio": "Los criterios de inclusion, exclusion y eliminacion son explicitos, justificados y operacionalizables.",
+      "evidencia_esperada": "Tres listas separadas de criterios con definiciones operativas claras (no ambiguas).",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 6.2.9", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "CIOMS 2016 Pauta 3", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "Belmont aplicacion 3", "url": "https://www.hhs.gov/ohrp/sites/default/files/the-belmont-report-508c_FINAL.pdf"},
+        {"ref": "Common Rule §46.111(a)(3)", "url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-A/part-46"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 14,
+      "ai_prompt_hint": "Verifica las 3 listas. Cada criterio debe ser binario verificable. Senalar criterios ambiguos como 'paciente colaborador' sin definicion."
+    },
+    {
+      "id": "CHK-019",
+      "categoria": "metodologia",
+      "subcategoria": "variables",
+      "criterio": "Las variables estan operacionalizadas con tipo (cuali/cuanti), escala de medicion, instrumento y unidades.",
+      "evidencia_esperada": "Tabla de variables (independientes, dependientes, confusoras) con definicion conceptual y operacional.",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 6.2.8-9", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "OPS Preguntas Guia 2", "url": "https://iris.paho.org/handle/10665.2/67780"}
+      ],
+      "severidad": "media",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 15,
+      "ai_prompt_hint": "Espera tabla con columnas: nombre, tipo, escala, instrumento, unidades. Si no hay tabla, verifica que el texto las describa."
+    },
+    {
+      "id": "CHK-020",
+      "categoria": "metodologia",
+      "subcategoria": "analisis",
+      "criterio": "El plan de analisis estadistico esta predefinido (pruebas, software, manejo de datos faltantes).",
+      "evidencia_esperada": "Subseccion 'Analisis estadistico' con pruebas para cada objetivo, software (SPSS, R, Stata), umbral de significancia y plan para datos faltantes.",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 6.2.9", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "ICH-GCP E6(R3) Principio 2", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"},
+        {"ref": "OPS Preguntas Guia 2", "url": "https://iris.paho.org/handle/10665.2/67780"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 16,
+      "ai_prompt_hint": "Verifica que el plan especifique: (1) prueba(s) estadistica(s) por objetivo, (2) software y version, (3) p-valor o IC, (4) manejo de perdidas y missing data."
+    },
+    {
+      "id": "CHK-021",
+      "categoria": "metodologia",
+      "subcategoria": "datos_preclinicos",
+      "criterio": "Para investigacion experimental hay respaldo en datos preclinicos (animales, in vitro) o evidencia clinica previa suficiente.",
+      "evidencia_esperada": "Seccion con resumen de datos preclinicos (toxicologia, farmacologia) o revision de evidencia clinica previa.",
+      "fuentes": [
+        {"ref": "RLGSMIS art. 14 frac. II", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "Codigo Nuremberg principio 3", "url": "https://research.unc.edu/human-research-ethics/resources/ccm3_019064/"},
+        {"ref": "ICH-GCP E6(R3) Principio 5", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"},
+        {"ref": "Helsinki 2024 §22", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "aplicada"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 17,
+      "ai_prompt_hint": "Para ensayos con farmacos/dispositivos verifica datos preclinicos en IB. Para intervenciones conductuales basta evidencia clinica previa."
+    },
+    {
+      "id": "CHK-022",
+      "categoria": "metodologia",
+      "subcategoria": "cronograma",
+      "criterio": "Existe cronograma realista con hitos temporales y entregables definidos.",
+      "evidencia_esperada": "Diagrama de Gantt o tabla con fases (preparacion, reclutamiento, intervencion, analisis, reporte) y fechas.",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 6.2.11", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"}
+      ],
+      "severidad": "media",
+      "peso": 2,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 18,
+      "ai_prompt_hint": "Espera tabla/Gantt con al menos 4 fases y fecha de termino. Verifica que la suma de fases sea coherente con el periodo total declarado."
+    },
+    {
+      "id": "CHK-023",
+      "categoria": "metodologia",
+      "subcategoria": "cluster",
+      "criterio": "En ensayos aleatorizados por conglomerados (cluster), se justifica el diseno y se documenta consentimiento individual o de gatekeeper.",
+      "evidencia_esperada": "Apartado especifico que describa unidad de aleatorizacion, gatekeeper consent y consentimiento individual cuando aplica.",
+      "fuentes": [
+        {"ref": "CIOMS 2016 Pauta 21", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 12,
+      "ai_prompt_hint": "Solo aplica si el diseno es cluster RCT. Verifica que la unidad de aleatorizacion (escuelas, comunidades, clinicas) este definida y exista plan de consentimiento."
+    },
+    {
+      "id": "CHK-024",
+      "categoria": "riesgo_beneficio",
+      "subcategoria": "principios_eticos",
+      "criterio": "El protocolo declara explicitamente los principios bioeticos rectores: autonomia, beneficencia, no maleficencia y justicia.",
+      "evidencia_esperada": "Apartado 'Consideraciones eticas' que enuncie los 4 principios y como se garantizan en el estudio.",
+      "fuentes": [
+        {"ref": "Belmont principios 1-3", "url": "https://www.hhs.gov/ohrp/sites/default/files/the-belmont-report-508c_FINAL.pdf"},
+        {"ref": "CIOMS 2016 Preambulo", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "UNESCO Bioetica 2005 arts. 3-6", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000146180"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 19,
+      "ai_prompt_hint": "Busca enunciacion explicita de los 4 principios. Verificar que cada uno tenga al menos una frase operativa de como se cumple en el estudio."
+    },
+    {
+      "id": "CHK-025",
+      "categoria": "riesgo_beneficio",
+      "subcategoria": "helsinki_apego",
+      "criterio": "El protocolo declara apego a la Declaracion de Helsinki (version vigente 2024) y demas estandares internacionales.",
+      "evidencia_esperada": "Frase explicita de apego a Helsinki 2024, CIOMS 2016 y, cuando aplique, ICH-GCP E6(R3) e Informe Belmont.",
+      "fuentes": [
+        {"ref": "LGS art. 100", "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf_mov/Ley_General_de_Salud.pdf"},
+        {"ref": "NOM-012-SSA3-2012 Sec. 5", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "Helsinki 2024", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"},
+        {"ref": "ICH-GCP E6(R3) Principio 1", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 19,
+      "ai_prompt_hint": "Buscar mencion textual de Helsinki con anio. Si menciona version anterior a 2024 marcar como observacion: 'actualizar a version vigente'."
+    },
+    {
+      "id": "CHK-026",
+      "categoria": "riesgo_beneficio",
+      "subcategoria": "dignidad",
+      "criterio": "El protocolo establece el respeto a la dignidad, derechos y bienestar del participante como prioridad sobre intereses de la ciencia.",
+      "evidencia_esperada": "Declaracion explicita de primacia del participante; frase como 'el bienestar del participante prevalece sobre el interes cientifico'.",
+      "fuentes": [
+        {"ref": "RLGSMIS art. 13", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "Convenio Oviedo art. 2", "url": "https://rm.coe.int/168007cf98"},
+        {"ref": "Helsinki 2024 §4", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"},
+        {"ref": "ICH-GCP E6(R3) Principio 3", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"},
+        {"ref": "UNESCO Bioetica 2005 art. 3.2", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000146180"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 19,
+      "ai_prompt_hint": "Buscar frase clave 'bienestar del participante prevalece' o equivalente. Si solo se menciona 'cumplimiento etico' generico, marcar como insuficiente."
+    },
+    {
+      "id": "CHK-027",
+      "categoria": "riesgo_beneficio",
+      "subcategoria": "identificacion_riesgos",
+      "criterio": "El protocolo identifica exhaustivamente los riesgos previsibles (fisicos, psicologicos, sociales, economicos) para cada procedimiento.",
+      "evidencia_esperada": "Tabla o lista 'Riesgos del estudio' que enumere riesgos por categoria, probabilidad y magnitud.",
+      "fuentes": [
+        {"ref": "RLGSMIS art. 17", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "Codigo Nuremberg principio 4", "url": "https://research.unc.edu/human-research-ethics/resources/ccm3_019064/"},
+        {"ref": "Helsinki 2024 §17", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"},
+        {"ref": "Belmont aplicacion 2", "url": "https://www.hhs.gov/ohrp/sites/default/files/the-belmont-report-508c_FINAL.pdf"},
+        {"ref": "CIOMS 2016 Pauta 4", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "Common Rule §46.111(a)(1)", "url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-A/part-46"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 20,
+      "ai_prompt_hint": "Verifica las 4 categorias de riesgo (fisico, psicologico, social, economico). Si solo aborda riesgos fisicos, marcar como incompleto en estudios conductuales o con datos sensibles."
+    },
+    {
+      "id": "CHK-028",
+      "categoria": "riesgo_beneficio",
+      "subcategoria": "clasificacion_riesgo",
+      "criterio": "El nivel de riesgo esta correctamente clasificado segun art. 17 RLGSMIS: sin riesgo / riesgo minimo / mayor que minimo, con justificacion.",
+      "evidencia_esperada": "Apartado 'Categoria de riesgo' con clasificacion y argumentacion basada en los procedimientos del estudio.",
+      "fuentes": [
+        {"ref": "RLGSMIS art. 17", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "NOM-012-SSA3-2012 Sec. 6", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 20,
+      "ai_prompt_hint": "Compara procedimientos descritos con las definiciones del art. 17. Senalar inconsistencia (ej: estudio con biopsias clasificado como 'riesgo minimo')."
+    },
+    {
+      "id": "CHK-029",
+      "categoria": "riesgo_beneficio",
+      "subcategoria": "minimizacion",
+      "criterio": "Se describen acciones concretas para minimizar los riesgos identificados (mitigacion).",
+      "evidencia_esperada": "Para cada riesgo listado, una medida correspondiente de mitigacion (capacitacion, monitoreo, equipo de proteccion, etc.).",
+      "fuentes": [
+        {"ref": "Codigo Nuremberg principio 4", "url": "https://research.unc.edu/human-research-ethics/resources/ccm3_019064/"},
+        {"ref": "Helsinki 2024 §17", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"},
+        {"ref": "ICH-GCP E6(R3) Principio 4", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"},
+        {"ref": "Common Rule §46.111(a)(1)", "url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-A/part-46"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 20,
+      "ai_prompt_hint": "Verifica correspondencia uno-a-uno entre riesgos identificados (CHK-027) y medidas de mitigacion. Sin medidas, marcar incumplimiento."
+    },
+    {
+      "id": "CHK-030",
+      "categoria": "riesgo_beneficio",
+      "subcategoria": "balance",
+      "criterio": "Se demuestra que los beneficios esperados (individuales o sociales) superan los riesgos previsibles.",
+      "evidencia_esperada": "Analisis explicito de balance riesgo/beneficio con argumentacion cualitativa o cuantitativa.",
+      "fuentes": [
+        {"ref": "RLGSMIS art. 14 frac. IV", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "Codigo Nuremberg principio 6", "url": "https://research.unc.edu/human-research-ethics/resources/ccm3_019064/"},
+        {"ref": "Helsinki 2024 §16-17", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"},
+        {"ref": "Belmont aplicacion 2", "url": "https://www.hhs.gov/ohrp/sites/default/files/the-belmont-report-508c_FINAL.pdf"},
+        {"ref": "Convenio Oviedo art. 16(ii)", "url": "https://rm.coe.int/168007cf98"},
+        {"ref": "CIOMS 2016 Pauta 4", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "Common Rule §46.111(a)(2)", "url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-A/part-46"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 20,
+      "ai_prompt_hint": "Verifica argumentacion explicita: 'los beneficios X superan los riesgos Y porque Z'. No basta con listar ambos; debe haber juicio comparativo."
+    },
+    {
+      "id": "CHK-031",
+      "categoria": "riesgo_beneficio",
+      "subcategoria": "suspension",
+      "criterio": "Existe mecanismo definido para suspender la investigacion de inmediato ante riesgo, dano o solicitud del participante.",
+      "evidencia_esperada": "Procedimiento con criterios de suspension, autoridad responsable de decidir y notificacion al CEI.",
+      "fuentes": [
+        {"ref": "LGS art. 100 frac. VI", "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf_mov/Ley_General_de_Salud.pdf"},
+        {"ref": "RLGSMIS art. 18", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "Codigo Nuremberg principios 9-10", "url": "https://research.unc.edu/human-research-ethics/resources/ccm3_019064/"},
+        {"ref": "ICH-GCP E6(R3) Sec. Terminacion", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "aplicada"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 21,
+      "ai_prompt_hint": "Buscar parrafo 'Criterios de suspension' o 'Stopping rules'. Verifica: (1) criterios objetivos, (2) responsable, (3) notificacion al CEI en plazo definido."
+    },
+    {
+      "id": "CHK-032",
+      "categoria": "riesgo_beneficio",
+      "subcategoria": "atencion_dano",
+      "criterio": "La institucion garantiza atencion medica e indemnizacion al participante que sufra dano relacionado con la investigacion.",
+      "evidencia_esperada": "Clausula en el protocolo y en el consentimiento; carta institucional o poliza de seguro adjunta.",
+      "fuentes": [
+        {"ref": "LGS art. 100 frac. VII", "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf_mov/Ley_General_de_Salud.pdf"},
+        {"ref": "RLGSMIS art. 19", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "Helsinki 2024 §15", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"},
+        {"ref": "CIOMS 2016 Pauta 14", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "Codigo Nuremberg principio 7", "url": "https://research.unc.edu/human-research-ethics/resources/ccm3_019064/"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "aplicada"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 22,
+      "ai_prompt_hint": "Para riesgo > minimo verificar poliza de seguro vigente. Para riesgo minimo basta carta institucional. Sin ningun mecanismo, marcar critica no cumple."
+    },
+    {
+      "id": "CHK-033",
+      "categoria": "riesgo_beneficio",
+      "subcategoria": "eventos_adversos",
+      "criterio": "Existe plan de manejo y reporte de eventos adversos al CEI con periodicidad y formato CIOMS/SAE definidos.",
+      "evidencia_esperada": "Procedimiento con clasificacion de eventos (leve/moderado/grave/SUSAR), plazos de reporte y formato.",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 8", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "NOM-220-SSA1-2016 Farmacovigilancia", "url": "https://dof.gob.mx/normasOficiales.php?codp=6750"},
+        {"ref": "ICH-GCP E6(R3) Principio 4", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"},
+        {"ref": "Helsinki 2024 §18", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "aplicada"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 22,
+      "ai_prompt_hint": "Verifica que exista: (1) clasificacion de gravedad, (2) plazos (SUSAR <=15 dias), (3) formato (CIOMS-I para SAE), (4) destinatarios (CEI, COFEPRIS, sponsor)."
+    },
+    {
+      "id": "CHK-034",
+      "categoria": "riesgo_beneficio",
+      "subcategoria": "monitoreo_seguridad",
+      "criterio": "Cuando aplica, se establece comite de monitoreo de datos y seguridad (DSMB/DMC) o plan equivalente de monitoreo basado en riesgo.",
+      "evidencia_esperada": "Para ensayos clinicos con riesgo > minimo, charter del DSMB o plan de monitoreo central/in-situ.",
+      "fuentes": [
+        {"ref": "ICH-GCP E6(R3) Principio 4 / Sec. 4 Sponsor", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"},
+        {"ref": "Common Rule §46.111(a)(6)", "url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-A/part-46"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 22,
+      "ai_prompt_hint": "Para fases II/III con riesgo significativo verifica DSMB. Para fases I y observacionales puede bastar monitoreo central. Justificar ausencia."
+    },
+    {
+      "id": "CHK-035",
+      "categoria": "consentimiento",
+      "subcategoria": "carta_consentimiento",
+      "criterio": "Existe Carta de Consentimiento Informado (CCI) por escrito, en lenguaje comprensible para el participante.",
+      "evidencia_esperada": "Documento independiente 'Carta de Consentimiento Informado', en espanol claro, lenguaje no tecnico.",
+      "fuentes": [
+        {"ref": "LGS art. 100 frac. IV", "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf_mov/Ley_General_de_Salud.pdf"},
+        {"ref": "RLGSMIS arts. 20-22", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "NOM-012-SSA3-2012 Sec. 12", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "Codigo Nuremberg principio 1", "url": "https://research.unc.edu/human-research-ethics/resources/ccm3_019064/"},
+        {"ref": "Helsinki 2024 §26", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"},
+        {"ref": "Belmont aplicacion 1", "url": "https://www.hhs.gov/ohrp/sites/default/files/the-belmont-report-508c_FINAL.pdf"},
+        {"ref": "CIOMS 2016 Pauta 9", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "Convenio Oviedo art. 5", "url": "https://rm.coe.int/168007cf98"},
+        {"ref": "UNESCO Bioetica 2005 art. 6", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000146180"},
+        {"ref": "Common Rule §46.116", "url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-A/part-46"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 23,
+      "ai_prompt_hint": "Verifica que el documento exista como anexo separado, este en espanol y use lenguaje de nivel maximo bachillerato (Flesch-Huerta o equivalente)."
+    },
+    {
+      "id": "CHK-036",
+      "categoria": "consentimiento",
+      "subcategoria": "elementos_art21",
+      "criterio": "La CCI incluye los 11 elementos del art. 21 RLGSMIS: justificacion/objetivos, procedimientos, riesgos, beneficios, alternativas, garantia de respuesta, libertad de retiro, confidencialidad, informacion actualizada, indemnizacion, gastos absorbidos.",
+      "evidencia_esperada": "Lista verificable en la CCI con cada uno de los 11 puntos cubiertos.",
+      "fuentes": [
+        {"ref": "RLGSMIS art. 21", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "NOM-012-SSA3-2012 Sec. 12", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "Common Rule §46.116(b)", "url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-A/part-46"},
+        {"ref": "CIOMS 2016 Pauta 9", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 23,
+      "ai_prompt_hint": "Recorre los 11 elementos del art. 21 y marca cuales estan presentes en la CCI. Si faltan >2 elementos, marcar critica no cumple."
+    },
+    {
+      "id": "CHK-037",
+      "categoria": "consentimiento",
+      "subcategoria": "requisitos_art22",
+      "criterio": "La CCI cumple los 5 requisitos formales del art. 22 RLGSMIS: elaborada por IP, aprobada por CEI, dos testigos identificados, firmas requeridas, duplicado para el sujeto.",
+      "evidencia_esperada": "Pie de firmas con: sujeto (o representante), 2 testigos con direccion y relacion, IP. Sello del CEI. Mencion de duplicado.",
+      "fuentes": [
+        {"ref": "RLGSMIS art. 22", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "NOM-012-SSA3-2012 Sec. 12", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 23,
+      "ai_prompt_hint": "Verifica los 5 requisitos formales en el pie de la CCI. La firma huella digital esta permitida si el sujeto no sabe firmar."
+    },
+    {
+      "id": "CHK-038",
+      "categoria": "consentimiento",
+      "subcategoria": "voluntariedad",
+      "criterio": "La CCI declara explicitamente la voluntariedad y el derecho a retirarse en cualquier momento sin perjuicio para la atencion del participante.",
+      "evidencia_esperada": "Parrafo dedicado en la CCI: 'Su participacion es voluntaria y puede retirarse en cualquier momento sin que esto afecte su atencion medica'.",
+      "fuentes": [
+        {"ref": "RLGSMIS art. 21 frac. VII", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "Codigo Nuremberg principios 1, 9", "url": "https://research.unc.edu/human-research-ethics/resources/ccm3_019064/"},
+        {"ref": "Helsinki 2024 §26", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"},
+        {"ref": "Convenio Oviedo art. 5", "url": "https://rm.coe.int/168007cf98"},
+        {"ref": "UNESCO Bioetica 2005 art. 6", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000146180"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 23,
+      "ai_prompt_hint": "Buscar la frase clave 'voluntaria' y 'retirarse en cualquier momento sin perjuicio'. Sin esta frase, marcar incumplimiento critico."
+    },
+    {
+      "id": "CHK-039",
+      "categoria": "consentimiento",
+      "subcategoria": "contacto_ip_cei",
+      "criterio": "La CCI proporciona datos de contacto del IP (telefono 24/7) y del CEI para preguntas, dudas y quejas.",
+      "evidencia_esperada": "Bloque de contactos con nombre, telefono celular del IP y datos del CEI (correo, telefono, direccion).",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 12", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "ICH-GCP E6(R3) Sec. 3", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"},
+        {"ref": "Common Rule §46.116(b)(7)", "url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-A/part-46"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 23,
+      "ai_prompt_hint": "Verifica los 2 bloques: IP con celular (no solo institucional) y CEI con al menos correo. Telefono 24/7 obligatorio en estudios con riesgo > minimo."
+    },
+    {
+      "id": "CHK-040",
+      "categoria": "consentimiento",
+      "subcategoria": "comprension",
+      "criterio": "El proceso de consentimiento incluye verificacion de comprension (preguntas, devolucion oral, espera para reflexion).",
+      "evidencia_esperada": "Apartado del protocolo que describe el proceso (no solo el documento) e incluye lista de verificacion de comprension.",
+      "fuentes": [
+        {"ref": "Belmont aplicacion 1", "url": "https://www.hhs.gov/ohrp/sites/default/files/the-belmont-report-508c_FINAL.pdf"},
+        {"ref": "ICH-GCP E6(R3) Principio 10", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"},
+        {"ref": "CIOMS 2016 Pauta 9", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "Helsinki 2024 §26", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 23,
+      "ai_prompt_hint": "Diferenciar 'documento' del 'proceso'. Buscar mencion de tiempo de reflexion (al menos 24 hr en riesgo > minimo) y mecanismo de verificacion de comprension."
+    },
+    {
+      "id": "CHK-041",
+      "categoria": "consentimiento",
+      "subcategoria": "key_information",
+      "criterio": "La CCI presenta al inicio un resumen 'key information' (informacion clave) conciso de proposito, riesgos, beneficios y alternativas.",
+      "evidencia_esperada": "Primera seccion de la CCI con 1-2 paginas de informacion esencial antes del detalle completo.",
+      "fuentes": [
+        {"ref": "Common Rule §46.116(a)(5)(i)", "url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-A/part-46"},
+        {"ref": "ICH-GCP E6(R3) Principio 10", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"}
+      ],
+      "severidad": "media",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "aplicada"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 23,
+      "ai_prompt_hint": "Verifica si la CCI inicia con 'Resumen' o 'Informacion clave'. Si va directa al detalle largo, marcar como mejorable."
+    },
+    {
+      "id": "CHK-042",
+      "categoria": "consentimiento",
+      "subcategoria": "econsent",
+      "criterio": "Si se usa eConsent (consentimiento electronico), se documenta el sistema, sus salvaguardas de identidad, integridad y trazabilidad.",
+      "evidencia_esperada": "Descripcion del sistema eConsent, validacion (Part 11 / GCP), proceso de respaldo en papel cuando proceda.",
+      "fuentes": [
+        {"ref": "ICH-GCP E6(R3) Principio 10-11", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 23,
+      "ai_prompt_hint": "Solo aplica si se declara eConsent. Verifica: (1) sistema validado (audit trail), (2) firma electronica equivalente, (3) opcion de papel para participantes sin acceso digital."
+    },
+    {
+      "id": "CHK-043",
+      "categoria": "consentimiento",
+      "subcategoria": "waiver",
+      "criterio": "Si se solicita dispensa o modificacion del consentimiento, esta justificada conforme a CIOMS Pauta 10 y Common Rule §46.116(f).",
+      "evidencia_esperada": "Solicitud explicita de waiver con: (1) imposibilidad practica, (2) riesgo minimo, (3) no perjudica derechos, (4) informacion posterior cuando aplique.",
+      "fuentes": [
+        {"ref": "CIOMS 2016 Pauta 10", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "Common Rule §46.116(f)", "url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-A/part-46"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["epidemiologica", "basica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 23,
+      "ai_prompt_hint": "Solo aplica si el protocolo solicita waiver (tipico en estudios retrospectivos con expedientes). Verifica los 4 criterios. Sin justificacion solida, rechazar waiver."
+    },
+    {
+      "id": "CHK-044",
+      "categoria": "consentimiento",
+      "subcategoria": "asentimiento_menores",
+      "criterio": "Para menores >=8 anos con capacidad cognitiva suficiente, existe Carta de Asentimiento adaptada al lenguaje del menor.",
+      "evidencia_esperada": "Documento independiente 'Carta de Asentimiento' con vocabulario adecuado a la edad, ilustraciones cuando proceda.",
+      "fuentes": [
+        {"ref": "RLGSMIS art. 37", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "CIOMS 2016 Pauta 17", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "Common Rule Subparte D §46.408", "url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-A/part-46"},
+        {"ref": "CONBIOETICA Guia 2018", "url": "https://www.gob.mx/cms/uploads/attachment/file/460756/7_Guia_CEI_2018_6a.pdf"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": true, "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 23,
+      "ai_prompt_hint": "Solo aplica si incluye menores. Verifica: (1) documento separado del consentimiento parental, (2) lenguaje apropiado a la edad, (3) opcion de rehusarse del menor."
+    },
+    {
+      "id": "CHK-045",
+      "categoria": "consentimiento",
+      "subcategoria": "consentimiento_representante",
+      "criterio": "Para menores e incapaces, se obtiene consentimiento por escrito del representante legal (ambos padres si aplica patria potestad).",
+      "evidencia_esperada": "CCI para representante con clausulas adicionales, identificacion del vinculo y firma de uno o ambos padres.",
+      "fuentes": [
+        {"ref": "RLGSMIS art. 36", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "Convenio Oviedo arts. 6-7", "url": "https://rm.coe.int/168007cf98"},
+        {"ref": "CIOMS 2016 Pautas 16-17", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "Common Rule Subparte D §46.408", "url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-A/part-46"},
+        {"ref": "UNESCO Bioetica 2005 art. 7", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000146180"},
+        {"ref": "UNESCO Genoma 1997 art. 5", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000122990"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": true, "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 23,
+      "ai_prompt_hint": "Para riesgo > minimo en menores, requerir firma de ambos padres (excepcion: imposibilidad fehaciente). Sin doble firma cuando aplica, rechazar."
+    },
+    {
+      "id": "CHK-046",
+      "categoria": "consentimiento",
+      "subcategoria": "broad_consent",
+      "criterio": "Para biobancos, datos secundarios o uso ulterior, el tipo de consentimiento (especifico, amplio o dinamico) esta justificado y descrito.",
+      "evidencia_esperada": "Apartado dedicado que indique: tipo de consentimiento, gobierno de uso secundario, opciones del participante (opt-in/opt-out por categoria).",
+      "fuentes": [
+        {"ref": "Helsinki 2024 §32", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"},
+        {"ref": "CIOMS 2016 Pautas 11-12", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "GDPR art. 89 + EDPB 2026", "url": "https://gdpr-info.eu/art-89-gdpr/"},
+        {"ref": "Common Rule §46.116(d)", "url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-A/part-46"},
+        {"ref": "UNESCO Datos Geneticos 2003 art. 16", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000136112"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 23,
+      "ai_prompt_hint": "Solo aplica si el protocolo prevee biobanco o uso secundario. Justificar el tipo (especifico/amplio/dinamico) y describir gobierno (Material Transfer Agreement)."
+    },
+    {
+      "id": "CHK-047",
+      "categoria": "consentimiento",
+      "subcategoria": "consentimiento_genetico",
+      "criterio": "Para investigacion con datos geneticos humanos, el consentimiento es previo, libre, informado, expreso y sin incentivos economicos indebidos.",
+      "evidencia_esperada": "Apartado especifico de consentimiento genetico con: finalidad detallada, tipos de analisis, manejo de hallazgos incidentales, retiro.",
+      "fuentes": [
+        {"ref": "UNESCO Datos Geneticos 2003 art. 8", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000136112"},
+        {"ref": "UNESCO Genoma 1997 art. 5", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000122990"},
+        {"ref": "Convenio Oviedo art. 5", "url": "https://rm.coe.int/168007cf98"},
+        {"ref": "GDPR art. 9 (datos geneticos)", "url": "https://gdpr-info.eu/art-9-gdpr/"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": true},
+      "seccion_protocolo": 23,
+      "ai_prompt_hint": "Solo aplica si hay analisis genetico/genomico. Verifica menciones explicitas de: tipo de analisis (NGS, GWAS, etc.), hallazgos incidentales, derecho a no saber."
+    },
+    {
+      "id": "CHK-048",
+      "categoria": "consentimiento",
+      "subcategoria": "embarazadas",
+      "criterio": "Para mujeres en edad fertil, embarazadas, lactancia o post-parto, hay consentimiento adicional con informacion de riesgos al feto/embrion/RN.",
+      "evidencia_esperada": "CCI especifica con seccion sobre riesgos reproductivos; cuando aplica, consentimiento del conyuge/concubino.",
+      "fuentes": [
+        {"ref": "RLGSMIS arts. 40-56", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "CIOMS 2016 Pauta 19", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "Common Rule Subparte B §46.204", "url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-A/part-46"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "aplicada"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 23,
+      "ai_prompt_hint": "Aplica si hay mujeres embarazadas/lactantes en criterios de inclusion o si existe riesgo teratogenico. Verificar prueba de embarazo, anticoncepcion, monitoreo fetal."
+    },
+    {
+      "id": "CHK-049",
+      "categoria": "poblaciones_vulnerables",
+      "subcategoria": "identificacion_vulnerabilidad",
+      "criterio": "Se identifica y caracteriza la vulnerabilidad de los grupos participantes (etnica, economica, edad, capacidad mental, dependencia institucional).",
+      "evidencia_esperada": "Apartado 'Vulnerabilidad' con descripcion del tipo de vulnerabilidad y plan de mitigacion.",
+      "fuentes": [
+        {"ref": "RLGSMIS arts. 34, 57-59", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "Helsinki 2024 §19-20", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"},
+        {"ref": "Belmont aplicacion 3", "url": "https://www.hhs.gov/ohrp/sites/default/files/the-belmont-report-508c_FINAL.pdf"},
+        {"ref": "CIOMS 2016 Pauta 15", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "UNESCO Bioetica 2005 art. 8", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000146180"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 24,
+      "ai_prompt_hint": "Verificar si la poblacion incluye categorias vulnerables. Si las incluye y el protocolo no las menciona, marcar como omision critica."
+    },
+    {
+      "id": "CHK-050",
+      "categoria": "poblaciones_vulnerables",
+      "subcategoria": "justificacion_inclusion",
+      "criterio": "Existe justificacion cientifica explicita para incluir grupos vulnerables y demostracion de que el conocimiento no puede generarse en otra poblacion.",
+      "evidencia_esperada": "Argumentacion en el protocolo: por que no se puede estudiar en adultos sanos / poblacion general.",
+      "fuentes": [
+        {"ref": "CIOMS 2016 Pauta 17", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "Belmont aplicacion 3", "url": "https://www.hhs.gov/ohrp/sites/default/files/the-belmont-report-508c_FINAL.pdf"},
+        {"ref": "Helsinki 2024 §19-20", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 24,
+      "ai_prompt_hint": "Solo aplica si hay grupos vulnerables. Buscar parrafo de justificacion. Sin justificacion solida, marcar incumplimiento."
+    },
+    {
+      "id": "CHK-051",
+      "categoria": "poblaciones_vulnerables",
+      "subcategoria": "subordinados",
+      "criterio": "Para grupos subordinados (estudiantes, trabajadores, militares, internos), hay garantias reforzadas frente a coercion: confidencialidad ante superiores, reclutamiento por terceros.",
+      "evidencia_esperada": "Procedimiento de reclutamiento que evita conflictos jerarquicos; declaracion de no-represalia firmada.",
+      "fuentes": [
+        {"ref": "RLGSMIS arts. 57-59", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "CIOMS 2016 Pauta 15", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "Common Rule Subparte C presos", "url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-A/part-46"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 24,
+      "ai_prompt_hint": "Aplica si IP es profesor que recluta a sus alumnos, jefe que recluta a sus empleados, etc. Verificar uso de reclutador independiente y confidencialidad de la decision."
+    },
+    {
+      "id": "CHK-052",
+      "categoria": "poblaciones_vulnerables",
+      "subcategoria": "indigenas",
+      "criterio": "Para investigacion con comunidades indigenas, existe consulta culturalmente apropiada en lengua originaria y participacion comunitaria.",
+      "evidencia_esperada": "Procedimiento de consulta previa, libre e informada conforme Convenio 169 OIT; CCI traducida y validada.",
+      "fuentes": [
+        {"ref": "LGS art. 100", "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf_mov/Ley_General_de_Salud.pdf"},
+        {"ref": "CIOMS 2016 Pauta 7", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "UNESCO Bioetica 2005 art. 12", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000146180"},
+        {"ref": "Convenio 169 OIT", "url": "https://www.ilo.org/dyn/normlex/en/f?p=NORMLEXPUB:12100:0::NO::P12100_ILO_CODE:C169"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 24,
+      "ai_prompt_hint": "Aplica si reclutamiento incluye comunidades indigenas. Verificar: traduccion validada, consulta a autoridades comunitarias, devolucion de resultados a la comunidad."
+    },
+    {
+      "id": "CHK-053",
+      "categoria": "poblaciones_vulnerables",
+      "subcategoria": "incapaces",
+      "criterio": "Para adultos sin capacidad de consentir, existen salvaguardas y autorizacion legal del representante con interes superior del participante.",
+      "evidencia_esperada": "Procedimiento con criterios de incapacidad, designacion de representante legal, opcion de asentimiento residual.",
+      "fuentes": [
+        {"ref": "RLGSMIS art. 34", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "Convenio Oviedo arts. 6-7", "url": "https://rm.coe.int/168007cf98"},
+        {"ref": "CIOMS 2016 Pauta 16", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "UNESCO Bioetica 2005 art. 7", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000146180"},
+        {"ref": "UNESCO Genoma 1997 art. 5", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000122990"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 24,
+      "ai_prompt_hint": "Aplica para personas con demencia, deterioro cognitivo, discapacidad intelectual. Verificar test estandarizado de capacidad y reevaluacion durante el estudio."
+    },
+    {
+      "id": "CHK-054",
+      "categoria": "poblaciones_vulnerables",
+      "subcategoria": "no_concentracion",
+      "criterio": "El protocolo evita concentrar riesgos o cargas en grupos vulnerables sin justificacion cientifica.",
+      "evidencia_esperada": "Distribucion equitativa demostrada en criterios de seleccion; muestreo no oportunista en poblaciones cautivas.",
+      "fuentes": [
+        {"ref": "Belmont aplicacion 3", "url": "https://www.hhs.gov/ohrp/sites/default/files/the-belmont-report-508c_FINAL.pdf"},
+        {"ref": "CIOMS 2016 Pauta 3", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "UNESCO Bioetica 2005 art. 10", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000146180"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 24,
+      "ai_prompt_hint": "Verifica que la seleccion no sea exclusivamente por conveniencia (pacientes del IP) o por vulnerabilidad. Senalar muestreo oportunista sin justificacion."
+    },
+    {
+      "id": "CHK-055",
+      "categoria": "poblaciones_vulnerables",
+      "subcategoria": "equidad_genero",
+      "criterio": "Hay inclusion equitativa por genero; las mujeres no son excluidas sin justificacion cientifica explicita.",
+      "evidencia_esperada": "Criterios de inclusion sin restriccion injustificada de genero; analisis estratificado por sexo cuando corresponda.",
+      "fuentes": [
+        {"ref": "CIOMS 2016 Pauta 18", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "SECIHTI Convocatorias 2025/2026 - perspectiva de genero", "url": "https://secihti.mx/"},
+        {"ref": "UNESCO Bioetica 2005 art. 10-11", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000146180"}
+      ],
+      "severidad": "media",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 14,
+      "ai_prompt_hint": "Verifica que no haya exclusion de mujeres salvo justificacion clinica (ej. estudios de cancer prostatico). Espera analisis por sexo en protocolos clinicos."
+    },
+    {
+      "id": "CHK-056",
+      "categoria": "poblaciones_vulnerables",
+      "subcategoria": "no_discriminacion",
+      "criterio": "El protocolo incluye salvaguardas anti-discriminacion (genetica, etnica, religiosa, orientacion sexual, discapacidad).",
+      "evidencia_esperada": "Clausula expresa de no discriminacion; ausencia de criterios excluyentes injustificados.",
+      "fuentes": [
+        {"ref": "Convenio Oviedo art. 11", "url": "https://rm.coe.int/168007cf98"},
+        {"ref": "UNESCO Bioetica 2005 art. 11", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000146180"},
+        {"ref": "UNESCO Genoma 1997 art. 6", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000122990"},
+        {"ref": "UNESCO Datos Geneticos 2003 art. 7", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000136112"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 19,
+      "ai_prompt_hint": "Buscar clausula explicita de no discriminacion. Especialmente critico en estudios geneticos donde resultados pueden estigmatizar."
+    },
+    {
+      "id": "CHK-057",
+      "categoria": "confidencialidad_datos",
+      "subcategoria": "datos_sensibles",
+      "criterio": "Se identifican los datos personales sensibles tratados (salud, geneticos, biometricos, origen etnico, orientacion sexual).",
+      "evidencia_esperada": "Listado de categorias de datos personales con clasificacion de sensibilidad conforme LGPDPPSO art. 3 frac. X.",
+      "fuentes": [
+        {"ref": "LGPDPPSO art. 3 frac. X", "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LGPDPPSO.pdf"},
+        {"ref": "GDPR art. 9", "url": "https://gdpr-info.eu/art-9-gdpr/"},
+        {"ref": "UNESCO Datos Geneticos 2003", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000136112"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 25,
+      "ai_prompt_hint": "Verifica listado explicito de categorias. Por defecto los datos de salud son sensibles. Si solo dice 'datos personales' sin desglose, marcar incompleto."
+    },
+    {
+      "id": "CHK-058",
+      "categoria": "confidencialidad_datos",
+      "subcategoria": "consentimiento_datos",
+      "criterio": "Existe consentimiento expreso y por escrito para tratamiento de datos personales sensibles, integrado o anexo a la CCI.",
+      "evidencia_esperada": "Clausula de consentimiento de datos con base legal, finalidades, derechos ARCO.",
+      "fuentes": [
+        {"ref": "LGPDPPSO art. 21", "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LGPDPPSO.pdf"},
+        {"ref": "GDPR art. 9.2(a)", "url": "https://gdpr-info.eu/art-9-gdpr/"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 25,
+      "ai_prompt_hint": "Verificar consentimiento expreso (no presunto) para datos sensibles. Para investigacion bajo Art. 89 GDPR puede haber base legal alternativa."
+    },
+    {
+      "id": "CHK-059",
+      "categoria": "confidencialidad_datos",
+      "subcategoria": "aviso_privacidad",
+      "criterio": "Se entrega Aviso de Privacidad simplificado e integral al participante con todos los elementos de LGPDPPSO arts. 26-29.",
+      "evidencia_esperada": "Aviso simplificado en la CCI + aviso integral disponible (URL o anexo); incluye responsable, finalidad, derechos, transferencias.",
+      "fuentes": [
+        {"ref": "LGPDPPSO arts. 26-29", "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LGPDPPSO.pdf"},
+        {"ref": "GDPR arts. 13-14", "url": "https://gdpr-info.eu/art-13-gdpr/"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 25,
+      "ai_prompt_hint": "Verifica los 2 niveles: (1) simplificado en CCI, (2) integral disponible (URL/QR/anexo). Sin uno de los dos, marcar incompleto."
+    },
+    {
+      "id": "CHK-060",
+      "categoria": "confidencialidad_datos",
+      "subcategoria": "medidas_seguridad",
+      "criterio": "Se describen medidas de seguridad tecnicas (cifrado, control de acceso, respaldo), fisicas (resguardo) y administrativas (politicas, capacitacion).",
+      "evidencia_esperada": "Apartado 'Documento de seguridad' o equivalente con las 3 categorias de medidas y responsables.",
+      "fuentes": [
+        {"ref": "LGPDPPSO arts. 31-42", "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LGPDPPSO.pdf"},
+        {"ref": "GDPR art. 32", "url": "https://gdpr-info.eu/art-32-gdpr/"},
+        {"ref": "ICH-GCP E6(R3) Principio 11", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 25,
+      "ai_prompt_hint": "Verifica las 3 categorias: (1) tecnicas (cifrado AES-256, MFA, audit trail), (2) fisicas (acceso restringido), (3) administrativas (politicas, capacitacion anual)."
+    },
+    {
+      "id": "CHK-061",
+      "categoria": "confidencialidad_datos",
+      "subcategoria": "anonimizacion",
+      "criterio": "Se aplica disociacion, seudonimizacion o anonimizacion de datos cuando el diseno lo permite.",
+      "evidencia_esperada": "Procedimiento con niveles de identificabilidad (identificable, codificado, seudonimizado, anonimo) y custodia de la clave.",
+      "fuentes": [
+        {"ref": "LGPDPPSO arts. 3, 31", "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LGPDPPSO.pdf"},
+        {"ref": "GDPR art. 32 (seudonimizacion)", "url": "https://gdpr-info.eu/art-32-gdpr/"},
+        {"ref": "CIOMS 2016 Pauta 12", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "UNESCO Datos Geneticos 2003 art. 14", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000136112"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 25,
+      "ai_prompt_hint": "Verifica que los datos para analisis esten seudonimizados. Identificar custodio de la lista de equivalencias y separar fisicamente del dataset."
+    },
+    {
+      "id": "CHK-062",
+      "categoria": "confidencialidad_datos",
+      "subcategoria": "minimizacion",
+      "criterio": "Se aplica el principio de minimizacion: solo se recolectan los datos estrictamente necesarios para los objetivos del estudio.",
+      "evidencia_esperada": "Justificacion explicita de cada variable recolectada vinculada a un objetivo.",
+      "fuentes": [
+        {"ref": "GDPR art. 5.1(c)", "url": "https://gdpr-info.eu/art-5-gdpr/"},
+        {"ref": "LGPDPPSO art. 4-8 (proporcionalidad)", "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LGPDPPSO.pdf"}
+      ],
+      "severidad": "media",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 25,
+      "ai_prompt_hint": "Compara variables recolectadas vs. objetivos. Senalar variables sin uso aparente como recoleccion excesiva."
+    },
+    {
+      "id": "CHK-063",
+      "categoria": "confidencialidad_datos",
+      "subcategoria": "transferencias",
+      "criterio": "Se describe el procedimiento para transferencias de datos (especialmente internacionales) con cobertura legal adecuada.",
+      "evidencia_esperada": "Apartado de transferencias con destinatarios, base legal, garantias contractuales o decision de adecuacion.",
+      "fuentes": [
+        {"ref": "LGPDPPSO arts. 65-69", "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LGPDPPSO.pdf"},
+        {"ref": "GDPR arts. 44-49 transferencias", "url": "https://gdpr-info.eu/chapter-5/"},
+        {"ref": "UNESCO Datos Geneticos 2003 art. 21", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000136112"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 25,
+      "ai_prompt_hint": "Aplica si hay transferencia a sponsor internacional, biobanco extranjero o repositorio externo. Verificar SCCs / Material Transfer Agreement firmado."
+    },
+    {
+      "id": "CHK-064",
+      "categoria": "confidencialidad_datos",
+      "subcategoria": "derechos_arco",
+      "criterio": "Existe procedimiento documentado para que el participante ejerza derechos ARCO (Acceso, Rectificacion, Cancelacion, Oposicion) durante y despues del estudio.",
+      "evidencia_esperada": "Apartado en aviso de privacidad con instrucciones, formato y plazo de respuesta a solicitudes ARCO.",
+      "fuentes": [
+        {"ref": "LGPDPPSO arts. 46-55", "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LGPDPPSO.pdf"},
+        {"ref": "GDPR arts. 15-22", "url": "https://gdpr-info.eu/chapter-3/"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 25,
+      "ai_prompt_hint": "Verifica que el aviso de privacidad describa: como solicitar, donde, plazo (20 dias habiles en Mexico), excepciones (Art. 89 GDPR equivalente)."
+    },
+    {
+      "id": "CHK-065",
+      "categoria": "confidencialidad_datos",
+      "subcategoria": "brechas",
+      "criterio": "Existe procedimiento de notificacion de brechas de seguridad / vulneraciones a los titulares y a la autoridad en el plazo legal.",
+      "evidencia_esperada": "Procedimiento con plazos (72 hr en GDPR; 'sin demora' en LGPDPPSO), responsables y plantilla de comunicacion.",
+      "fuentes": [
+        {"ref": "LGPDPPSO arts. 43-45", "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LGPDPPSO.pdf"},
+        {"ref": "GDPR arts. 33-34", "url": "https://gdpr-info.eu/art-33-gdpr/"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 25,
+      "ai_prompt_hint": "Verifica plazo de 72 hrs y responsable. Sin procedimiento, marcar incumplimiento medio."
+    },
+    {
+      "id": "CHK-066",
+      "categoria": "confidencialidad_datos",
+      "subcategoria": "dpia",
+      "criterio": "Cuando el tratamiento entrana alto riesgo (datos geneticos, large-scale, perfilado, vulnerables), se realiza una Evaluacion de Impacto en Proteccion de Datos (DPIA).",
+      "evidencia_esperada": "Documento DPIA anexo con descripcion del tratamiento, evaluacion de necesidad, riesgos y medidas.",
+      "fuentes": [
+        {"ref": "GDPR art. 35", "url": "https://gdpr-info.eu/art-35-gdpr/"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": true},
+      "seccion_protocolo": 25,
+      "ai_prompt_hint": "Aplica si: datos geneticos, biometricos, vigilancia masiva, perfilado, ninos. Si no hay DPIA y es uno de estos casos, marcar incumplimiento."
+    },
+    {
+      "id": "CHK-067",
+      "categoria": "confidencialidad_datos",
+      "subcategoria": "expedientes",
+      "criterio": "Si el protocolo accede o genera expedientes clinicos, cumple con NOM-004-SSA3-2012 (autorizacion, secreto profesional, conservacion 5 anos).",
+      "evidencia_esperada": "Apartado que mencione apego a NOM-004 y autorizacion de uso de expedientes por la institucion.",
+      "fuentes": [
+        {"ref": "NOM-004-SSA3-2012", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5272787&fecha=15/10/2012"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 26,
+      "ai_prompt_hint": "Aplica si el protocolo accede a expedientes clinicos. Verificar autorizacion institucional y custodia conforme NOM-004."
+    },
+    {
+      "id": "CHK-068",
+      "categoria": "confidencialidad_datos",
+      "subcategoria": "informacion_salud",
+      "criterio": "Si genera datos en salud, usa catalogos oficiales (CIE-10, CIE-9-MC procedimientos) y cumple interoperabilidad NOM-024 cuando aplica.",
+      "evidencia_esperada": "Mencion explicita de uso de CIE-10 para diagnosticos; en sistemas de informacion, conformidad NOM-024.",
+      "fuentes": [
+        {"ref": "NOM-035-SSA3-2012", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5280848&fecha=30/11/2012"},
+        {"ref": "NOM-024-SSA3-2012", "url": "https://dof.gob.mx/normasOficiales.php"}
+      ],
+      "severidad": "media",
+      "peso": 2,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 26,
+      "ai_prompt_hint": "Verifica menciones de CIE-10. Si registra eventos en sistemas electronicos, espera mencion de NOM-024."
+    },
+    {
+      "id": "CHK-069",
+      "categoria": "confidencialidad_datos",
+      "subcategoria": "archivo",
+      "criterio": "Existe plan de archivo y conservacion del expediente de investigacion por al menos 5 anos despues de concluido el estudio.",
+      "evidencia_esperada": "Apartado 'Custodia y conservacion' con responsable, ubicacion, plazo (>=5 anos) y procedimiento de destruccion.",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 11", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "NOM-004-SSA3-2012 Sec. 5.5", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5272787&fecha=15/10/2012"},
+        {"ref": "ICH-GCP E6(R3) Sec. 7", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 26,
+      "ai_prompt_hint": "Verifica plazo >=5 anos (>=15 anos para ensayos clinicos con ICH-GCP). Identificar responsable y lugar fisico/digital."
+    },
+    {
+      "id": "CHK-070",
+      "categoria": "confidencialidad_datos",
+      "subcategoria": "derecho_saber",
+      "criterio": "Se reconoce el derecho del participante a saber o no saber resultados (especialmente hallazgos incidentales geneticos).",
+      "evidencia_esperada": "Clausula en CCI: opcion explicita opt-in / opt-out para recibir resultados individuales y hallazgos incidentales.",
+      "fuentes": [
+        {"ref": "Convenio Oviedo art. 10", "url": "https://rm.coe.int/168007cf98"},
+        {"ref": "UNESCO Datos Geneticos 2003 art. 10", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000136112"},
+        {"ref": "UNESCO Genoma 1997 art. 5", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000122990"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": true},
+      "seccion_protocolo": 23,
+      "ai_prompt_hint": "Aplica especialmente para estudios geneticos. Verificar opciones explicitas: 'Si quiero recibir mis resultados / No quiero recibir mis resultados'."
+    },
+    {
+      "id": "CHK-071",
+      "categoria": "productos_salud",
+      "subcategoria": "cofepris_farmacos",
+      "criterio": "Para investigacion con farmacos o biologicos, hay autorizacion COFEPRIS (homoclave 04-010-A) o tramite en curso.",
+      "evidencia_esperada": "Numero de autorizacion COFEPRIS o acuse de DIGIPRiS adjunto.",
+      "fuentes": [
+        {"ref": "RLGSMIS art. 65", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"},
+        {"ref": "COFEPRIS Homoclave 04-010-A", "url": "https://catalogonacional.gob.mx/FichaTramite?traHomoclave=COFEPRIS-04-010-A"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 27,
+      "ai_prompt_hint": "Aplica si hay farmaco/biologico (incluso uso fuera de etiqueta). Sin numero COFEPRIS, marcar critica no cumple."
+    },
+    {
+      "id": "CHK-072",
+      "categoria": "productos_salud",
+      "subcategoria": "cofepris_dispositivos",
+      "criterio": "Para investigacion con dispositivos medicos, hay autorizacion COFEPRIS (homoclave 04-010-C).",
+      "evidencia_esperada": "Numero de autorizacion COFEPRIS o acuse adjunto.",
+      "fuentes": [
+        {"ref": "COFEPRIS Homoclave 04-010-C", "url": "https://www.gob.mx/cofepris/acciones-y-programas/ensayos-clinicos-protocolos-de-investigacion-en-seres-humanos"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "aplicada"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 27,
+      "ai_prompt_hint": "Aplica si hay dispositivo medico investigacional. Verificar tipo de dispositivo (Clase I-III) y si requiere registro previo."
+    },
+    {
+      "id": "CHK-073",
+      "categoria": "productos_salud",
+      "subcategoria": "manual_investigador",
+      "criterio": "Existe Manual del Investigador (Investigator's Brochure - IB) actualizado, vigente y disponible para el equipo.",
+      "evidencia_esperada": "Documento IB con version, fecha (<=12 meses), datos preclinicos, clinicos y de seguridad.",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "ICH-GCP E6(R3) Sec. 6", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 27,
+      "ai_prompt_hint": "Aplica para farmacos/dispositivos. Verifica fecha del IB (<=12 meses). Sin IB vigente, no aprobar el protocolo."
+    },
+    {
+      "id": "CHK-074",
+      "categoria": "productos_salud",
+      "subcategoria": "farmacovigilancia",
+      "criterio": "Existe plan de farmacovigilancia conforme NOM-220-SSA1-2016 con reporte CIOMS de eventos adversos serios.",
+      "evidencia_esperada": "Procedimiento de farmacovigilancia con responsable, plazos, formatos CIOMS-I y destinatarios.",
+      "fuentes": [
+        {"ref": "NOM-220-SSA1-2016", "url": "https://dof.gob.mx/normasOficiales.php"},
+        {"ref": "ICH-GCP E6(R3) Principio 4", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 27,
+      "ai_prompt_hint": "Aplica para farmacos. Verifica responsable de farmacovigilancia, plazos SUSAR (15 dias), reportes anuales DSUR."
+    },
+    {
+      "id": "CHK-075",
+      "categoria": "productos_salud",
+      "subcategoria": "bpc",
+      "criterio": "El equipo investigador cuenta con certificacion vigente en Buenas Practicas Clinicas (ICH-GCP E6(R3)).",
+      "evidencia_esperada": "Constancias BPC para IP y subinvestigadores con fecha <=3 anos; cursos certificados (CITI, GCP Mexico, etc.).",
+      "fuentes": [
+        {"ref": "ICH-GCP E6(R3) Principio 9", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"},
+        {"ref": "COFEPRIS Modulo VI", "url": "https://www.gob.mx/cofepris/articulos/guia-para-el-ingreso-de-protocolos-de-investigacion"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 2,
+      "ai_prompt_hint": "Cuenta cuantos miembros del equipo tienen BPC vigente. Senalar miembros sin certificacion en estudios clinicos con farmacos."
+    },
+    {
+      "id": "CHK-076",
+      "categoria": "productos_salud",
+      "subcategoria": "seguro",
+      "criterio": "Existe poliza de seguro o mecanismo de responsabilidad civil para los participantes en investigacion con riesgo > minimo.",
+      "evidencia_esperada": "Caratula de poliza vigente con cobertura y vigencia; o carta institucional con compromiso financiero respaldado.",
+      "fuentes": [
+        {"ref": "COFEPRIS Modulo VIII", "url": "https://www.gob.mx/cofepris/articulos/guia-para-el-ingreso-de-protocolos-de-investigacion"},
+        {"ref": "ICH-GCP E6(R3) Sec. 4 Sponsor", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"},
+        {"ref": "CIOMS 2016 Pauta 14", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "Helsinki 2024 §15", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "aplicada"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 22,
+      "ai_prompt_hint": "Para riesgo > minimo verificar poliza vigente con cobertura clara. Para fases I-III obligatorio. Sin seguro en ensayos con farmaco, marcar critica no cumple."
+    },
+    {
+      "id": "CHK-077",
+      "categoria": "productos_salud",
+      "subcategoria": "calidad_datos",
+      "criterio": "Los sistemas de captura/manejo de datos cumplen ALCOA+ (atribuibilidad, legibilidad, contemporaneidad, originalidad, exactitud, completitud).",
+      "evidencia_esperada": "Descripcion de eCRF/CRDB con audit trail, control de versiones, validacion del sistema.",
+      "fuentes": [
+        {"ref": "ICH-GCP E6(R3) Principio 11", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 16,
+      "ai_prompt_hint": "Verificar sistema validado (Part 11), audit trail, gestion de accesos, respaldos. Para estudios investigador-iniciado puede usar REDCap u otro sistema validado."
+    },
+    {
+      "id": "CHK-078",
+      "categoria": "productos_salud",
+      "subcategoria": "placebo",
+      "criterio": "El uso de placebo (cuando aplica) esta eticamente justificado: no existe tratamiento estandar comprobado, o riesgo aceptable de no recibir tratamiento.",
+      "evidencia_esperada": "Argumentacion explicita conforme Helsinki §33: ausencia de mejor intervencion probada o riesgo bajo de privacion temporal.",
+      "fuentes": [
+        {"ref": "Helsinki 2024 §33", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"},
+        {"ref": "CIOMS 2016 Pauta 5", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 12,
+      "ai_prompt_hint": "Aplica si hay grupo placebo. Si existe tratamiento estandar y el placebo expone a dano grave/irreversible, rechazar diseno."
+    },
+    {
+      "id": "CHK-079",
+      "categoria": "productos_salud",
+      "subcategoria": "atencion_medica",
+      "criterio": "La atencion medica al participante esta asegurada por medico calificado durante todo el estudio.",
+      "evidencia_esperada": "Designacion de medico responsable de la atencion clinica con disponibilidad documentada (24/7 en estudios clinicos).",
+      "fuentes": [
+        {"ref": "ICH-GCP E6(R3) Principio 8", "url": "https://database.ich.org/sites/default/files/ICH_E6(R3)_Step4_FinalGuideline_2025_0106.pdf"},
+        {"ref": "RLGSMIS art. 14 frac. VI", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 22,
+      "ai_prompt_hint": "Verifica nombre y cedula del medico responsable y mecanismo de atencion fuera de horario habil."
+    },
+    {
+      "id": "CHK-080",
+      "categoria": "gobernanza_cei",
+      "subcategoria": "registro_cei",
+      "criterio": "El CEI evaluador cuenta con registro vigente ante CONBIOETICA (renovacion cada 3 anos) y, si aplica, ante COFEPRIS.",
+      "evidencia_esperada": "Numero de registro CONBIOETICA y vigencia.",
+      "fuentes": [
+        {"ref": "Acuerdo CONBIOETICA Disp. 14a", "url": "https://www.dof.gob.mx/nota_detalle.php?codigo=5276107&fecha=31/10/2012"},
+        {"ref": "LGS art. 41 Bis (reforma 2026)", "url": "https://www.gob.mx/cms/uploads/attachment/file/1048568/2026.1._Reforma_LGS.pdf"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 1,
+      "ai_prompt_hint": "Es auto-evaluacion del CEI. Verificar vigencia del registro CONBIOETICA al momento del dictamen."
+    },
+    {
+      "id": "CHK-081",
+      "categoria": "gobernanza_cei",
+      "subcategoria": "composicion",
+      "criterio": "El CEI cumple con composicion minima: >=7 miembros titulares, multidisciplinarios, equilibrio de genero, lego comunitario, abogado, profesional con formacion en bioetica.",
+      "evidencia_esperada": "Listado de miembros titulares y suplentes con perfil profesional y categoria.",
+      "fuentes": [
+        {"ref": "Acuerdo CONBIOETICA Disp. 8a", "url": "https://www.dof.gob.mx/nota_detalle.php?codigo=5276107&fecha=31/10/2012"},
+        {"ref": "WHO Standards 2011 Estandar 2", "url": "https://www.who.int/publications/i/item/9789241502948"},
+        {"ref": "UNESCO Bioetica 2005 art. 19", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000146180"},
+        {"ref": "UNESCO Genoma 1997 art. 16", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000122990"},
+        {"ref": "CIOMS 2016 Pauta 23", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 1,
+      "ai_prompt_hint": "Auto-evaluacion. Verificar: (1) >=7 titulares, (2) genero balanceado (40-60), (3) abogado, (4) lego comunitario, (5) bioeticista, (6) profesionales de la salud."
+    },
+    {
+      "id": "CHK-082",
+      "categoria": "gobernanza_cei",
+      "subcategoria": "independencia",
+      "criterio": "El CEI demuestra independencia operativa y financiera respecto a la institucion y sus investigadores.",
+      "evidencia_esperada": "Reglamento interno con autonomia, presupuesto propio o etiquetado, estructura sin conflicto.",
+      "fuentes": [
+        {"ref": "WHO Standards 2011 Estandar 4", "url": "https://www.who.int/publications/i/item/9789241502948"},
+        {"ref": "CIOMS 2016 Pauta 23", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 1,
+      "ai_prompt_hint": "Auto-evaluacion. Verificar que el CEI tenga reglas claras de independencia y que sus decisiones no sean revocadas por la institucion."
+    },
+    {
+      "id": "CHK-083",
+      "categoria": "gobernanza_cei",
+      "subcategoria": "poes",
+      "criterio": "El CEI cuenta con Procedimientos Operativos Estandar (POEs) escritos, vigentes y aplicados consistentemente.",
+      "evidencia_esperada": "Manual de POEs con secciones para recepcion, evaluacion, dictamen, seguimiento, eventos adversos, enmiendas.",
+      "fuentes": [
+        {"ref": "WHO Standards 2011 Estandar 6", "url": "https://www.who.int/publications/i/item/9789241502948"},
+        {"ref": "OPS PAHOERC SOPs", "url": "https://iris.paho.org/handle/10665.2/49076"},
+        {"ref": "Acuerdo CONBIOETICA Disp. 11a", "url": "https://www.dof.gob.mx/nota_detalle.php?codigo=5276107&fecha=31/10/2012"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 1,
+      "ai_prompt_hint": "Auto-evaluacion. Verificar version vigente, fecha de revision (<=2 anos), aplicacion documentada en actas."
+    },
+    {
+      "id": "CHK-084",
+      "categoria": "gobernanza_cei",
+      "subcategoria": "conflicto_interes_cei",
+      "criterio": "Los miembros del CEI declaran conflictos de interes por escrito al inicio del cargo y por cada protocolo evaluado, con abstencion obligatoria cuando aplica.",
+      "evidencia_esperada": "Formato de declaracion de conflicto de interes firmado por cada miembro al inicio y por protocolo; registro de abstenciones en actas.",
+      "fuentes": [
+        {"ref": "Acuerdo CONBIOETICA Disp. 13a", "url": "https://www.dof.gob.mx/nota_detalle.php?codigo=5276107&fecha=31/10/2012"},
+        {"ref": "WHO Standards 2011 Estandar 8", "url": "https://www.who.int/publications/i/item/9789241502948"},
+        {"ref": "CIOMS 2016 Pauta 25", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 1,
+      "ai_prompt_hint": "Auto-evaluacion. Verificar formatos firmados y registro de abstenciones en cada acta. Sin formato firmado por protocolo, marcar incumplimiento."
+    },
+    {
+      "id": "CHK-085",
+      "categoria": "gobernanza_cei",
+      "subcategoria": "quorum_decision",
+      "criterio": "Las decisiones del CEI se toman con quorum reglamentario (al menos mitad mas uno, incluyendo lego y no afiliado) por consenso o voto registrado.",
+      "evidencia_esperada": "Acta con lista de asistencia, quorum verificado, modalidad de decision y resultado.",
+      "fuentes": [
+        {"ref": "Acuerdo CONBIOETICA Disp. 11a", "url": "https://www.dof.gob.mx/nota_detalle.php?codigo=5276107&fecha=31/10/2012"},
+        {"ref": "WHO Standards 2011 Estandar 8", "url": "https://www.who.int/publications/i/item/9789241502948"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 1,
+      "ai_prompt_hint": "Auto-evaluacion por sesion. Verificar quorum y presencia obligatoria de lego y no afiliado. Sin quorum, decisiones no son validas."
+    },
+    {
+      "id": "CHK-086",
+      "categoria": "gobernanza_cei",
+      "subcategoria": "capacitacion_cei",
+      "criterio": "Cada miembro del CEI tiene capacitacion documentada (al menos un curso anual) en bioetica, etica de la investigacion o BPC.",
+      "evidencia_esperada": "Constancias de cursos por miembro con fecha de los ultimos 12 meses.",
+      "fuentes": [
+        {"ref": "Acuerdo CONBIOETICA Disp. 16a", "url": "https://www.dof.gob.mx/nota_detalle.php?codigo=5276107&fecha=31/10/2012"},
+        {"ref": "WHO Standards 2011 Estandar 5", "url": "https://www.who.int/publications/i/item/9789241502948"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 1,
+      "ai_prompt_hint": "Auto-evaluacion. Verificar matriz de capacitacion del CEI con fechas de los ultimos 12 meses. Senalar miembros sin capacitacion vigente."
+    },
+    {
+      "id": "CHK-087",
+      "categoria": "gobernanza_cei",
+      "subcategoria": "seguimiento",
+      "criterio": "Existe mecanismo de seguimiento continuo del protocolo: informes parciales/finales, enmiendas, reportes de eventos adversos y cierre.",
+      "evidencia_esperada": "Cronograma de seguimiento con periodicidad (>=anual), formatos para enmiendas y reporte SAE.",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 8 y 11", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "Acuerdo CONBIOETICA Disp. 11a", "url": "https://www.dof.gob.mx/nota_detalle.php?codigo=5276107&fecha=31/10/2012"},
+        {"ref": "WHO Standards 2011 Estandar 10", "url": "https://www.who.int/publications/i/item/9789241502948"},
+        {"ref": "Helsinki 2024 §23", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 1,
+      "ai_prompt_hint": "Verifica que el dictamen incluya periodicidad de informes (al menos anual). Para riesgo mayor minimo, esperar seguimiento semestral."
+    },
+    {
+      "id": "CHK-088",
+      "categoria": "gobernanza_cei",
+      "subcategoria": "comunicacion_decision",
+      "criterio": "El CEI comunica oportuna y motivadamente sus decisiones (aprobacion, modificacion, no aprobacion, suspension) por escrito al investigador.",
+      "evidencia_esperada": "Plantilla de dictamen del CEI con tipo de decision, fundamento, recomendaciones y plazos.",
+      "fuentes": [
+        {"ref": "WHO Standards 2011 Estandar 9", "url": "https://www.who.int/publications/i/item/9789241502948"},
+        {"ref": "Acuerdo CONBIOETICA Disp. 11a", "url": "https://www.dof.gob.mx/nota_detalle.php?codigo=5276107&fecha=31/10/2012"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 1,
+      "ai_prompt_hint": "Auto-evaluacion. Verificar plazo entre sesion y dictamen (<=15 dias habiles)."
+    },
+    {
+      "id": "CHK-089",
+      "categoria": "gobernanza_cei",
+      "subcategoria": "revision_transnacional",
+      "criterio": "Para investigacion transnacional/multinacional, hay revision etica en pais anfitrion (Mexico) y en pais de origen, con coordinacion documentada.",
+      "evidencia_esperada": "Dictamenes de CEI extranjeros adjuntos y validacion local del CEI mexicano.",
+      "fuentes": [
+        {"ref": "UNESCO Bioetica 2005 art. 21", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000146180"},
+        {"ref": "CIOMS 2016 Pauta 8", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 1,
+      "ai_prompt_hint": "Aplica solo si hay sponsor/centros internacionales. Verificar al menos un dictamen extranjero en idioma original con traduccion."
+    },
+    {
+      "id": "CHK-090",
+      "categoria": "gobernanza_cei",
+      "subcategoria": "emergencias",
+      "criterio": "Para investigacion en emergencias de salud publica, desastres o brotes, se mantienen los principios eticos y se siguen plantillas operativas (OPS/OMS).",
+      "evidencia_esperada": "Apartado especifico con justificacion de emergencia, mecanismos acelerados sin sacrificar etica.",
+      "fuentes": [
+        {"ref": "Helsinki 2024 §36", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"},
+        {"ref": "CIOMS 2016 Pauta 20", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "OPS Plantilla COVID-19", "url": "https://iris.paho.org/handle/10665.2/52086"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 12,
+      "ai_prompt_hint": "Aplica si el contexto es pandemia/desastre. Verificar uso de plantillas OPS y mecanismos acelerados de revision (no eliminacion)."
+    },
+    {
+      "id": "CHK-091",
+      "categoria": "transparencia_publicacion",
+      "subcategoria": "publicacion_honesta",
+      "criterio": "Existe compromiso de publicacion honesta de resultados (positivos, negativos o neutros) y rechazo a mala conducta cientifica.",
+      "evidencia_esperada": "Clausula explicita en el protocolo de compromiso de publicar todos los resultados y declaracion de integridad.",
+      "fuentes": [
+        {"ref": "Helsinki 2024 §3 y §35", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"},
+        {"ref": "CIOMS 2016 Pauta 24", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "SECIHTI Reglamento SNII 2025 - integridad", "url": "https://secihti.mx/wp-content/uploads/2025/12/REGLAMENTO_SNII_2025.pdf"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 28,
+      "ai_prompt_hint": "Buscar parrafo de compromiso. Verificar que mencione publicacion independientemente del resultado."
+    },
+    {
+      "id": "CHK-092",
+      "categoria": "transparencia_publicacion",
+      "subcategoria": "acceso_abierto",
+      "criterio": "Cuando hay financiamiento publico, se contempla publicacion en acceso abierto y deposito en Repositorio Nacional / institucional.",
+      "evidencia_esperada": "Plan de difusion con publicaciones en acceso abierto y mencion del Repositorio Nacional SECIHTI.",
+      "fuentes": [
+        {"ref": "SECIHTI - acceso abierto", "url": "https://secihti.mx/"},
+        {"ref": "Helsinki 2024 §35", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"}
+      ],
+      "severidad": "media",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 28,
+      "ai_prompt_hint": "Aplica si recibe fondos SECIHTI o publicos. Verificar plan FAIR y deposito en Repositorio Nacional."
+    },
+    {
+      "id": "CHK-093",
+      "categoria": "transparencia_publicacion",
+      "subcategoria": "acceso_post_ensayo",
+      "criterio": "Existe plan de acceso post-ensayo a las intervenciones identificadas como beneficiosas y razonablemente seguras.",
+      "evidencia_esperada": "Apartado 'Acceso post-ensayo' que describa como los participantes accederan a la intervencion exitosa al concluir el estudio.",
+      "fuentes": [
+        {"ref": "Helsinki 2024 §34", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"},
+        {"ref": "CIOMS 2016 Pauta 2 y 6", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"}
+      ],
+      "severidad": "alta",
+      "peso": 4,
+      "aplicabilidad": {"tipo_investigacion": ["clinica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 22,
+      "ai_prompt_hint": "Aplica para ensayos terapeuticos. Excepciones requieren aprobacion explicita del CEI con justificacion."
+    },
+    {
+      "id": "CHK-094",
+      "categoria": "transparencia_publicacion",
+      "subcategoria": "compromiso_comunitario",
+      "criterio": "Existe estrategia de compromiso comunitario significativo antes, durante y despues del estudio (consulta, devolucion de resultados).",
+      "evidencia_esperada": "Plan de involucramiento comunitario con actividades, audiencias y mecanismos de devolucion.",
+      "fuentes": [
+        {"ref": "Helsinki 2024 §6", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"},
+        {"ref": "CIOMS 2016 Pauta 7", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "OPS Preguntas Guia 8", "url": "https://iris.paho.org/handle/10665.2/67780"}
+      ],
+      "severidad": "media",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "epidemiologica", "aplicada"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 24,
+      "ai_prompt_hint": "Espera plan con 3 momentos (antes/durante/despues). Especialmente exigente para estudios en comunidades especificas."
+    },
+    {
+      "id": "CHK-095",
+      "categoria": "transparencia_publicacion",
+      "subcategoria": "datos_digitales",
+      "criterio": "Para investigacion con datos digitales (redes sociales, mHealth, wearables), hay salvaguardas especificas de privacidad y consentimiento.",
+      "evidencia_esperada": "Apartado 'Datos digitales' con tipos de datos, plataformas, terminos de servicio respetados, consentimiento especifico.",
+      "fuentes": [
+        {"ref": "CIOMS 2016 Pauta 22", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "GDPR art. 35 DPIA", "url": "https://gdpr-info.eu/art-35-gdpr/"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["epidemiologica", "aplicada", "basica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 25,
+      "ai_prompt_hint": "Aplica para estudios con apps moviles, wearables, scraping de redes sociales. Verificar consentimiento de la plataforma y de los usuarios."
+    },
+    {
+      "id": "CHK-096",
+      "categoria": "aspectos_economicos",
+      "subcategoria": "financiamiento",
+      "criterio": "El protocolo declara fuentes de financiamiento y presupuesto desagregado (personal, materiales, indirectos).",
+      "evidencia_esperada": "Tabla de presupuesto con fuentes (institucional, SECIHTI, sponsor) y rubros desglosados.",
+      "fuentes": [
+        {"ref": "NOM-012-SSA3-2012 Sec. 6.2.11", "url": "https://dof.gob.mx/nota_detalle.php?codigo=5284148&fecha=04/01/2013"},
+        {"ref": "Helsinki 2024 §26", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"},
+        {"ref": "SECIHTI Convocatorias", "url": "https://secihti.mx/"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 18,
+      "ai_prompt_hint": "Verifica que el presupuesto este detallado por rubro y que las fuentes esten claras. Sin patrocinador, justificar autofinanciamiento."
+    },
+    {
+      "id": "CHK-097",
+      "categoria": "aspectos_economicos",
+      "subcategoria": "conflicto_interes",
+      "criterio": "El IP, equipo, patrocinador y cada miembro del CEI declaran exhaustivamente conflictos de interes (financieros, academicos, personales) y mecanismos de mitigacion.",
+      "evidencia_esperada": "Formato de declaracion de conflictos de interes firmado por cada involucrado, con mitigacion cuando aplica.",
+      "fuentes": [
+        {"ref": "CONBIOETICA Disp. 13a", "url": "https://www.dof.gob.mx/nota_detalle.php?codigo=5276107&fecha=31/10/2012"},
+        {"ref": "SECIHTI - integridad", "url": "https://secihti.mx/wp-content/uploads/2025/12/REGLAMENTO_SNII_2025.pdf"},
+        {"ref": "CIOMS 2016 Pauta 25", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "Helsinki 2024 §26", "url": "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"},
+        {"ref": "OPS Preguntas Guia 9", "url": "https://iris.paho.org/handle/10665.2/67780"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 19,
+      "ai_prompt_hint": "Verifica formato firmado por cada miembro del equipo y por miembros del CEI que evaluaron. Si hay conflicto, debe haber mitigacion explicita."
+    },
+    {
+      "id": "CHK-098",
+      "categoria": "aspectos_economicos",
+      "subcategoria": "compensacion",
+      "criterio": "El reembolso de gastos y la compensacion por tiempo a participantes son razonables, no coercitivos y proporcionales.",
+      "evidencia_esperada": "Apartado 'Compensacion' con monto, justificacion (tiempo, transporte, comidas) y forma de entrega.",
+      "fuentes": [
+        {"ref": "CIOMS 2016 Pauta 13", "url": "https://cioms.ch/wp-content/uploads/2017/01/WEB-CIOMS-EthicalGuidelines.pdf"},
+        {"ref": "RLGSMIS art. 21 frac. XI", "url": "https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LGS_MIS.pdf"}
+      ],
+      "severidad": "alta",
+      "peso": 3,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 23,
+      "ai_prompt_hint": "Verifica que el monto sea razonable: cubrir gastos no es coercitivo; pago alto que distorsione la decision SI lo es. Para vulnerables ser muy estricto."
+    },
+    {
+      "id": "CHK-099",
+      "categoria": "aspectos_economicos",
+      "subcategoria": "beneficios_compartidos",
+      "criterio": "Cuando aplica, hay plan de aprovechamiento compartido de beneficios con participantes, comunidades y/o sociedad.",
+      "evidencia_esperada": "Apartado de beneficios compartidos, especialmente en investigacion genetica o con comunidades.",
+      "fuentes": [
+        {"ref": "UNESCO Bioetica 2005 art. 15", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000146180"},
+        {"ref": "UNESCO Datos Geneticos 2003 art. 19", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000136112"}
+      ],
+      "severidad": "media",
+      "peso": 2,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
+      "seccion_protocolo": 24,
+      "ai_prompt_hint": "Especialmente exigente en investigacion genetica con poblaciones especificas, recursos biologicos o conocimiento tradicional."
+    },
+    {
+      "id": "CHK-100",
+      "categoria": "riesgo_beneficio",
+      "subcategoria": "prohibiciones_absolutas",
+      "criterio": "El protocolo respeta prohibiciones absolutas: no creacion de embriones para investigacion, no clonacion reproductiva, no modificacion germinal con efecto en descendencia, no lucro con cuerpo humano.",
+      "evidencia_esperada": "El protocolo no contempla ninguna de las practicas prohibidas; cuando hay duda, declaracion expresa de cumplimiento.",
+      "fuentes": [
+        {"ref": "Convenio Oviedo arts. 18, 21", "url": "https://rm.coe.int/168007cf98"},
+        {"ref": "UNESCO Genoma 1997 art. 11", "url": "https://unesdoc.unesco.org/ark:/48223/pf0000122990"},
+        {"ref": "LGS art. 100", "url": "https://www.diputados.gob.mx/LeyesBiblio/pdf_mov/Ley_General_de_Salud.pdf"}
+      ],
+      "severidad": "critica",
+      "peso": 5,
+      "aplicabilidad": {"tipo_investigacion": ["clinica", "basica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": true},
+      "seccion_protocolo": 19,
+      "ai_prompt_hint": "Verificar ausencia de procedimientos prohibidos. En investigacion con CRISPR, embriones, celulas germinales o tejidos humanos comerciales, escrutinio maximo."
+    }
+  ]
+}
