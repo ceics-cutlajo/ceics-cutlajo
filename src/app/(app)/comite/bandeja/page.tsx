@@ -56,8 +56,9 @@ export default async function BandejaComitePage() {
       )}
 
       <div className="rounded-md bg-info-soft px-4 py-3 text-sm text-info">
-        🛠️ La interfaz de votación con voto por sección y comentarios se implementa en la sesión 7.
-        Por ahora puedes abrir cada protocolo y revisar sus documentos y datos.
+        🛠️ La interfaz de votación con voto por sección y el pre-dictamen IA están en
+        construcción (sesión 8). Por ahora puedes abrir cada protocolo y revisar sus documentos y
+        datos.
       </div>
     </div>
   );
