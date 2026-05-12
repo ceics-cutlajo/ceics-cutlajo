@@ -43,6 +43,33 @@ export const CATEGORIAS_BLOQUE = [
   "aspectos_economicos",
 ] as const;
 
+// Schema parcial usado por cada llamada paralela: evalúa SOLO un subconjunto
+// de bloques y NO incluye resumen_ejecutivo (lo construimos en código tras
+// hacer merge de las 3 llamadas).
+export const preDictamenParcialSchema = z.object({
+  bloques: z.object({
+    identificacion: bloqueEvaluadoSchema.optional(),
+    estructura_cientifica: bloqueEvaluadoSchema.optional(),
+    metodologia: bloqueEvaluadoSchema.optional(),
+    riesgo_beneficio: bloqueEvaluadoSchema.optional(),
+    consentimiento: bloqueEvaluadoSchema.optional(),
+    poblaciones_vulnerables: bloqueEvaluadoSchema.optional(),
+    confidencialidad_datos: bloqueEvaluadoSchema.optional(),
+    productos_salud: bloqueEvaluadoSchema.optional(),
+    gobernanza_cei: bloqueEvaluadoSchema.optional(),
+    transparencia_publicacion: bloqueEvaluadoSchema.optional(),
+    aspectos_economicos: bloqueEvaluadoSchema.optional(),
+  }),
+  observaciones_criticas: z.array(z.string().min(10).max(500)).max(20).optional(),
+  sugerencias: z.array(z.string().min(10).max(500)).max(20).optional(),
+  tokens_input: z.number().int().nonnegative().optional(),
+  tokens_output: z.number().int().nonnegative().optional(),
+});
+export type PreDictamenParcial = z.infer<typeof preDictamenParcialSchema>;
+
+// Schema completo: lo que finalmente se persiste en pre_informes.contenido.
+// El route handler combina N PreDictamenParcial + construye resumen_ejecutivo
+// y produce este objeto antes de validar y escribir.
 export const preDictamenSchema = z.object({
   resumen_ejecutivo: z.string().min(50).max(2000),
   bloques: z.object({

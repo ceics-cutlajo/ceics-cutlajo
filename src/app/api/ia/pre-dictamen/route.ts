@@ -22,11 +22,19 @@ import {
 import {
   SYSTEM_PROMPT_PRE_DICTAMEN,
   buildUserMessagePreDictamen,
+  GRUPOS_BLOQUES,
 } from "@/lib/ia/prompt-pre-dictamen";
-import { preDictamenSchema, CATEGORIAS_BLOQUE } from "@/lib/ia/schema-pre-dictamen";
+import {
+  preDictamenSchema,
+  preDictamenParcialSchema,
+  CATEGORIAS_BLOQUE,
+  type PreDictamenParcial,
+  type PreDictamen,
+} from "@/lib/ia/schema-pre-dictamen";
 import {
   agruparPorCategoria,
   filtrarPorAplicabilidad,
+  ETIQUETAS_CATEGORIA,
   type Categoria,
 } from "@/lib/checklist";
 
@@ -173,71 +181,112 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // 8. Llamar Sonnet
+  // 8. Llamar a Haiku 3 veces en paralelo, una por grupo de bloques
   const inicio = Date.now();
   try {
     const anthropic = getAnthropicClient();
-    const response = await anthropic.messages.create({
-      model: MODELO_PRE_DICTAMEN,
-      max_tokens: MAX_TOKENS_PRE_DICTAMEN,
-      system: SYSTEM_PROMPT_PRE_DICTAMEN,
-      messages: [
-        {
-          role: "user",
-          content: buildUserMessagePreDictamen(
-            {
-              titulo: prot.titulo,
-              resumen: prot.resumen,
-              area_conocimiento_id: prot.area_conocimiento_id,
-              tipo_investigacion_id: prot.tipo_investigacion_id,
-              clasificacion_riesgo: prot.clasificacion_riesgo,
-              involucra_humanos: prot.involucra_humanos,
-              involucra_menores: prot.involucra_menores,
-              involucra_datos_geneticos: prot.involucra_datos_geneticos,
-              involucra_medicamento: prot.involucra_medicamento,
-              objetivo_general: prot.objetivo_general,
-              objetivos_especificos:
-                (prot.objetivos_especificos as string[] | null) ?? [],
-              criterios_inclusion:
-                (prot.criterios_inclusion as string[] | null) ?? [],
-              criterios_exclusion:
-                (prot.criterios_exclusion as string[] | null) ?? [],
-              metodologia: prot.metodologia,
-              cronograma:
-                (prot.cronograma as { etapa: string; inicio?: string; fin?: string }[] | null) ?? [],
-              ip_nombre: ipNombre,
-              texto_fuente: extraccion?.texto_fuente ?? null,
-            },
-            filtradoPorCategoria,
-          ),
-        },
-      ],
-    });
+    const datosPrompt = {
+      titulo: prot.titulo,
+      resumen: prot.resumen,
+      area_conocimiento_id: prot.area_conocimiento_id,
+      tipo_investigacion_id: prot.tipo_investigacion_id,
+      clasificacion_riesgo: prot.clasificacion_riesgo,
+      involucra_humanos: prot.involucra_humanos,
+      involucra_menores: prot.involucra_menores,
+      involucra_datos_geneticos: prot.involucra_datos_geneticos,
+      involucra_medicamento: prot.involucra_medicamento,
+      objetivo_general: prot.objetivo_general,
+      objetivos_especificos: (prot.objetivos_especificos as string[] | null) ?? [],
+      criterios_inclusion: (prot.criterios_inclusion as string[] | null) ?? [],
+      criterios_exclusion: (prot.criterios_exclusion as string[] | null) ?? [],
+      metodologia: prot.metodologia,
+      cronograma:
+        (prot.cronograma as { etapa: string; inicio?: string; fin?: string }[] | null) ?? [],
+      ip_nombre: ipNombre,
+      texto_fuente: extraccion?.texto_fuente ?? null,
+    };
 
-    const textBlock = response.content.find((b) => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") {
-      throw new Error("Respuesta de IA sin contenido de texto.");
+    const parciales = await Promise.all(
+      GRUPOS_BLOQUES.map(async (grupo) => {
+        const response = await anthropic.messages.create({
+          model: MODELO_PRE_DICTAMEN,
+          max_tokens: MAX_TOKENS_PRE_DICTAMEN,
+          system: SYSTEM_PROMPT_PRE_DICTAMEN,
+          messages: [
+            {
+              role: "user",
+              content: buildUserMessagePreDictamen(datosPrompt, filtradoPorCategoria, grupo),
+            },
+          ],
+        });
+        const textBlock = response.content.find((b) => b.type === "text");
+        if (!textBlock || textBlock.type !== "text") {
+          throw new Error(`Respuesta IA sin texto para grupo ${grupo.join(",")}.`);
+        }
+        const rawJson = extractJsonObject(textBlock.text);
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(rawJson);
+        } catch (e) {
+          throw new Error(
+            `JSON inválido para grupo ${grupo.join(",")}: ` +
+              (e instanceof Error ? e.message : String(e)),
+          );
+        }
+        const validado = preDictamenParcialSchema.safeParse(parsed);
+        if (!validado.success) {
+          const issues = validado.error.errors
+            .slice(0, 5)
+            .map((er) => `${er.path.join(".") || "(root)"}: ${er.message}`)
+            .join("; ");
+          throw new Error(`Schema inválido grupo ${grupo.join(",")}: ${issues}`);
+        }
+        return {
+          parcial: validado.data,
+          tokensIn: response.usage.input_tokens,
+          tokensOut: response.usage.output_tokens,
+        };
+      }),
+    );
+
+    // Merge: combinar bloques de las 3 parciales (no se solapan por diseño),
+    // concatenar observaciones críticas y sugerencias, sumar tokens.
+    const bloquesCombinados: PreDictamenParcial["bloques"] = {};
+    const observacionesTodos: string[] = [];
+    const sugerenciasTodos: string[] = [];
+    let tokensInTotal = 0;
+    let tokensOutTotal = 0;
+    for (const { parcial: p, tokensIn, tokensOut } of parciales) {
+      Object.assign(bloquesCombinados, p.bloques);
+      observacionesTodos.push(...(p.observaciones_criticas ?? []));
+      sugerenciasTodos.push(...(p.sugerencias ?? []));
+      tokensInTotal += tokensIn;
+      tokensOutTotal += tokensOut;
     }
-    const rawJson = extractJsonObject(textBlock.text);
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(rawJson);
-    } catch (e) {
-      throw new Error(
-        "La IA no devolvió JSON válido. " + (e instanceof Error ? e.message : String(e)),
-      );
-    }
-    if (typeof parsed === "object" && parsed !== null) {
-      (parsed as Record<string, unknown>).tokens_input = response.usage.input_tokens;
-      (parsed as Record<string, unknown>).tokens_output = response.usage.output_tokens;
-    }
-    const validated = preDictamenSchema.safeParse(parsed);
+
+    // Construir resumen ejecutivo en código a partir de los veredictos. Más
+    // rápido y predecible que pedirle al modelo una 4ta llamada.
+    const resumenEjecutivo = construirResumenEjecutivo(
+      bloquesCombinados,
+      observacionesTodos.length,
+    );
+
+    const objetoCompleto: PreDictamen = {
+      resumen_ejecutivo: resumenEjecutivo,
+      bloques: bloquesCombinados,
+      observaciones_criticas: observacionesTodos.length > 0 ? observacionesTodos : undefined,
+      sugerencias: sugerenciasTodos.length > 0 ? sugerenciasTodos : undefined,
+      tokens_input: tokensInTotal,
+      tokens_output: tokensOutTotal,
+    };
+
+    const validated = preDictamenSchema.safeParse(objetoCompleto);
     if (!validated.success) {
       const issues = validated.error.errors
         .slice(0, 5)
         .map((e) => `${e.path.join(".") || "(root)"}: ${e.message}`)
         .join("; ");
-      throw new Error(`JSON no cumple schema: ${issues}`);
+      throw new Error(`Pre-dictamen combinado no cumple schema: ${issues}`);
     }
 
     // 9. Calcular agregados de items
@@ -315,8 +364,8 @@ export async function POST(req: NextRequest) {
       ok: true,
       pre_informe_id: nuevoPreInforme.id,
       duracion_segundos: duracionSegundos,
-      tokens_input: response.usage.input_tokens,
-      tokens_output: response.usage.output_tokens,
+      tokens_input: tokensInTotal,
+      tokens_output: tokensOutTotal,
     });
   } catch (e) {
     const mensaje =
@@ -335,7 +384,7 @@ export async function POST(req: NextRequest) {
 }
 
 /**
- * Sonnet a veces envuelve el JSON en bloques markdown o añade preámbulo pese
+ * El modelo a veces envuelve el JSON en bloques markdown o añade preámbulo pese
  * al system prompt. Esta función extrae el primer objeto JSON balanceado de
  * la respuesta.
  */
@@ -348,4 +397,57 @@ function extractJsonObject(text: string): string {
     return text.slice(first, last + 1);
   }
   return text;
+}
+
+/**
+ * Construye un resumen ejecutivo en texto a partir de los veredictos por bloque.
+ * Más rápido y predecible que pedirle al modelo una llamada adicional.
+ */
+function construirResumenEjecutivo(
+  bloques: PreDictamenParcial["bloques"],
+  cantidadObservacionesCriticas: number,
+): string {
+  const cuentaPor: Record<string, string[]> = {
+    cumple: [],
+    parcial: [],
+    no_cumple: [],
+    no_aplica: [],
+  };
+  for (const [cat, b] of Object.entries(bloques) as [Categoria, { resultado: string } | undefined][]) {
+    if (!b) continue;
+    if (cuentaPor[b.resultado]) {
+      cuentaPor[b.resultado].push(ETIQUETAS_CATEGORIA[cat]);
+    }
+  }
+  const total = cuentaPor.cumple.length + cuentaPor.parcial.length + cuentaPor.no_cumple.length;
+  const noCumple = cuentaPor.no_cumple.length;
+  const parcial = cuentaPor.parcial.length;
+
+  const partes: string[] = [];
+
+  if (noCumple === 0 && parcial === 0) {
+    partes.push(
+      `El pre-dictamen IA encuentra que el protocolo CUMPLE en los ${total} bloques temáticos evaluados.`,
+    );
+  } else if (noCumple === 0) {
+    partes.push(
+      `El pre-dictamen IA encuentra que el protocolo cumple con observaciones. ${parcial} de ${total} bloques presentan deficiencias menores que el comité debe revisar: ${cuentaPor.parcial.join(", ")}.`,
+    );
+  } else {
+    partes.push(
+      `El pre-dictamen IA encuentra fallas en ${noCumple} bloque${noCumple === 1 ? "" : "s"} (${cuentaPor.no_cumple.join(", ")})${parcial > 0 ? ` y observaciones en ${parcial} bloque${parcial === 1 ? "" : "s"} (${cuentaPor.parcial.join(", ")})` : ""}.`,
+    );
+  }
+
+  if (cantidadObservacionesCriticas > 0) {
+    partes.push(
+      `Se identificaron ${cantidadObservacionesCriticas} observación${cantidadObservacionesCriticas === 1 ? "" : "es"} crítica${cantidadObservacionesCriticas === 1 ? "" : "s"} que requieren atención.`,
+    );
+  }
+
+  partes.push(
+    "Cada miembro del comité puede validar o discrepar el veredicto de cada bloque en la siguiente fase.",
+  );
+
+  return partes.join(" ");
 }

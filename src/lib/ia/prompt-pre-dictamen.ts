@@ -81,10 +81,15 @@ type DatosProtocolo = {
 export function buildUserMessagePreDictamen(
   datos: DatosProtocolo,
   itemsPorCategoria: Record<Categoria, ChecklistItem[]>,
+  bloquesAEvaluar: readonly Categoria[],
 ): string {
   const partes: string[] = [];
 
-  partes.push("=== DATOS DEL PROTOCOLO ===\n");
+  partes.push(
+    `=== INSTRUCCIÓN DE ALCANCE ===\nEn esta llamada EVALÚA EXCLUSIVAMENTE estos bloques (omite cualquier otro): ${bloquesAEvaluar.join(", ")}.\nDevuelve un JSON con la clave "bloques" conteniendo SOLO esos bloques. Sin "resumen_ejecutivo" (lo construimos en código combinando varias llamadas). "observaciones_criticas" y "sugerencias" son opcionales.\n`,
+  );
+
+  partes.push("\n=== DATOS DEL PROTOCOLO ===\n");
   partes.push(`Título: ${datos.titulo}`);
   partes.push(`Investigador Principal: ${datos.ip_nombre}`);
   partes.push(`Tipo de investigación: ${datos.tipo_investigacion_id ?? "no_declarado"}`);
@@ -133,15 +138,17 @@ export function buildUserMessagePreDictamen(
     );
   }
 
-  partes.push("\n=== CHECKLIST MAESTRO POR BLOQUE ===");
+  partes.push("\n=== CHECKLIST MAESTRO (SOLO LOS BLOQUES DE ESTA LLAMADA) ===");
   partes.push(
-    "Estos son los ítems contra los que debes evaluar. Solo se incluyen los aplicables a las características declaradas del protocolo. Cada ítem se presenta en forma compacta: [ID] (severidad) → guía de evaluación.\n",
+    "Ítems contra los que debes evaluar. Solo aplicables al protocolo. Forma compacta: [ID] (severidad) → guía de evaluación.\n",
   );
 
+  const setBloques = new Set(bloquesAEvaluar);
   for (const [categoria, items] of Object.entries(itemsPorCategoria) as [
     Categoria,
     ChecklistItem[],
   ][]) {
+    if (!setBloques.has(categoria)) continue;
     if (items.length === 0) continue;
     partes.push(`\n--- BLOQUE: ${categoria} (${ETIQUETAS_CATEGORIA[categoria]}) ---`);
     for (const item of items) {
@@ -150,8 +157,16 @@ export function buildUserMessagePreDictamen(
   }
 
   partes.push(
-    "\n\nDevuelve el JSON del pre-dictamen siguiendo el formato exacto especificado en las instrucciones del sistema.",
+    `\n\nDevuelve el JSON con SOLO estos bloques: ${bloquesAEvaluar.join(", ")}. Sin "resumen_ejecutivo". Formato según las instrucciones del sistema.`,
   );
 
   return partes.join("\n");
 }
+
+// Grupos balanceados de bloques para paralelizar 3 llamadas a Haiku.
+// Cada llamada cabe holgada en el límite de 60s de Vercel Hobby.
+export const GRUPOS_BLOQUES: readonly (readonly Categoria[])[] = [
+  ["identificacion", "estructura_cientifica", "metodologia"],
+  ["riesgo_beneficio", "consentimiento", "poblaciones_vulnerables", "confidencialidad_datos"],
+  ["productos_salud", "gobernanza_cei", "transparencia_publicacion", "aspectos_economicos"],
+] as const;
