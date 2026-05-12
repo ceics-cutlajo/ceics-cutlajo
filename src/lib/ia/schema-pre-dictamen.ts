@@ -22,7 +22,10 @@ const itemEvaluadoSchema = z.object({
 
 const bloqueEvaluadoSchema = z.object({
   resultado: resultadoSchema,
-  justificacion: z.string().min(15).max(800),
+  // 2000 chars cubre justificaciones más extensas; el prompt sugiere 40-150
+  // palabras pero Haiku a veces se extiende cuando un bloque tiene mucha
+  // matiz (consentimiento, metodología). No afecta latencia, son output text.
+  justificacion: z.string().min(15).max(2000),
   // items_evaluados opcional: en sesión 8a no lo pedimos al modelo (ahorra
   // tokens y tiempo). Si en 8b queremos detalle por ítem para un bloque
   // específico, lo solicitamos bajo demanda con una llamada acotada.
