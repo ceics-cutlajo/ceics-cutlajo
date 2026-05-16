@@ -56,7 +56,7 @@ function buildHeader(escudoBuffer: Buffer): Header {
         ],
       }),
       new Paragraph({
-        alignment: AlignmentType.CENTER,
+        alignment: AlignmentType.RIGHT,
         spacing: { before: 100, after: 0 },
         children: [
           new TextRun({
@@ -69,7 +69,7 @@ function buildHeader(escudoBuffer: Buffer): Header {
         ],
       }),
       new Paragraph({
-        alignment: AlignmentType.CENTER,
+        alignment: AlignmentType.RIGHT,
         spacing: { before: 0, after: 0 },
         children: [
           new TextRun({
@@ -82,7 +82,7 @@ function buildHeader(escudoBuffer: Buffer): Header {
         ],
       }),
       new Paragraph({
-        alignment: AlignmentType.CENTER,
+        alignment: AlignmentType.RIGHT,
         spacing: { before: 0, after: 120 },
         children: [
           new TextRun({

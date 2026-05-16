@@ -172,7 +172,10 @@ function drawParrafo(
   });
 }
 
-// Dibuja el header (escudo + nombres) en todas las páginas pasadas.
+// Dibuja el header (banner UDG + nombres) en todas las páginas pasadas.
+// El banner contiene escudo + "UNIVERSIDAD DE GUADALAJARA" en formato horizontal.
+// Las tres líneas del CEICS van debajo del banner, alineadas a la derecha
+// conforme al estándar institucional de oficios UDG.
 function dibujarHeader(page: PDFPage, escudo: PDFImage, fonts: Fonts): void {
   const escudoW = mm(170);
   const escudoH = mm(28);
@@ -195,7 +198,7 @@ function dibujarHeader(page: PDFPage, escudo: PDFImage, fonts: Fonts): void {
     const limpio = safe(t);
     const w = f.widthOfTextAtSize(limpio, 9);
     page.drawText(limpio, {
-      x: (PAGE_W - w) / 2,
+      x: PAGE_W - MARGIN_R - w,
       y,
       font: f,
       size: 9,
