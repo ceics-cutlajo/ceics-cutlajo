@@ -216,42 +216,46 @@ export async function emitirDictamenAction(
     },
   };
 
-  // 8. Generar DOCX y PDF en paralelo
+  // 8. Generar DOCX (obligatorio) y PDF (fail-soft).
+  //    pdfkit tiene bugs intermitentes en serverless de Vercel; el flujo no
+  //    debe bloquearse si el PDF falla. Migración a pdf-lib pendiente 9c.
   let docxBuffer: Buffer;
-  let pdfBuffer: Buffer;
   try {
-    [docxBuffer, pdfBuffer] = await Promise.all([
-      generarActaDocx(datosActa),
-      generarActaPdf(datosActa),
-    ]);
+    docxBuffer = await generarActaDocx(datosActa);
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Error generando documentos.";
-    return { ok: false, error: `No se pudieron generar los archivos: ${msg}` };
+    const msg = e instanceof Error ? e.message : "Error generando DOCX.";
+    return { ok: false, error: `No se pudo generar el DOCX: ${msg}` };
+  }
+  let pdfBuffer: Buffer | null = null;
+  try {
+    pdfBuffer = await generarActaPdf(datosActa);
+  } catch (e) {
+    console.error(
+      "[emitirDictamenAction] generarActaPdf fallo (fail-soft):",
+      e instanceof Error ? e.message : e,
+    );
   }
 
   // 9. Subir a Storage
   const docxPath = pathActa(datos.protocoloId, numeroOficioStr, "docx");
-  const pdfPath = pathActa(datos.protocoloId, numeroOficioStr, "pdf");
-  const [upDocx, upPdf] = await Promise.all([
-    admin.storage
-      .from(BUCKET)
-      .upload(docxPath, docxBuffer, {
-        contentType:
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        upsert: false,
-      }),
-    admin.storage
-      .from(BUCKET)
-      .upload(pdfPath, pdfBuffer, {
-        contentType: "application/pdf",
-        upsert: false,
-      }),
-  ]);
-  if (upDocx.error || upPdf.error) {
-    return {
-      ok: false,
-      error: `No se pudo subir el acta: ${upDocx.error?.message ?? upPdf.error?.message ?? "error desconocido"}`,
-    };
+  const pdfPath = pdfBuffer ? pathActa(datos.protocoloId, numeroOficioStr, "pdf") : null;
+  const upDocx = await admin.storage.from(BUCKET).upload(docxPath, docxBuffer, {
+    contentType:
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    upsert: false,
+  });
+  if (upDocx.error) {
+    return { ok: false, error: `No se pudo subir el DOCX: ${upDocx.error.message}` };
+  }
+  if (pdfBuffer && pdfPath) {
+    const upPdf = await admin.storage.from(BUCKET).upload(pdfPath, pdfBuffer, {
+      contentType: "application/pdf",
+      upsert: false,
+    });
+    if (upPdf.error) {
+      console.error("[emitirDictamenAction] subida PDF fallo (fail-soft):", upPdf.error.message);
+      pdfBuffer = null;
+    }
   }
 
   // 10. INSERT en `actas`
@@ -283,13 +287,14 @@ export async function emitirDictamenAction(
       hash_folio: hashFolio,
       url_validacion: urlValidacion,
       docx_storage_path: docxPath,
-      pdf_storage_path: pdfPath,
+      pdf_storage_path: pdfPath ?? null,
     })
     .select("id")
     .single();
   if (errActa || !insertActa) {
     // Rollback de Storage
-    await admin.storage.from(BUCKET).remove([docxPath, pdfPath]);
+    const aBorrar = [docxPath, ...(pdfPath ? [pdfPath] : [])];
+    await admin.storage.from(BUCKET).remove(aBorrar);
     return {
       ok: false,
       error: `No se pudo registrar el acta: ${errActa?.message ?? "error desconocido"}`,
@@ -339,7 +344,7 @@ export async function emitirDictamenAction(
   // 13. Email al IP (fail-soft)
   if (base.ip.correo) {
     const docxBase64 = docxBuffer.toString("base64");
-    const pdfBase64 = pdfBuffer.toString("base64");
+    const pdfBase64 = pdfBuffer ? pdfBuffer.toString("base64") : null;
     const consecutivoSlug = numeroOficioStr.replace(/\//g, "-");
     const docxNombre = `Acta-${consecutivoSlug}.docx`;
     const pdfNombre = `Acta-${consecutivoSlug}.pdf`;
@@ -385,7 +390,7 @@ export async function emitirDictamenAction(
       actaId: insertActa.id,
       numeroOficio: numeroOficioStr,
       docxPath,
-      pdfPath,
+      pdfPath: pdfPath ?? "",
     },
   };
 }

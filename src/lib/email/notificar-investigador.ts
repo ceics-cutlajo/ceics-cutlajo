@@ -21,7 +21,7 @@ export type NotificacionInvestigadorInput = {
   fechaVencimientoLarga: string;
   observaciones: string[];
   docxBase64: string;
-  pdfBase64: string;
+  pdfBase64: string | null;
   docxNombreArchivo: string;
   pdfNombreArchivo: string;
 };
@@ -58,13 +58,12 @@ export async function notificarInvestigador(
         text: construirTexto(input),
         attachments: [
           {
-            filename: input.pdfNombreArchivo,
-            content: input.pdfBase64,
-          },
-          {
             filename: input.docxNombreArchivo,
             content: input.docxBase64,
           },
+          ...(input.pdfBase64
+            ? [{ filename: input.pdfNombreArchivo, content: input.pdfBase64 }]
+            : []),
         ],
       }),
     });
