@@ -111,7 +111,9 @@ function construirTexto(i: NotificacionInvestigadorInput): string {
     `Resolución: ${i.resolucion}`,
     `Vigencia del dictamen: ${i.vigenciaMeses} meses (hasta ${i.fechaVencimientoLarga}).`,
     obsTexto,
-    `Encuentras el acta oficial adjunta en formato PDF y DOCX. También puedes consultar el expediente del protocolo en la plataforma:`,
+    i.pdfBase64
+      ? `Encuentras el acta oficial adjunta en formato PDF y DOCX. También puedes consultar el expediente del protocolo en la plataforma:`
+      : `Encuentras el acta oficial adjunta en formato DOCX. También puedes consultar el expediente del protocolo en la plataforma:`,
     link,
     ``,
     `— Sistema CEICS CUTLAJO`,
@@ -166,7 +168,7 @@ function construirHtml(i: NotificacionInvestigadorInput): string {
       </div>
       ${obsHtml}
       <p style="margin:24px 0 16px 0;font-size:14px;line-height:1.6;">
-        El acta oficial está adjunta a este correo en formato <strong>PDF</strong> y <strong>DOCX</strong>. También puedes consultar el expediente completo en la plataforma:
+        El acta oficial está adjunta a este correo en formato ${i.pdfBase64 ? "<strong>PDF</strong> y <strong>DOCX</strong>" : "<strong>DOCX</strong>"}. También puedes consultar el expediente completo en la plataforma:
       </p>
       <div style="text-align:center;margin:24px 0 8px 0;">
         <a href="${link}" style="display:inline-block;background:#c8266c;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:500;">
