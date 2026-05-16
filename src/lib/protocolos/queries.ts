@@ -230,10 +230,11 @@ export async function obtenerProtocolo(
 
 /** Métricas agregadas para el Tablero del Presidente. */
 export type KpisPresidencia = {
+  totalAno: number;
   recibidosMes: number;
   enEvaluacion: number;
-  listosDictamen: number;
-  aprobadosAno: number;
+  dictaminadosAno: number;
+  pendientesMiFirma: number;
 };
 
 export async function obtenerKpisPresidencia(): Promise<KpisPresidencia> {
@@ -242,12 +243,15 @@ export async function obtenerKpisPresidencia(): Promise<KpisPresidencia> {
   const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString();
   const inicioAno = new Date(ahora.getFullYear(), 0, 1).toISOString();
 
-  const [recibidos, enEval, listos, aprobados] = await Promise.all([
+  const [totalAno, recibidos, enEval, dictaminados, pendientes] = await Promise.all([
     admin
       .from("protocolos")
       .select("id", { count: "exact", head: true })
-      .gte("submitted_at", inicioMes)
-      .not("submitted_at", "is", null),
+      .gte("submitted_at", inicioAno),
+    admin
+      .from("protocolos")
+      .select("id", { count: "exact", head: true })
+      .gte("submitted_at", inicioMes),
     admin
       .from("protocolos")
       .select("id", { count: "exact", head: true })
@@ -255,19 +259,20 @@ export async function obtenerKpisPresidencia(): Promise<KpisPresidencia> {
     admin
       .from("protocolos")
       .select("id", { count: "exact", head: true })
-      .eq("estado", "listo_dictamen"),
+      .in("estado", ["aprobado", "aprobado_con_observaciones", "rechazado"])
+      .gte("dictaminado_at", inicioAno),
     admin
       .from("protocolos")
       .select("id", { count: "exact", head: true })
-      .in("estado", ["aprobado", "aprobado_con_observaciones"])
-      .gte("fecha_aprobacion", inicioAno.slice(0, 10)),
+      .eq("estado", "listo_dictamen"),
   ]);
 
   return {
+    totalAno: totalAno.count ?? 0,
     recibidosMes: recibidos.count ?? 0,
     enEvaluacion: enEval.count ?? 0,
-    listosDictamen: listos.count ?? 0,
-    aprobadosAno: aprobados.count ?? 0,
+    dictaminadosAno: dictaminados.count ?? 0,
+    pendientesMiFirma: pendientes.count ?? 0,
   };
 }
 
@@ -340,6 +345,87 @@ export async function listarBandejaComite(): Promise<ProtocoloBandeja[]> {
       created_at: p.created_at,
       submitted_at: p.submitted_at,
       numero_oficio: p.numero_oficio,
+      ip_nombre: ipData
+        ? `${ipData.nombre} ${ipData.apellido_paterno}${
+            ipData.apellido_materno ? " " + ipData.apellido_materno : ""
+          }`
+        : "—",
+      conflictoInteres,
+    };
+  });
+}
+
+/** Vista anual completa para el Tablero del Presidente (estados activos + dictaminados). */
+export type ProtocoloDelAno = ProtocoloResumen & {
+  ip_nombre: string;
+  conflictoInteres: boolean;
+  fecha_aprobacion: string | null;
+  fecha_vencimiento: string | null;
+  dictaminado_at: string | null;
+};
+
+export async function listarProtocolosAno(): Promise<ProtocoloDelAno[]> {
+  const usuario = await obtenerUsuarioActual();
+  const admin = createAdminClient();
+  const emailUsuario = usuario.email.toLowerCase();
+
+  const inicioAno = new Date(new Date().getFullYear(), 0, 1).toISOString();
+
+  const { data: prots } = await admin
+    .from("protocolos")
+    .select(
+      "id, clave, titulo, estado, created_at, submitted_at, numero_oficio, investigador_principal_id, fecha_aprobacion, fecha_vencimiento, dictaminado_at",
+    )
+    .gte("submitted_at", inicioAno)
+    .not("submitted_at", "is", null)
+    .order("submitted_at", { ascending: false, nullsFirst: false });
+
+  if (!prots || prots.length === 0) return [];
+
+  const ipIds = Array.from(new Set(prots.map((p) => p.investigador_principal_id)));
+  const protocoloIds = prots.map((p) => p.id);
+
+  const [ipsResult, coInvsResult] = await Promise.all([
+    admin
+      .from("usuarios")
+      .select("id, nombre, apellido_paterno, apellido_materno, email")
+      .in("id", ipIds),
+    admin
+      .from("protocolo_co_investigadores")
+      .select("protocolo_id, email")
+      .in("protocolo_id", protocoloIds),
+  ]);
+
+  const ipPorId = new Map<
+    string,
+    { nombre: string; apellido_paterno: string; apellido_materno: string | null; email: string }
+  >();
+  (ipsResult.data ?? []).forEach((u) => ipPorId.set(u.id, u));
+
+  const emailsPorProtocolo = new Map<string, Set<string>>();
+  (coInvsResult.data ?? []).forEach((c) => {
+    if (!c.email) return;
+    const set = emailsPorProtocolo.get(c.protocolo_id) ?? new Set<string>();
+    set.add(c.email.toLowerCase());
+    emailsPorProtocolo.set(c.protocolo_id, set);
+  });
+
+  return prots.map((p) => {
+    const ipData = ipPorId.get(p.investigador_principal_id);
+    const ipEmail = ipData?.email.toLowerCase();
+    const emailsCoInv = emailsPorProtocolo.get(p.id) ?? new Set<string>();
+    const conflictoInteres = ipEmail === emailUsuario || emailsCoInv.has(emailUsuario);
+    return {
+      id: p.id,
+      clave: p.clave,
+      titulo: p.titulo,
+      estado: p.estado,
+      created_at: p.created_at,
+      submitted_at: p.submitted_at,
+      numero_oficio: p.numero_oficio,
+      fecha_aprobacion: p.fecha_aprobacion,
+      fecha_vencimiento: p.fecha_vencimiento,
+      dictaminado_at: p.dictaminado_at,
       ip_nombre: ipData
         ? `${ipData.nombre} ${ipData.apellido_paterno}${
             ipData.apellido_materno ? " " + ipData.apellido_materno : ""
