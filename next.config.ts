@@ -17,13 +17,6 @@ const nextConfig: NextConfig = {
     // así que '4mb' es el máximo seguro sin pasar a subida directa a Storage.
     serverActions: { bodySizeLimit: "4mb" },
   },
-  // pdfkit carga sus archivos .afm (Adobe Font Metrics) al runtime con fs.readFile
-  // resolvidos relativo al __dirname del módulo. Si Next/Turbopack lo bundlea pierde
-  // ese path y los archivos no se encuentran (ENOENT en Vercel). Solución:
-  // sacar pdfkit del bundle con serverExternalPackages — el runtime hace require
-  // nativo que sí resuelve los AFM. NO usar outputFileTracingIncludes con paths
-  // que pasen por .pnpm/ — son symlinks y Vercel rechaza el deploy.
-  serverExternalPackages: ["pdfkit"],
 };
 
 export default nextConfig;

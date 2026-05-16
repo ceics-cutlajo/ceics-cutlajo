@@ -33,6 +33,7 @@ export type DatosBaseActa = {
     titulo: string;
     estado: string;
     recomendacion_comite: RecomendacionComiteValor;
+    investigador_principal_id: string;
     tipo_investigacion_nombre: string;
     area_conocimiento_nombre: string;
     clasificacion_riesgo_etiqueta: string;
@@ -290,6 +291,7 @@ export async function obtenerDatosBaseActa(
       estado: prot.estado as string,
       recomendacion_comite:
         (prot.recomendacion_comite as RecomendacionComiteValor) ?? null,
+      investigador_principal_id: prot.investigador_principal_id as string,
       tipo_investigacion_nombre:
         (tipoResp.data?.nombre as string | undefined) ?? "Investigación",
       area_conocimiento_nombre:

@@ -120,6 +120,21 @@ export async function emitirDictamenAction(
     };
   }
 
+  // 4.b Bloqueo de COI presidencial: el Presidente no puede emitir el acta de
+  // un protocolo donde él mismo es el Investigador Principal. La delegación
+  // formal a Secretario(a) queda como pieza futura; por ahora bloqueamos.
+  if (pres.usuarioId === base.protocolo.investigador_principal_id) {
+    return {
+      ok: false,
+      error:
+        "Conflicto de interés: eres el Investigador Principal de este protocolo y, " +
+        "como Presidente, no puedes emitir su acta. Conforme al Reglamento Interno " +
+        "del CEICS, el acta debe ser emitida por el(la) Secretario(a) del comité. " +
+        "La delegación formal a Secretario(a) se habilitará en una próxima versión; " +
+        "mientras tanto, contacta a la Secretaria del CEICS para emitir el dictamen.",
+    };
+  }
+
   // 5. Asignar número de oficio atómicamente
   const anio = new Date().getUTCFullYear();
   const { data: numeroOficio, error: errOficio } = await admin.rpc(

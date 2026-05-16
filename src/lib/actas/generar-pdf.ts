@@ -1,112 +1,492 @@
 /**
- * Generador PDF del Acta CEICS-CUTLAJO usando `pdfkit`.
+ * Generador PDF del Acta CEICS-CUTLAJO usando pdf-lib (sesión 9c).
  *
- * pdfkit no tiene "headers/footers" automáticos como docx, así que los
- * pintamos manualmente en cada `pageAdded`. El layout reproduce las 9
- * secciones de la plantilla con fuentes estándar Times/Helvetica.
+ * pdf-lib reemplaza a pdfkit (sesión 9b) porque éste último era inestable
+ * en Vercel serverless: cargaba archivos .afm al runtime con paths relativos
+ * a __dirname (ENOENT cuando se bundlea), y su modelo de cursor mutable con
+ * dibujo en `pageAdded` provocaba recursión infinita.
+ *
+ * pdf-lib es serverless-friendly:
+ *   - embebe las Standard14 Fonts en el documento (no carga archivos extra)
+ *   - no usa streams: genera Uint8Array en memoria con `await doc.save()`
+ *   - coordenadas absolutas, sin flow layout
+ *
+ * Trade-off: sin layout automático, los saltos de página y el wrapping de
+ * texto se hacen con helpers locales (`wrap`, `ensureSpace`, `drawLineas`).
  */
-import PDFDocument from "pdfkit";
+import {
+  PDFDocument,
+  PDFPage,
+  PDFFont,
+  PDFImage,
+  StandardFonts,
+  rgb,
+  type RGB,
+} from "pdf-lib";
 import * as QRCode from "qrcode";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { DatosActa, MiembroActa } from "./types";
 
-const COLOR_HEADER = "#3D4041";
-const COLOR_VERDE = "#006838";
-const COLOR_NEGRO = "#000000";
-const COLOR_GRIS_CLARO = "#F2F2F2";
+// ----- Colores -----
+const COLOR_HEADER = rgb(0x3d / 255, 0x40 / 255, 0x41 / 255);
+const COLOR_VERDE = rgb(0, 0x68 / 255, 0x38 / 255);
+const COLOR_NEGRO = rgb(0, 0, 0);
+const COLOR_BLANCO = rgb(1, 1, 1);
+const COLOR_GRIS_CLARO = rgb(0xf2 / 255, 0xf2 / 255, 0xf2 / 255);
 
-const MM_TO_PT = 72 / 25.4; // 1 inch = 25.4 mm = 72 pt
+// ----- Geometría -----
+const MM_TO_PT = 72 / 25.4;
 const mm = (n: number) => n * MM_TO_PT;
+const PAGE_W = 612; // Letter
+const PAGE_H = 792;
+const MARGIN_L = mm(25.4);
+const MARGIN_R = mm(25.4);
+const MARGIN_TOP = mm(50); // espacio para header con escudo
+const MARGIN_BOTTOM = mm(28); // espacio para footer
+const CONTENT_W = PAGE_W - MARGIN_L - MARGIN_R;
+const CONTENT_TOP = PAGE_H - MARGIN_TOP;
+const CONTENT_BOTTOM = MARGIN_BOTTOM + 4;
 
-type Doc = InstanceType<typeof PDFDocument>;
-
-/**
- * Header y footer dibujan en posiciones absolutas SIN tocar el cursor del
- * body para evitar recursión infinita (pageAdded → header escribe → wrapping
- * del body → pageAdded → ...). Guardamos x/y/font antes y restauramos después.
- * `lineBreak: false` evita que un texto largo desborde y dispare nueva página.
- */
-function dibujarHeader(doc: Doc, escudoBuffer: Buffer) {
-  const savedX = doc.x;
-  const savedY = doc.y;
-
-  const pageWidth = doc.page.width;
-  const imgWidth = mm(170);
-  const imgHeight = mm(28);
-  doc.image(escudoBuffer, (pageWidth - imgWidth) / 2, mm(8), {
-    width: imgWidth,
-    height: imgHeight,
-  });
-
-  doc.fillColor(COLOR_HEADER).font("Times-Roman").fontSize(9);
-  doc.text("CENTRO UNIVERSITARIO DE TLAJOMULCO", 0, mm(38), {
-    align: "center",
-    width: pageWidth,
-    lineBreak: false,
-  });
-  doc.text("DIVISIÓN DE SALUD", 0, mm(38) + 11, {
-    align: "center",
-    width: pageWidth,
-    lineBreak: false,
-  });
-  doc.font("Times-Bold").text(
-    "COMITÉ DE ÉTICA EN INVESTIGACIÓN EN CIENCIAS DE LA SALUD (CEICS)",
-    0,
-    mm(38) + 22,
-    { align: "center", width: pageWidth, lineBreak: false },
-  );
-
-  doc.fillColor(COLOR_NEGRO).font("Times-Roman").fontSize(11);
-  doc.x = savedX;
-  doc.y = savedY;
+// ----- Sanitización a WinAnsi -----
+// pdf-lib + StandardFonts usa codepage WinAnsi; los curly quotes, ellipsis
+// y guiones tipográficos no caben — pdf-lib lanza error si aparecen.
+// Las angulares «» y los acentos á é í ó ú ñ sí están soportados.
+function safe(s: string): string {
+  return s
+    .replace(/[‘’‚‛]/g, "'")
+    .replace(/[“”„‟]/g, '"')
+    .replace(/…/g, "...")
+    .replace(/–/g, "-")
+    .replace(/ /g, " ");
 }
 
-function dibujarFooter(doc: Doc, paginaActual: number) {
-  const savedX = doc.x;
-  const savedY = doc.y;
+type Fonts = { regular: PDFFont; bold: PDFFont };
 
-  const pageWidth = doc.page.width;
-  const pageHeight = doc.page.height;
-  const y = pageHeight - mm(20);
+function wrap(
+  text: string,
+  font: PDFFont,
+  size: number,
+  maxW: number,
+): string[] {
+  const limpio = safe(text);
+  const lineas: string[] = [];
+  // Respetar saltos manuales
+  for (const parrafo of limpio.split("\n")) {
+    const palabras = parrafo.split(/\s+/).filter(Boolean);
+    if (palabras.length === 0) {
+      lineas.push("");
+      continue;
+    }
+    let actual = "";
+    for (const p of palabras) {
+      const candidato = actual ? `${actual} ${p}` : p;
+      if (font.widthOfTextAtSize(candidato, size) > maxW && actual) {
+        lineas.push(actual);
+        actual = p;
+      } else {
+        actual = candidato;
+      }
+    }
+    if (actual) lineas.push(actual);
+  }
+  return lineas;
+}
 
-  doc.fillColor(COLOR_HEADER).font("Times-Roman").fontSize(8);
-  doc.text(
+type State = {
+  doc: PDFDocument;
+  pages: PDFPage[];
+  page: PDFPage;
+  cursorY: number;
+};
+
+function nuevaPagina(s: State): void {
+  const p = s.doc.addPage([PAGE_W, PAGE_H]);
+  s.pages.push(p);
+  s.page = p;
+  s.cursorY = CONTENT_TOP;
+}
+
+function ensureSpace(s: State, needed: number): void {
+  if (s.cursorY - needed < CONTENT_BOTTOM) nuevaPagina(s);
+}
+
+function moveDown(s: State, pt: number): void {
+  s.cursorY -= pt;
+}
+
+function drawLineas(
+  s: State,
+  lineas: string[],
+  font: PDFFont,
+  size: number,
+  opts: {
+    x?: number;
+    width?: number;
+    align?: "left" | "center" | "right";
+    color?: RGB;
+    lineHeight?: number;
+  } = {},
+): void {
+  const lineH = opts.lineHeight ?? size * 1.3;
+  const color = opts.color ?? COLOR_NEGRO;
+  const baseX = opts.x ?? MARGIN_L;
+  const w = opts.width ?? MARGIN_L + CONTENT_W - baseX;
+  for (const raw of lineas) {
+    const linea = safe(raw);
+    ensureSpace(s, lineH);
+    const tw = font.widthOfTextAtSize(linea, size);
+    let x: number;
+    if (opts.align === "center") {
+      x = baseX + (w - tw) / 2;
+    } else if (opts.align === "right") {
+      x = baseX + w - tw;
+    } else {
+      x = baseX;
+    }
+    s.cursorY -= size;
+    s.page.drawText(linea, { x, y: s.cursorY, size, font, color });
+    s.cursorY -= lineH - size;
+  }
+}
+
+function drawParrafo(
+  s: State,
+  text: string,
+  font: PDFFont,
+  size: number,
+  opts: {
+    align?: "left" | "center" | "right";
+    color?: RGB;
+    lineHeight?: number;
+    width?: number;
+    x?: number;
+  } = {},
+): void {
+  const x = opts.x ?? MARGIN_L;
+  const w = opts.width ?? MARGIN_L + CONTENT_W - x;
+  drawLineas(s, wrap(text, font, size, w), font, size, {
+    ...opts,
+    x,
+    width: w,
+  });
+}
+
+// Dibuja el header (escudo + nombres) en todas las páginas pasadas.
+function dibujarHeader(page: PDFPage, escudo: PDFImage, fonts: Fonts): void {
+  const escudoW = mm(170);
+  const escudoH = mm(28);
+  page.drawImage(escudo, {
+    x: (PAGE_W - escudoW) / 2,
+    y: PAGE_H - mm(8) - escudoH,
+    width: escudoW,
+    height: escudoH,
+  });
+  const filas: Array<{ t: string; f: PDFFont }> = [
+    { t: "CENTRO UNIVERSITARIO DE TLAJOMULCO", f: fonts.regular },
+    { t: "DIVISIÓN DE SALUD", f: fonts.regular },
+    {
+      t: "COMITÉ DE ÉTICA EN INVESTIGACIÓN EN CIENCIAS DE LA SALUD (CEICS)",
+      f: fonts.bold,
+    },
+  ];
+  let y = PAGE_H - mm(38) - 9;
+  for (const { t, f } of filas) {
+    const limpio = safe(t);
+    const w = f.widthOfTextAtSize(limpio, 9);
+    page.drawText(limpio, {
+      x: (PAGE_W - w) / 2,
+      y,
+      font: f,
+      size: 9,
+      color: COLOR_HEADER,
+    });
+    y -= 11;
+  }
+}
+
+function dibujarFooter(
+  page: PDFPage,
+  num: number,
+  total: number,
+  font: PDFFont,
+): void {
+  const lineas = [
     "Carretera Tlajomulco Santa Fe, KM 3.5 #595. Colonia Lomas de Tejeda",
-    0,
-    y,
-    { align: "center", width: pageWidth, lineBreak: false },
-  );
-  doc.text(
     "CP 45670, Tlajomulco de Zúñiga, Jalisco. Tel. (33) 30 40 99 37 ext. 937",
-    0,
-    y + 10,
-    { align: "center", width: pageWidth, lineBreak: false },
-  );
-  doc.text("www.cutlajomulco.udg.mx", 0, y + 20, {
-    align: "center",
-    width: pageWidth,
-    lineBreak: false,
+    "www.cutlajomulco.udg.mx",
+  ];
+  // Dibujamos de abajo hacia arriba: la última línea (www) más arriba.
+  let y = mm(8);
+  for (let i = lineas.length - 1; i >= 0; i--) {
+    const limpio = safe(lineas[i]);
+    const w = font.widthOfTextAtSize(limpio, 8);
+    page.drawText(limpio, {
+      x: (PAGE_W - w) / 2,
+      y,
+      font,
+      size: 8,
+      color: COLOR_HEADER,
+    });
+    y += 10;
+  }
+  const pag = `Página ${num} de ${total}`;
+  const wp = font.widthOfTextAtSize(pag, 8);
+  page.drawText(pag, {
+    x: PAGE_W - MARGIN_R - wp,
+    y: mm(8),
+    font,
+    size: 8,
+    color: COLOR_HEADER,
   });
-  doc.text(`Página ${paginaActual}`, 0, y + 20, {
-    align: "right",
-    width: pageWidth - mm(20),
-    lineBreak: false,
-  });
-
-  doc.fillColor(COLOR_NEGRO).font("Times-Roman").fontSize(11);
-  doc.x = savedX;
-  doc.y = savedY;
 }
 
-function dibujarFondo(doc: Doc, hex: string, h: number) {
-  const x = doc.x;
-  const y = doc.y;
-  const w = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-  doc.rect(x, y - 2, w, h + 4).fill(hex);
-  doc.fillColor(COLOR_NEGRO);
+// ----- Caja de identificación con fondo gris -----
+type FilaIdent = { etq: string; val: string };
+
+function dibujarCajaIdent(
+  s: State,
+  filas: FilaIdent[],
+  fonts: Fonts,
+  size: number,
+): void {
+  const padH = 8;
+  const lineH = size * 1.35;
+  // Pre-cálculo del alto: cada fila ocupa min 1 lineH; si etq+val excede CONTENT_W-12,
+  // medimos cuántas líneas de wrap del valor caben.
+  const wrapPorFila: string[][] = filas.map(({ etq, val }) => {
+    const etqW = fonts.bold.widthOfTextAtSize(safe(etq), size);
+    const primeraMaxW = CONTENT_W - 12 - etqW;
+    const palabras = safe(val).split(/\s+/);
+    const lineas: string[] = [];
+    let actual = "";
+    let maxActual = primeraMaxW;
+    for (const p of palabras) {
+      const cand = actual ? `${actual} ${p}` : p;
+      if (fonts.regular.widthOfTextAtSize(cand, size) > maxActual && actual) {
+        lineas.push(actual);
+        actual = p;
+        maxActual = CONTENT_W - 12; // siguientes líneas usan ancho completo
+      } else {
+        actual = cand;
+      }
+    }
+    if (actual) lineas.push(actual);
+    if (lineas.length === 0) lineas.push("");
+    return lineas;
+  });
+  const altoCaja =
+    wrapPorFila.reduce((acc, ls) => acc + ls.length * lineH, 0) + padH * 2;
+  ensureSpace(s, altoCaja + 6);
+  // Rectángulo de fondo
+  s.page.drawRectangle({
+    x: MARGIN_L,
+    y: s.cursorY - altoCaja,
+    width: CONTENT_W,
+    height: altoCaja,
+    color: COLOR_GRIS_CLARO,
+  });
+  // Texto encima
+  let y = s.cursorY - padH - size;
+  for (let i = 0; i < filas.length; i++) {
+    const etq = safe(filas[i].etq);
+    const etqW = fonts.bold.widthOfTextAtSize(etq, size);
+    const lineas = wrapPorFila[i];
+    s.page.drawText(etq, {
+      x: MARGIN_L + 6,
+      y,
+      font: fonts.bold,
+      size,
+      color: COLOR_NEGRO,
+    });
+    if (lineas[0]) {
+      s.page.drawText(lineas[0], {
+        x: MARGIN_L + 6 + etqW,
+        y,
+        font: fonts.regular,
+        size,
+        color: COLOR_NEGRO,
+      });
+    }
+    y -= lineH;
+    for (let k = 1; k < lineas.length; k++) {
+      s.page.drawText(lineas[k], {
+        x: MARGIN_L + 6,
+        y,
+        font: fonts.regular,
+        size,
+        color: COLOR_NEGRO,
+      });
+      y -= lineH;
+    }
+  }
+  s.cursorY -= altoCaja;
 }
 
+// ----- Cuadro verde con la resolución -----
+function dibujarCuadroResolucion(
+  s: State,
+  texto: string,
+  fonts: Fonts,
+): void {
+  const cuadroH = mm(14);
+  const cuadroW = CONTENT_W * 0.7;
+  const cuadroX = MARGIN_L + (CONTENT_W - cuadroW) / 2;
+  ensureSpace(s, cuadroH + 12);
+  s.page.drawRectangle({
+    x: cuadroX,
+    y: s.cursorY - cuadroH,
+    width: cuadroW,
+    height: cuadroH,
+    borderColor: COLOR_VERDE,
+    borderWidth: 1.5,
+  });
+  const t = safe(`PROTOCOLO ${texto}`);
+  const tw = fonts.bold.widthOfTextAtSize(t, 16);
+  s.page.drawText(t, {
+    x: cuadroX + (cuadroW - tw) / 2,
+    y: s.cursorY - cuadroH + (cuadroH - 16) / 2 + 2,
+    font: fonts.bold,
+    size: 16,
+    color: COLOR_VERDE,
+  });
+  s.cursorY -= cuadroH + 8;
+}
+
+// ----- Tabla simple con bordes -----
+function dibujarTablaVotacion(
+  s: State,
+  filas: Array<[string, string]>,
+  fonts: Fonts,
+): void {
+  const rowH = mm(7);
+  const col1W = CONTENT_W * 0.7;
+  const col2W = CONTENT_W * 0.3;
+  const altoTabla = rowH * filas.length;
+  ensureSpace(s, altoTabla + 4);
+  const yTop = s.cursorY;
+  for (let i = 0; i < filas.length; i++) {
+    const ry = yTop - (i + 1) * rowH;
+    // Bordes
+    s.page.drawRectangle({
+      x: MARGIN_L,
+      y: ry,
+      width: col1W,
+      height: rowH,
+      borderColor: COLOR_HEADER,
+      borderWidth: 0.5,
+    });
+    s.page.drawRectangle({
+      x: MARGIN_L + col1W,
+      y: ry,
+      width: col2W,
+      height: rowH,
+      borderColor: COLOR_HEADER,
+      borderWidth: 0.5,
+    });
+    const etq = safe(filas[i][0]);
+    s.page.drawText(etq, {
+      x: MARGIN_L + 6,
+      y: ry + (rowH - 10) / 2 + 1,
+      font: fonts.regular,
+      size: 10,
+      color: COLOR_NEGRO,
+    });
+    const val = safe(filas[i][1]);
+    const valW = fonts.regular.widthOfTextAtSize(val, 10);
+    s.page.drawText(val, {
+      x: MARGIN_L + col1W + (col2W - valW) / 2,
+      y: ry + (rowH - 10) / 2 + 1,
+      font: fonts.regular,
+      size: 10,
+      color: COLOR_NEGRO,
+    });
+  }
+  s.cursorY -= altoTabla + 8;
+}
+
+function dibujarTablaMiembros(
+  s: State,
+  miembros: MiembroActa[],
+  fonts: Fonts,
+): void {
+  const rowH = mm(7);
+  const cols = [mm(10), mm(28), mm(95), mm(35)];
+  // Si la suma de cols excede CONTENT_W, ajustar la 3a columna
+  const sumCols = cols.reduce((a, b) => a + b, 0);
+  if (sumCols > CONTENT_W) cols[2] = CONTENT_W - cols[0] - cols[1] - cols[3];
+  const colsX = [
+    MARGIN_L,
+    MARGIN_L + cols[0],
+    MARGIN_L + cols[0] + cols[1],
+    MARGIN_L + cols[0] + cols[1] + cols[2],
+  ];
+  const tablaW = cols.reduce((a, b) => a + b, 0);
+  const headers = ["#", "Cargo", "Nombre", "Voto"];
+  const altoTabla = rowH * (miembros.length + 1);
+  ensureSpace(s, altoTabla + 4);
+  const yTop = s.cursorY;
+  // Cabecera verde
+  s.page.drawRectangle({
+    x: MARGIN_L,
+    y: yTop - rowH,
+    width: tablaW,
+    height: rowH,
+    color: COLOR_VERDE,
+  });
+  for (let c = 0; c < 4; c++) {
+    s.page.drawText(safe(headers[c]), {
+      x: colsX[c] + 4,
+      y: yTop - rowH + (rowH - 10) / 2 + 1,
+      font: fonts.bold,
+      size: 10,
+      color: COLOR_BLANCO,
+    });
+  }
+  // Filas
+  for (let i = 0; i < miembros.length; i++) {
+    const ry = yTop - (i + 2) * rowH;
+    const m = miembros[i];
+    const valores = [
+      String(i + 1),
+      m.cargo,
+      m.nombre,
+      m.voto + (m.voto === "Abstención" ? " *" : ""),
+    ];
+    for (let c = 0; c < 4; c++) {
+      s.page.drawRectangle({
+        x: colsX[c],
+        y: ry,
+        width: cols[c],
+        height: rowH,
+        borderColor: COLOR_HEADER,
+        borderWidth: 0.4,
+      });
+      const txt = safe(valores[c]);
+      // Recorte si excede el ancho de la celda (último recurso). Usamos ".."
+      // en lugar de "…" porque el ellipsis Unicode no está en WinAnsi.
+      let mostrado = txt;
+      while (
+        fonts.regular.widthOfTextAtSize(mostrado, 9) > cols[c] - 8 &&
+        mostrado.length > 3
+      ) {
+        mostrado = mostrado.slice(0, -3) + "..";
+      }
+      s.page.drawText(mostrado, {
+        x: colsX[c] + 4,
+        y: ry + (rowH - 9) / 2 + 1,
+        font: fonts.regular,
+        size: 9,
+        color: COLOR_NEGRO,
+      });
+    }
+  }
+  s.cursorY -= altoTabla + 8;
+}
+
+// ============================================================================
+// Función principal
+// ============================================================================
 export async function generarActaPdf(datos: DatosActa): Promise<Buffer> {
   const escudoPath = path.join(process.cwd(), "public", "escudo-udg.jpg");
   const escudoBuffer = await fs.readFile(escudoPath);
@@ -116,316 +496,287 @@ export async function generarActaPdf(datos: DatosActa): Promise<Buffer> {
     width: 240,
     errorCorrectionLevel: "M",
   });
-  const qrBuffer = Buffer.from(
+  const qrPngBytes = Buffer.from(
     qrDataUrl.replace(/^data:image\/png;base64,/, ""),
     "base64",
   );
 
-  const chunks: Buffer[] = [];
+  const doc = await PDFDocument.create();
+  doc.setTitle(`Acta ${datos.numero_oficio}`);
+  doc.setAuthor("CEICS-CUTLAJO");
+  doc.setSubject(`Acta de aprobación del protocolo ${datos.protocolo.clave}`);
+  doc.setCreator("Plataforma CEICS-CUTLAJO");
 
-  return await new Promise<Buffer>((resolve, reject) => {
-    const doc = new PDFDocument({
-      size: "LETTER",
-      margins: {
-        top: mm(50),
-        bottom: mm(28),
-        left: mm(25.4),
-        right: mm(25.4),
+  const regular = await doc.embedFont(StandardFonts.TimesRoman);
+  const bold = await doc.embedFont(StandardFonts.TimesRomanBold);
+  const fonts: Fonts = { regular, bold };
+
+  const escudoImg = await doc.embedJpg(escudoBuffer);
+  const qrImg = await doc.embedPng(qrPngBytes);
+
+  const firstPage = doc.addPage([PAGE_W, PAGE_H]);
+  const s: State = {
+    doc,
+    pages: [firstPage],
+    page: firstPage,
+    cursorY: CONTENT_TOP,
+  };
+
+  // ----- 1. Oficio + fecha (alineado a la derecha) -----
+  drawLineas(s, [`Oficio No. ${datos.numero_oficio}`], bold, 11, {
+    align: "right",
+  });
+  drawLineas(
+    s,
+    [`Tlajomulco de Zúñiga, Jalisco, a ${datos.fecha_emision_larga}.`],
+    regular,
+    11,
+    { align: "right" },
+  );
+  moveDown(s, 14);
+
+  // ----- 2. Destinatario -----
+  const ip = datos.ip;
+  drawLineas(
+    s,
+    [
+      `${ip.titulo} ${ip.nombre_completo.toUpperCase()}`,
+      `INVESTIGADOR PRINCIPAL — CÓDIGO ${ip.codigo_udg}`,
+      ip.adscripcion.toUpperCase(),
+      "P R E S E N T E:",
+    ],
+    bold,
+    11,
+  );
+  moveDown(s, 12);
+
+  // ----- 3. Asunto (con indent) -----
+  drawParrafo(
+    s,
+    `Asunto: Dictamen del protocolo de investigación con clave ${datos.protocolo.clave}.`,
+    regular,
+    11,
+    { x: MARGIN_L + 24 },
+  );
+  moveDown(s, 10);
+
+  // ----- 4. Antecedente -----
+  drawParrafo(
+    s,
+    `Por medio del presente, hago de su conocimiento que el Comité de Ética en Investigación en Ciencias de la Salud (CEICS) del Centro Universitario de Tlajomulco, adscrito a la División de Salud, en sesión ${datos.sesion.tipo} celebrada el ${datos.sesion.fecha_larga}, procedió a la revisión y evaluación ética, metodológica y normativa del protocolo de investigación referido al rubro.`,
+    regular,
+    11,
+  );
+  moveDown(s, 10);
+
+  // ----- 5. Caja de identificación -----
+  dibujarCajaIdent(
+    s,
+    [
+      { etq: "Título del protocolo: ", val: `«${datos.protocolo.titulo}»` },
+      {
+        etq: "Investigador Principal: ",
+        val: `${ip.titulo} ${ip.nombre_completo} (Código UDG ${ip.codigo_udg})`,
       },
-      info: {
-        Title: `Acta ${datos.numero_oficio}`,
-        Author: "CEICS-CUTLAJO",
-        Subject: `Acta de aprobación del protocolo ${datos.protocolo.clave}`,
-        Creator: "Plataforma CEICS-CUTLAJO",
+      { etq: "Adscripción: ", val: ip.adscripcion },
+      {
+        etq: "Tipo de investigación: ",
+        val: `${datos.protocolo.tipo_investigacion} (${datos.protocolo.clasificacion_riesgo})`,
       },
+      {
+        etq: "Área de conocimiento (SECIHTI): ",
+        val: datos.protocolo.area_conocimiento,
+      },
+      { etq: "Clave interna del protocolo: ", val: datos.protocolo.clave },
+      {
+        etq: "Fecha de sometimiento: ",
+        val: datos.protocolo.fecha_sometimiento_larga,
+      },
+      { etq: "Fecha de sesión de evaluación: ", val: datos.sesion.fecha_larga },
+    ],
+    fonts,
+    10,
+  );
+  moveDown(s, 12);
+
+  // ----- 6. Marco normativo -----
+  drawParrafo(
+    s,
+    "Para la emisión del presente dictamen, este Comité evaluó el protocolo a la luz del siguiente marco normativo nacional e internacional:",
+    regular,
+    11,
+  );
+  moveDown(s, 4);
+  for (const item of datos.marco_normativo) {
+    drawParrafo(s, `• ${item}`, regular, 11, {
+      x: MARGIN_L + 16,
     });
+  }
+  moveDown(s, 6);
+  drawParrafo(
+    s,
+    "Tras la deliberación correspondiente, este Comité considera que el protocolo cumple con los principios bioéticos de autonomía, beneficencia, no maleficencia y justicia, y se apega al marco normativo nacional e internacional vigente en materia de investigación para la salud.",
+    regular,
+    11,
+  );
+  moveDown(s, 10);
 
-    doc.on("data", (c) => chunks.push(c));
-    doc.on("end", () => resolve(Buffer.concat(chunks)));
-    doc.on("error", (e) => reject(e));
+  // ----- 7. Resolución (cuadro verde) -----
+  drawParrafo(
+    s,
+    "Por lo anteriormente expuesto, este H. Comité de Ética en Investigación en Ciencias de la Salud emite el siguiente dictamen:",
+    regular,
+    11,
+  );
+  moveDown(s, 6);
+  dibujarCuadroResolucion(s, datos.resolucion.estado, fonts);
 
-    let pagina = 1;
-    dibujarHeader(doc, escudoBuffer);
-    dibujarFooter(doc, pagina);
-    doc.on("pageAdded", () => {
-      pagina += 1;
-      dibujarHeader(doc, escudoBuffer);
-      dibujarFooter(doc, pagina);
+  // Observaciones (si aplica)
+  if (
+    datos.resolucion.tiene_observaciones &&
+    datos.resolucion.observaciones.length > 0
+  ) {
+    moveDown(s, 4);
+    drawParrafo(
+      s,
+      "Observaciones que el Investigador Principal deberá atender:",
+      bold,
+      11,
+    );
+    for (const o of datos.resolucion.observaciones) {
+      drawParrafo(s, `• ${o}`, regular, 11, { x: MARGIN_L + 16 });
+    }
+  }
+
+  // Vigencia
+  moveDown(s, 8);
+  drawParrafo(
+    s,
+    `VIGENCIA. El presente dictamen tiene una vigencia de ${datos.resolucion.vigencia_meses} meses a partir de la fecha de emisión, es decir, hasta el ${datos.resolucion.fecha_vencimiento_larga}. Para su renovación, el Investigador Principal deberá presentar un informe de seguimiento al menos 30 días naturales antes de la fecha de vencimiento.`,
+    regular,
+    11,
+  );
+
+  // Obligaciones
+  moveDown(s, 8);
+  drawParrafo(s, "OBLIGACIONES DEL INVESTIGADOR PRINCIPAL:", bold, 11);
+  const obligaciones = [
+    "Iniciar el estudio únicamente después de contar con todas las autorizaciones administrativas y, cuando aplique, el registro ante COFEPRIS.",
+    "Conducir la investigación en estricto apego al protocolo aprobado.",
+    "Notificar al CEICS, en un plazo no mayor a 15 días hábiles, cualquier enmienda al protocolo, cambio en el equipo de investigación o desviación significativa.",
+    "Reportar eventos adversos serios en un plazo no mayor a 24 horas y eventos adversos no serios en el informe periódico.",
+    "Presentar un informe anual de avances dentro de los 30 días previos a la fecha de aniversario de la aprobación.",
+    "Presentar el informe final dentro de los 60 días posteriores a la conclusión del estudio.",
+    "Resguardar los expedientes y datos del estudio por un periodo mínimo de 5 años posteriores a su conclusión.",
+    "Garantizar la confidencialidad de los participantes conforme a la LGPDPPSO y demás normatividad aplicable.",
+  ];
+  for (let i = 0; i < obligaciones.length; i++) {
+    drawParrafo(s, `${i + 1}. ${obligaciones[i]}`, regular, 11, {
+      x: MARGIN_L + 16,
     });
+  }
+  moveDown(s, 10);
 
-    // Reseteamos el cursor al área del cuerpo
-    doc.fillColor(COLOR_NEGRO);
-
-    // ----- 1. Oficio + fecha -----
-    doc
-      .font("Times-Bold")
-      .fontSize(11)
-      .text(`Oficio No. ${datos.numero_oficio}`, { align: "right" });
-    doc
-      .font("Times-Roman")
-      .fontSize(11)
-      .text(
-        `Tlajomulco de Zúñiga, Jalisco, a ${datos.fecha_emision_larga}.`,
-        { align: "right" },
-      );
-    doc.moveDown(1.2);
-
-    // ----- 2. Destinatario -----
-    const ip = datos.ip;
-    doc
-      .font("Times-Bold")
-      .text(`${ip.titulo} ${ip.nombre_completo.toUpperCase()}`)
-      .text(`INVESTIGADOR PRINCIPAL — CÓDIGO ${ip.codigo_udg}`)
-      .text(ip.adscripcion.toUpperCase())
-      .text("P R E S E N T E:");
-    doc.moveDown(1);
-
-    // ----- 3. Asunto -----
-    doc
-      .font("Times-Roman")
-      .text(
-        `Asunto: Dictamen del protocolo de investigación con clave ${datos.protocolo.clave}.`,
-        { indent: 40 },
-      );
-    doc.moveDown(1);
-
-    // ----- 4. Antecedente -----
-    doc.text(
-      `Por medio del presente, hago de su conocimiento que el Comité de Ética en Investigación en Ciencias de la Salud (CEICS) del Centro Universitario de Tlajomulco, adscrito a la División de Salud, en sesión ${datos.sesion.tipo} celebrada el ${datos.sesion.fecha_larga}, procedió a la revisión y evaluación ética, metodológica y normativa del protocolo de investigación referido al rubro.`,
-      { align: "justify" },
-    );
-    doc.moveDown(0.8);
-
-    // ----- 5. Identificación (caja gris claro) -----
-    const ident: Array<[string, string]> = [
-      ["Título del protocolo: ", `«${datos.protocolo.titulo}»`],
-      [
-        "Investigador Principal: ",
-        `${ip.titulo} ${ip.nombre_completo} (Código UDG ${ip.codigo_udg})`,
-      ],
-      ["Adscripción: ", ip.adscripcion],
-      [
-        "Tipo de investigación: ",
-        `${datos.protocolo.tipo_investigacion} (${datos.protocolo.clasificacion_riesgo})`,
-      ],
-      ["Área de conocimiento (SECIHTI): ", datos.protocolo.area_conocimiento],
-      ["Clave interna del protocolo: ", datos.protocolo.clave],
-      ["Fecha de sometimiento: ", datos.protocolo.fecha_sometimiento_larga],
-      ["Fecha de sesión de evaluación: ", datos.sesion.fecha_larga],
-    ];
-    const cajaInicio = doc.y;
-    const cajaW =
-      doc.page.width - doc.page.margins.left - doc.page.margins.right;
-    doc.rect(doc.page.margins.left, cajaInicio, cajaW, mm(48))
-      .fill(COLOR_GRIS_CLARO);
-    doc.fillColor(COLOR_NEGRO);
-    doc.y = cajaInicio + 6;
-    for (const [etq, val] of ident) {
-      doc.font("Times-Bold").text(etq, doc.page.margins.left + 6, doc.y, {
-        continued: true,
-      });
-      doc.font("Times-Roman").text(val);
-    }
-    doc.moveDown(0.8);
-
-    // ----- 6. Marco normativo -----
-    doc
-      .font("Times-Roman")
-      .text(
-        "Para la emisión del presente dictamen, este Comité evaluó el protocolo a la luz del siguiente marco normativo nacional e internacional:",
-      );
-    doc.moveDown(0.4);
-    for (const item of datos.marco_normativo) {
-      doc.text(`• ${item}`, { indent: 16 });
-    }
-    doc.moveDown(0.6);
-    doc.text(
-      "Tras la deliberación correspondiente, este Comité considera que el protocolo cumple con los principios bioéticos de autonomía, beneficencia, no maleficencia y justicia, y se apega al marco normativo nacional e internacional vigente en materia de investigación para la salud.",
-      { align: "justify" },
-    );
-    doc.moveDown(0.8);
-
-    // ----- 7. Resolución -----
-    doc.text(
-      "Por lo anteriormente expuesto, este H. Comité de Ética en Investigación en Ciencias de la Salud emite el siguiente dictamen:",
-      { align: "justify" },
-    );
-    doc.moveDown(0.5);
-    const resY = doc.y;
-    const resW = cajaW * 0.7;
-    const resX = doc.page.margins.left + (cajaW - resW) / 2;
-    doc.rect(resX, resY, resW, mm(14)).lineWidth(1.5).stroke(COLOR_VERDE);
-    doc
-      .fillColor(COLOR_VERDE)
-      .font("Times-Bold")
-      .fontSize(16)
-      .text(`PROTOCOLO ${datos.resolucion.estado}`, resX, resY + mm(4), {
-        width: resW,
-        align: "center",
-      });
-    doc.fillColor(COLOR_NEGRO).font("Times-Roman").fontSize(11);
-    doc.y = resY + mm(18);
-
-    if (
-      datos.resolucion.tiene_observaciones &&
-      datos.resolucion.observaciones.length > 0
-    ) {
-      doc.moveDown(0.5);
-      doc
-        .font("Times-Bold")
-        .text("Observaciones que el Investigador Principal deberá atender:");
-      doc.font("Times-Roman");
-      for (const o of datos.resolucion.observaciones) {
-        doc.text(`• ${o}`, { indent: 16, align: "justify" });
-      }
-    }
-
-    doc.moveDown(0.6);
-    doc.font("Times-Bold").text("VIGENCIA. ", { continued: true });
-    doc
-      .font("Times-Roman")
-      .text(
-        `El presente dictamen tiene una vigencia de ${datos.resolucion.vigencia_meses} meses a partir de la fecha de emisión, es decir, hasta el ${datos.resolucion.fecha_vencimiento_larga}. Para su renovación, el Investigador Principal deberá presentar un informe de seguimiento al menos 30 días naturales antes de la fecha de vencimiento.`,
-        { align: "justify" },
-      );
-
-    doc.moveDown(0.6);
-    doc.font("Times-Bold").text("OBLIGACIONES DEL INVESTIGADOR PRINCIPAL:");
-    doc.font("Times-Roman");
-    const obligaciones = [
-      "Iniciar el estudio únicamente después de contar con todas las autorizaciones administrativas y, cuando aplique, el registro ante COFEPRIS.",
-      "Conducir la investigación en estricto apego al protocolo aprobado.",
-      "Notificar al CEICS, en un plazo no mayor a 15 días hábiles, cualquier enmienda al protocolo, cambio en el equipo de investigación o desviación significativa.",
-      "Reportar eventos adversos serios en un plazo no mayor a 24 horas y eventos adversos no serios en el informe periódico.",
-      "Presentar un informe anual de avances dentro de los 30 días previos a la fecha de aniversario de la aprobación.",
-      "Presentar el informe final dentro de los 60 días posteriores a la conclusión del estudio.",
-      "Resguardar los expedientes y datos del estudio por un periodo mínimo de 5 años posteriores a su conclusión.",
-      "Garantizar la confidencialidad de los participantes conforme a la LGPDPPSO y demás normatividad aplicable.",
-    ];
-    obligaciones.forEach((o, i) => {
-      doc.text(`${i + 1}. ${o}`, { indent: 16, align: "justify" });
-    });
-
-    doc.moveDown(0.8);
-
-    // ----- 8. Resumen votación -----
-    doc.font("Times-Bold").text("RESUMEN DE VOTACIÓN");
-    doc.font("Times-Roman");
-    const v = datos.votacion;
-    const filasVot: Array<[string, string]> = [
+  // ----- 8. Resumen de votación -----
+  drawParrafo(s, "RESUMEN DE VOTACIÓN", bold, 11);
+  moveDown(s, 4);
+  const v = datos.votacion;
+  dibujarTablaVotacion(
+    s,
+    [
       ["Miembros presentes (quórum)", `${v.presentes} de ${v.total_miembros}`],
       ["Votos a favor", String(v.favor)],
       ["Votos en contra", String(v.contra)],
       ["Abstenciones (por conflicto de interés)", String(v.abstencion)],
-    ];
-    const tablaY = doc.y + 4;
-    const colA = doc.page.margins.left;
-    const colW1 = cajaW * 0.7;
-    const colW2 = cajaW * 0.3;
-    const rowH = mm(7);
-    filasVot.forEach(([etq, val], i) => {
-      const ry = tablaY + i * rowH;
-      doc.rect(colA, ry, colW1, rowH).lineWidth(0.5).stroke(COLOR_HEADER);
-      doc.rect(colA + colW1, ry, colW2, rowH).stroke(COLOR_HEADER);
-      doc.text(etq, colA + 6, ry + 5, { width: colW1 - 12 });
-      doc.text(val, colA + colW1, ry + 5, {
-        width: colW2,
-        align: "center",
-      });
-    });
-    doc.y = tablaY + filasVot.length * rowH + 8;
+    ],
+    fonts,
+  );
 
-    // ----- 9. Firma del Presidente -----
-    doc.moveDown(1.2);
-    doc.font("Times-Bold").text("A T E N T A M E N T E", { align: "center" });
-    doc.font("Times-Roman");
-    doc.text("“Piensa y Trabaja”", { align: "center" });
-    doc.text(
-      "“Año del Centenario de la Constitución Política del Estado Libre y Soberano de Jalisco”",
-      { align: "center" },
-    );
-    doc.text(
-      `Tlajomulco de Zúñiga, Jalisco, a ${datos.fecha_emision_larga}.`,
-      { align: "center" },
-    );
-    doc.moveDown(3);
-    doc.text("_________________________________________", { align: "center" });
-    const pres = datos.presidente;
-    doc.font("Times-Bold").text(`${pres.titulo} ${pres.nombre}`, {
-      align: "center",
-    });
-    doc
-      .font("Times-Roman")
-      .text("Presidente del Comité de Ética en Investigación", {
-        align: "center",
-      })
-      .text("en Ciencias de la Salud (CEICS)", { align: "center" })
-      .text("Centro Universitario de Tlajomulco — Universidad de Guadalajara", {
-        align: "center",
-      })
-      .text(`Código UDG: ${pres.codigo_udg}`, { align: "center" });
-
-    // ----- 10. Tabla de miembros -----
-    doc.addPage();
-    doc.font("Times-Bold").text("MIEMBROS DEL COMITÉ QUE PARTICIPARON EN LA SESIÓN");
-    doc.font("Times-Roman");
-    const yMiembros = doc.y + 4;
-    const cols = [mm(10), mm(28), mm(95), mm(35)];
-    const colsX = [
-      doc.page.margins.left,
-      doc.page.margins.left + cols[0],
-      doc.page.margins.left + cols[0] + cols[1],
-      doc.page.margins.left + cols[0] + cols[1] + cols[2],
-    ];
-    const headersTabla = ["#", "Cargo", "Nombre", "Voto"];
-    // Cabecera con fondo verde
-    doc.rect(doc.page.margins.left, yMiembros, cajaW, rowH).fill(COLOR_VERDE);
-    doc.fillColor("#FFFFFF").font("Times-Bold");
-    headersTabla.forEach((h, i) => {
-      doc.text(h, colsX[i] + 4, yMiembros + 5, { width: cols[i] - 8 });
-    });
-    doc.fillColor(COLOR_NEGRO).font("Times-Roman");
-    datos.votacion.miembros.forEach((m: MiembroActa, idx: number) => {
-      const ry = yMiembros + (idx + 1) * rowH;
-      [0, 1, 2, 3].forEach((c) => {
-        doc.rect(colsX[c], ry, cols[c], rowH).lineWidth(0.4).stroke(COLOR_HEADER);
-      });
-      doc.text(String(idx + 1), colsX[0] + 4, ry + 5, { width: cols[0] - 8 });
-      doc.text(m.cargo, colsX[1] + 4, ry + 5, { width: cols[1] - 8 });
-      doc.text(m.nombre, colsX[2] + 4, ry + 5, { width: cols[2] - 8 });
-      doc.text(
-        m.voto + (m.voto === "Abstención" ? " *" : ""),
-        colsX[3] + 4,
-        ry + 5,
-        { width: cols[3] - 8 },
-      );
-    });
-    doc.y = yMiembros + (datos.votacion.miembros.length + 1) * rowH + 8;
-
-    doc.fontSize(9).text(
-      "* Conforme al Reglamento Interno del CEICS, los miembros que declararon conflicto de interés se abstuvieron de deliberar y votar respecto al presente protocolo.",
-      { align: "justify" },
-    );
-
-    // ----- 11. Folio + QR -----
-    doc.moveDown(1.5);
-    doc.fontSize(11);
-    const qrSize = mm(35);
-    doc.image(qrBuffer, (doc.page.width - qrSize) / 2, doc.y, {
-      width: qrSize,
-      height: qrSize,
-    });
-    doc.y += qrSize + 6;
-    doc
-      .fontSize(9)
-      .text(`Folio digital de verificación: ${datos.folio.hash}`, {
-        align: "center",
-      })
-      .text(datos.folio.url_verificacion, { align: "center" });
-
-    doc.end();
+  // ----- 9. Firma del Presidente -----
+  moveDown(s, 16);
+  drawLineas(s, ["A T E N T A M E N T E"], bold, 11, { align: "center" });
+  drawLineas(s, ['"Piensa y Trabaja"'], regular, 11, { align: "center" });
+  drawLineas(
+    s,
+    [
+      '"Año del Centenario de la Constitución Política del Estado Libre y Soberano de Jalisco"',
+    ],
+    regular,
+    11,
+    { align: "center" },
+  );
+  drawLineas(
+    s,
+    [`Tlajomulco de Zúñiga, Jalisco, a ${datos.fecha_emision_larga}.`],
+    regular,
+    11,
+    { align: "center" },
+  );
+  moveDown(s, 40);
+  drawLineas(s, ["_________________________________________"], regular, 11, {
+    align: "center",
   });
-}
+  const pres = datos.presidente;
+  drawLineas(s, [`${pres.titulo} ${pres.nombre}`], bold, 11, {
+    align: "center",
+  });
+  drawLineas(
+    s,
+    [
+      "Presidente del Comité de Ética en Investigación",
+      "en Ciencias de la Salud (CEICS)",
+      "Centro Universitario de Tlajomulco — Universidad de Guadalajara",
+      `Código UDG: ${pres.codigo_udg}`,
+    ],
+    regular,
+    11,
+    { align: "center" },
+  );
 
-// Marca para evitar warning de "import no usado": dibujarFondo es util para extensiones futuras
-void dibujarFondo;
+  // ----- 10. Tabla de miembros (nueva página) -----
+  nuevaPagina(s);
+  drawLineas(
+    s,
+    ["MIEMBROS DEL COMITÉ QUE PARTICIPARON EN LA SESIÓN"],
+    bold,
+    11,
+  );
+  moveDown(s, 4);
+  dibujarTablaMiembros(s, datos.votacion.miembros, fonts);
+  drawParrafo(
+    s,
+    "* Conforme al Reglamento Interno del CEICS, los miembros que declararon conflicto de interés se abstuvieron de deliberar y votar respecto al presente protocolo.",
+    regular,
+    9,
+  );
+
+  // ----- 11. Folio + QR (centrado) -----
+  moveDown(s, 24);
+  const qrSize = mm(35);
+  ensureSpace(s, qrSize + 30);
+  s.page.drawImage(qrImg, {
+    x: (PAGE_W - qrSize) / 2,
+    y: s.cursorY - qrSize,
+    width: qrSize,
+    height: qrSize,
+  });
+  s.cursorY -= qrSize + 8;
+  drawLineas(
+    s,
+    [`Folio digital de verificación: ${datos.folio.hash}`],
+    regular,
+    9,
+    { align: "center" },
+  );
+  drawLineas(s, [datos.folio.url_verificacion], regular, 9, { align: "center" });
+
+  // ----- Header + footer en todas las páginas -----
+  const total = s.pages.length;
+  for (let i = 0; i < total; i++) {
+    dibujarHeader(s.pages[i], escudoImg, fonts);
+    dibujarFooter(s.pages[i], i + 1, total, regular);
+  }
+
+  const bytes = await doc.save();
+  return Buffer.from(bytes);
+}
