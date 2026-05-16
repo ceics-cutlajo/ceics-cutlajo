@@ -8,7 +8,7 @@ import type { Database } from "@/types/database.types";
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
-const RUTAS_PUBLICAS = ["/", "/login", "/signup", "/verifica-correo", "/crear-contrasena", "/api/auth/callback"];
+const RUTAS_PUBLICAS = ["/", "/login", "/signup", "/verifica-correo", "/crear-contrasena", "/api/auth/callback", "/v"];
 
 function esRutaPublica(pathname: string) {
   return RUTAS_PUBLICAS.some((ruta) => pathname === ruta || pathname.startsWith(`${ruta}/`));
