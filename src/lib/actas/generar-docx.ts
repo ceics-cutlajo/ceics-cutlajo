@@ -55,8 +55,15 @@ function buildHeader(escudoBuffer: Buffer): Header {
           }),
         ],
       }),
+      // Las 3 líneas institucionales van alineadas a la izquierda con indent
+      // calibrado para que coincidan con el inicio del texto "UNIVERSIDAD DE
+      // GUADALAJARA" dentro del banner (~14-16% del ancho desde la izquierda
+      // del banner). docx no soporta texto flotante superpuesto a imágenes
+      // sin frames complejos, así que las líneas viven debajo del banner
+      // alineadas a la izquierda como aproximación más limpia.
       new Paragraph({
-        alignment: AlignmentType.RIGHT,
+        alignment: AlignmentType.LEFT,
+        indent: { left: 1760 },
         spacing: { before: 100, after: 0 },
         children: [
           new TextRun({
@@ -69,7 +76,8 @@ function buildHeader(escudoBuffer: Buffer): Header {
         ],
       }),
       new Paragraph({
-        alignment: AlignmentType.RIGHT,
+        alignment: AlignmentType.LEFT,
+        indent: { left: 1760 },
         spacing: { before: 0, after: 0 },
         children: [
           new TextRun({
@@ -82,7 +90,8 @@ function buildHeader(escudoBuffer: Buffer): Header {
         ],
       }),
       new Paragraph({
-        alignment: AlignmentType.RIGHT,
+        alignment: AlignmentType.LEFT,
+        indent: { left: 1760 },
         spacing: { before: 0, after: 120 },
         children: [
           new TextRun({

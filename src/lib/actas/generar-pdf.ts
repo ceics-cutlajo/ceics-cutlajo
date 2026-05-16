@@ -174,17 +174,26 @@ function drawParrafo(
 
 // Dibuja el header (banner UDG + nombres) en todas las páginas pasadas.
 // El banner contiene escudo + "UNIVERSIDAD DE GUADALAJARA" en formato horizontal.
-// Las tres líneas del CEICS van debajo del banner, alineadas a la derecha
-// conforme al estándar institucional de oficios UDG.
+// Las tres líneas institucionales se superponen al banner, alineadas a la
+// izquierda con el inicio de "UNIVERSIDAD DE GUADALAJARA" y posicionadas
+// justo debajo de ese texto principal — conforme al estándar visual de
+// oficios UDG (ver FILOSOFIA DE DISEÑO DE CUTLAJOMULCO/oficios.docx).
 function dibujarHeader(page: PDFPage, escudo: PDFImage, fonts: Fonts): void {
   const escudoW = mm(170);
   const escudoH = mm(28);
+  const escudoX = (PAGE_W - escudoW) / 2;
+  const escudoYtop = PAGE_H - mm(8);
   page.drawImage(escudo, {
-    x: (PAGE_W - escudoW) / 2,
-    y: PAGE_H - mm(8) - escudoH,
+    x: escudoX,
+    y: escudoYtop - escudoH,
     width: escudoW,
     height: escudoH,
   });
+  // El banner es 1366×216 px: escudo ocupa ~14% del ancho, "UNIVERSIDAD DE
+  // GUADALAJARA" inicia a ~16% del ancho y ocupa la mitad superior del alto.
+  // Posicionamos las 3 líneas en el cuadrante inferior izquierdo del banner,
+  // a partir del 16% del ancho desde el inicio del banner.
+  const textX = escudoX + escudoW * 0.16;
   const filas: Array<{ t: string; f: PDFFont }> = [
     { t: "CENTRO UNIVERSITARIO DE TLAJOMULCO", f: fonts.regular },
     { t: "DIVISIÓN DE SALUD", f: fonts.regular },
@@ -193,18 +202,19 @@ function dibujarHeader(page: PDFPage, escudo: PDFImage, fonts: Fonts): void {
       f: fonts.bold,
     },
   ];
-  let y = PAGE_H - mm(38) - 9;
+  // Comenzamos justo debajo del texto "UNIVERSIDAD DE GUADALAJARA" del
+  // banner (~62% del alto desde el top del banner) y bajamos 8pt por línea.
+  let y = escudoYtop - escudoH * 0.62;
   for (const { t, f } of filas) {
     const limpio = safe(t);
-    const w = f.widthOfTextAtSize(limpio, 9);
     page.drawText(limpio, {
-      x: PAGE_W - MARGIN_R - w,
+      x: textX,
       y,
       font: f,
-      size: 9,
+      size: 7,
       color: COLOR_HEADER,
     });
-    y -= 11;
+    y -= 8;
   }
 }
 
