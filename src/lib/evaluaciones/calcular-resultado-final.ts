@@ -116,35 +116,24 @@ export function calcularResultadoFinal(
 }
 
 /**
- * Mapea el tipo de voto ganador al estado_protocolo correspondiente.
+ * Mapea el tipo de voto ganador a la recomendación del comité que se persiste
+ * en `protocolos.recomendacion_comite` (sesión 9b).
  *
- *   aprobar                        → 'aprobado'
- *   aprobar_con_observaciones      → 'aprobado_con_observaciones'
- *   no_aprobar                     → 'observaciones'  (el flujo CEICS pide
- *                                    devolver al investigador para corrección
- *                                    antes de rechazo definitivo; el estado
- *                                    'rechazado' lo emite el Presidente como
- *                                    decisión final tras múltiples iteraciones).
- *
- * El estado `rechazado` queda reservado para el dictamen final presidencial
- * (sesión 9). En 8b el peor desenlace automático es `observaciones`.
+ * El cierre del comité ya no asigna el estado terminal del protocolo: ahora
+ * todos los cierres con voto decisivo dejan el protocolo en `listo_dictamen`
+ * y el Presidente emite la decisión final al firmar el acta. La columna
+ * `recomendacion_comite` sirve para prerellenar su formulario "Emitir Dictamen".
  */
-export function estadoFinalDesdeVoto(
-  ganador: TipoVoto,
-):
-  | "aprobado"
-  | "aprobado_con_observaciones"
-  | "observaciones" {
-  switch (ganador) {
-    case "aprobar":
-      return "aprobado";
-    case "aprobar_con_observaciones":
-      return "aprobado_con_observaciones";
-    case "no_aprobar":
-      return "observaciones";
-    case "abstener":
-      throw new Error(
-        "estadoFinalDesdeVoto no acepta 'abstener' — esto indica un cierre sin votos decisivos.",
-      );
+export type RecomendacionComite =
+  | "aprobar"
+  | "aprobar_con_observaciones"
+  | "no_aprobar";
+
+export function recomendacionDesdeVoto(ganador: TipoVoto): RecomendacionComite {
+  if (ganador === "abstener") {
+    throw new Error(
+      "recomendacionDesdeVoto no acepta 'abstener' — esto indica un cierre sin votos decisivos.",
+    );
   }
+  return ganador;
 }

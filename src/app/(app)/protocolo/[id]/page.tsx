@@ -12,6 +12,8 @@ import { obtenerVersionMaxPreInforme } from "@/lib/timeline/queries";
 import { derivarTimeline } from "@/lib/timeline/derivar-etapa";
 import { TimelineProtocolo } from "@/components/timeline/timeline-protocolo";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { obtenerActaPorProtocolo } from "@/lib/actas/queries";
+import { CardActa } from "@/components/actas/card-acta";
 
 export default async function VerProtocoloPage({
   params,
@@ -57,6 +59,19 @@ export default async function VerProtocoloPage({
   const puedeEditar =
     esPropietario && (protocolo.estado === "borrador" || protocolo.estado === "observaciones");
 
+  // Acta (si ya fue emitida)
+  const acta = await obtenerActaPorProtocolo(id);
+  let actaDocxUrl: string | null = null;
+  let actaPdfUrl: string | null = null;
+  if (acta?.docx_storage_path && acta?.pdf_storage_path) {
+    const [d, p] = await Promise.all([
+      admin.storage.from("actas").createSignedUrl(acta.docx_storage_path, 600),
+      admin.storage.from("actas").createSignedUrl(acta.pdf_storage_path, 600),
+    ]);
+    actaDocxUrl = d.data?.signedUrl ?? null;
+    actaPdfUrl = p.data?.signedUrl ?? null;
+  }
+
   return (
     <div className="space-y-6">
       {(protocolo.numero_oficio || puedeEditar) && (
@@ -90,6 +105,20 @@ export default async function VerProtocoloPage({
         coInvestigadores={coInvestigadores}
         timeline={timeline}
       />
+
+      {acta && (
+        <CardActa
+          numeroOficio={acta.numero_oficio}
+          resolucion={acta.resolucion as "aprobado" | "aprobado_con_observaciones" | "no_aprobado"}
+          fechaEmisionIso={acta.fecha_emision}
+          vigenciaMeses={acta.vigencia_meses}
+          fechaVencimientoIso={acta.fecha_vencimiento}
+          hashFolio={acta.hash_folio}
+          docxUrl={actaDocxUrl}
+          pdfUrl={actaPdfUrl}
+          enviadaAt={acta.enviada_a_investigador_at}
+        />
+      )}
 
       {/* Resumen */}
       {protocolo.resumen && (

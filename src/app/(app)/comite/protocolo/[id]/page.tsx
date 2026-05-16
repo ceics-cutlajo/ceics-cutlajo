@@ -13,6 +13,9 @@ import {
 import { obtenerVersionMaxPreInforme } from "@/lib/timeline/queries";
 import { derivarTimeline } from "@/lib/timeline/derivar-etapa";
 import { TimelineProtocolo } from "@/components/timeline/timeline-protocolo";
+import { obtenerActaPorProtocolo } from "@/lib/actas/queries";
+import { CardActa } from "@/components/actas/card-acta";
+import { BannerEmitirDictamen } from "@/components/actas/banner-emitir-dictamen";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +109,23 @@ export default async function ComiteProtocoloPage({
     versionMaxPreInforme,
   });
 
+  // Acta del protocolo (si ya fue emitida)
+  const acta = await obtenerActaPorProtocolo(id);
+  let docxUrl: string | null = null;
+  let pdfUrl: string | null = null;
+  if (acta?.docx_storage_path && acta?.pdf_storage_path) {
+    const [docxResp, pdfResp] = await Promise.all([
+      admin.storage.from("actas").createSignedUrl(acta.docx_storage_path, 600),
+      admin.storage.from("actas").createSignedUrl(acta.pdf_storage_path, 600),
+    ]);
+    docxUrl = docxResp.data?.signedUrl ?? null;
+    pdfUrl = pdfResp.data?.signedUrl ?? null;
+  }
+  const mostrarBannerEmitir =
+    esPresidente &&
+    datos.protocolo.estado === "listo_dictamen" &&
+    acta === null;
+
   return (
     <div className="space-y-6">
       <Link href="/comite/bandeja" className="block text-sm text-ink-500 hover:underline">
@@ -118,6 +138,25 @@ export default async function ComiteProtocoloPage({
         timeline={timeline}
         progresoVotacion={progresoVotacion}
       />
+      {mostrarBannerEmitir && (
+        <BannerEmitirDictamen
+          protocoloId={id}
+          recomendacion={datos.protocolo.recomendacion_comite}
+        />
+      )}
+      {acta && (
+        <CardActa
+          numeroOficio={acta.numero_oficio}
+          resolucion={acta.resolucion as "aprobado" | "aprobado_con_observaciones" | "no_aprobado"}
+          fechaEmisionIso={acta.fecha_emision}
+          vigenciaMeses={acta.vigencia_meses}
+          fechaVencimientoIso={acta.fecha_vencimiento}
+          hashFolio={acta.hash_folio}
+          docxUrl={docxUrl}
+          pdfUrl={pdfUrl}
+          enviadaAt={acta.enviada_a_investigador_at}
+        />
+      )}
       <Revisar
         protocoloId={id}
         protocolo={datos.protocolo}

@@ -89,7 +89,7 @@ const ETIQUETA_GANADOR: Record<string, string> = {
 };
 
 function construirTexto(i: NotificacionPresidenteInput): string {
-  const linkProtocolo = `${BASE_URL_PUBLICO}/presidencia/protocolo/${i.protocoloId}`;
+  const linkProtocolo = `${BASE_URL_PUBLICO}/presidencia/dictamen/${i.protocoloId}`;
   return [
     `Estimado/a Presidente del CEICS,`,
     ``,
@@ -114,7 +114,7 @@ function construirTexto(i: NotificacionPresidenteInput): string {
 }
 
 function construirHtml(i: NotificacionPresidenteInput): string {
-  const linkProtocolo = `${BASE_URL_PUBLICO}/presidencia/protocolo/${i.protocoloId}`;
+  const linkProtocolo = `${BASE_URL_PUBLICO}/presidencia/dictamen/${i.protocoloId}`;
   const etiquetaGanador = ETIQUETA_GANADOR[i.ganador] ?? i.ganador;
   const colorGanador =
     i.ganador === "aprobar"

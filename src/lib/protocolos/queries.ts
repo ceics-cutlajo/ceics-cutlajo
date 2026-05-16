@@ -52,6 +52,12 @@ export type ProtocoloCompleto = {
   dictaminado_at: string | null;
   fecha_aprobacion: string | null;
   fecha_vencimiento: string | null;
+  recomendacion_comite:
+    | "aprobar"
+    | "aprobar_con_observaciones"
+    | "no_aprobar"
+    | "sin_decisivos"
+    | null;
 };
 
 /** Metadata de campos extraídos por IA (confianza por campo, fragmento-fuente). */

@@ -22,7 +22,7 @@ import { CATEGORIAS } from "@/lib/checklist";
 import { derivarVotoGlobal } from "./derivar-voto-global";
 import {
   calcularResultadoFinal,
-  estadoFinalDesdeVoto,
+  recomendacionDesdeVoto,
 } from "./calcular-resultado-final";
 import {
   evaluacionInputSchema,
@@ -369,12 +369,13 @@ async function cerrarYNotificarSiCorresponde(
     };
   }
 
-  const estadoNuevo = estadoFinalDesdeVoto(resultado.ganador);
+  const recomendacion = recomendacionDesdeVoto(resultado.ganador);
+  const estadoNuevo = "listo_dictamen";
 
   // UPDATE atómico con guardia: solo si sigue en votación
   const { data: actualizado, error: errUpd } = await admin
     .from("protocolos")
-    .update({ estado: estadoNuevo })
+    .update({ estado: estadoNuevo, recomendacion_comite: recomendacion })
     .eq("id", protocoloId)
     .eq("estado", ESTADO_EN_VOTACION)
     .select("id")
@@ -389,9 +390,10 @@ async function cerrarYNotificarSiCorresponde(
   await admin.from("protocolo_eventos").insert({
     protocolo_id: protocoloId,
     tipo: forzado ? "comite_cierre_forzado" : "comite_cierre_automatico",
-    descripcion: `Comité cerró votación. Ganador: ${resultado.ganador}. Nuevo estado: ${estadoNuevo}.`,
+    descripcion: `Comité cerró votación. Recomendación: ${recomendacion}. Listo para dictamen del Presidente.`,
     actor_id: forzado ? presidente.id : null,
     datos: {
+      recomendacion,
       conteo: resultado.conteo,
       voto_calidad_aplicado: resultado.voto_calidad_aplicado,
       desempate_no_resuelto: resultado.desempate_no_resuelto ?? false,
