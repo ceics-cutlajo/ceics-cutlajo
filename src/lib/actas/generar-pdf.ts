@@ -536,18 +536,17 @@ export async function generarActaPdf(datos: DatosActa): Promise<Buffer> {
   moveDown(s, 14);
 
   // ----- 2. Destinatario -----
+  // Usamos drawParrafo (con wrap) porque la adscripción en mayúsculas suele
+  // exceder el ancho de columna.
   const ip = datos.ip;
-  drawLineas(
-    s,
-    [
-      `${ip.titulo} ${ip.nombre_completo.toUpperCase()}`,
-      `INVESTIGADOR PRINCIPAL — CÓDIGO ${ip.codigo_udg}`,
-      ip.adscripcion.toUpperCase(),
-      "P R E S E N T E:",
-    ],
-    bold,
-    11,
-  );
+  for (const linea of [
+    `${ip.titulo} ${ip.nombre_completo.toUpperCase()}`,
+    `INVESTIGADOR PRINCIPAL — CÓDIGO ${ip.codigo_udg}`,
+    ip.adscripcion.toUpperCase(),
+    "P R E S E N T E:",
+  ]) {
+    drawParrafo(s, linea, bold, 11);
+  }
   moveDown(s, 12);
 
   // ----- 3. Asunto (con indent) -----
@@ -733,8 +732,10 @@ export async function generarActaPdf(datos: DatosActa): Promise<Buffer> {
     { align: "center" },
   );
 
-  // ----- 10. Tabla de miembros (nueva página) -----
-  nuevaPagina(s);
+  // ----- 10. Tabla de miembros -----
+  // dibujarTablaMiembros llama a ensureSpace internamente, así que si no
+  // cabe en la página actual se va a la siguiente sin forzar whitespace.
+  moveDown(s, 16);
   drawLineas(
     s,
     ["MIEMBROS DEL COMITÉ QUE PARTICIPARON EN LA SESIÓN"],

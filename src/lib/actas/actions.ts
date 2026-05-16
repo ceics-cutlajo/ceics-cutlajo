@@ -257,7 +257,7 @@ export async function emitirDictamenAction(
   const upDocx = await admin.storage.from(BUCKET).upload(docxPath, docxBuffer, {
     contentType:
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    upsert: false,
+    upsert: true,
   });
   if (upDocx.error) {
     return { ok: false, error: `No se pudo subir el DOCX: ${upDocx.error.message}` };
@@ -265,7 +265,7 @@ export async function emitirDictamenAction(
   if (pdfBuffer && pdfPath) {
     const upPdf = await admin.storage.from(BUCKET).upload(pdfPath, pdfBuffer, {
       contentType: "application/pdf",
-      upsert: false,
+      upsert: true,
     });
     if (upPdf.error) {
       console.error("[emitirDictamenAction] subida PDF fallo (fail-soft):", upPdf.error.message);
