@@ -17,10 +17,12 @@ const nextConfig: NextConfig = {
     // así que '4mb' es el máximo seguro sin pasar a subida directa a Storage.
     serverActions: { bodySizeLimit: "4mb" },
   },
-  // pdfkit carga sus archivos .afm (Adobe Font Metrics) al runtime con fs.readFile.
-  // Next.js no los detecta como dependencias estáticas, así que hay que incluirlos
-  // explícitamente en el bundle serverless de Vercel para la server action que
-  // genera el acta. Sin esto: ENOENT en /presidencia/dictamen/* al emitir.
+  // pdfkit carga sus archivos .afm (Adobe Font Metrics) al runtime con fs.readFile
+  // resolvidos relativo al __dirname del módulo. Next/Turbopack al bundlear pierde
+  // ese path y los archivos no se incluyen. Solución doble:
+  //   1. serverExternalPackages: deja a pdfkit fuera del bundle (require nativo)
+  //   2. outputFileTracingIncludes: garantiza que los AFM viajen al runtime serverless
+  serverExternalPackages: ["pdfkit"],
   outputFileTracingIncludes: {
     "/presidencia/dictamen/**": [
       "./node_modules/.pnpm/pdfkit@*/node_modules/pdfkit/js/data/**",
