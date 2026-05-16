@@ -18,21 +18,12 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: "4mb" },
   },
   // pdfkit carga sus archivos .afm (Adobe Font Metrics) al runtime con fs.readFile
-  // resolvidos relativo al __dirname del módulo. Next/Turbopack al bundlear pierde
-  // ese path y los archivos no se incluyen. Solución doble:
-  //   1. serverExternalPackages: deja a pdfkit fuera del bundle (require nativo)
-  //   2. outputFileTracingIncludes: garantiza que los AFM viajen al runtime serverless
+  // resolvidos relativo al __dirname del módulo. Si Next/Turbopack lo bundlea pierde
+  // ese path y los archivos no se encuentran (ENOENT en Vercel). Solución:
+  // sacar pdfkit del bundle con serverExternalPackages — el runtime hace require
+  // nativo que sí resuelve los AFM. NO usar outputFileTracingIncludes con paths
+  // que pasen por .pnpm/ — son symlinks y Vercel rechaza el deploy.
   serverExternalPackages: ["pdfkit"],
-  outputFileTracingIncludes: {
-    "/presidencia/dictamen/**": [
-      "./node_modules/.pnpm/pdfkit@*/node_modules/pdfkit/js/data/**",
-      "./node_modules/pdfkit/js/data/**",
-    ],
-    "/**": [
-      "./node_modules/.pnpm/pdfkit@*/node_modules/pdfkit/js/data/**",
-      "./node_modules/pdfkit/js/data/**",
-    ],
-  },
 };
 
 export default nextConfig;
