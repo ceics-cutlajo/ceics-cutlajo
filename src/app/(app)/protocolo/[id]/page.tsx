@@ -8,7 +8,10 @@ import {
   ETIQUETAS_DOCUMENTO,
   type TipoDocumento,
 } from "@/lib/protocolos/schemas";
-import { ETIQUETAS_ESTADO, type EstadoProtocolo } from "@/types/domain";
+import { obtenerVersionMaxPreInforme } from "@/lib/timeline/queries";
+import { derivarTimeline } from "@/lib/timeline/derivar-etapa";
+import { TimelineProtocolo } from "@/components/timeline/timeline-protocolo";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export default async function VerProtocoloPage({
   params,
@@ -24,38 +27,54 @@ export default async function VerProtocoloPage({
 
   const { protocolo, coInvestigadores, documentos, eventos, esPropietario } = datos;
 
-  // Generar URLs firmadas para los documentos (paralelo)
-  const docsConUrl = await Promise.all(
-    documentos.map(async (d) => ({
-      ...d,
-      url: await urlFirmadaDocumento(d.storage_path),
-    })),
-  );
+  // Datos auxiliares para el timeline (en paralelo con las URLs firmadas)
+  const admin = createAdminClient();
+  const [docsConUrl, versionMaxPreInforme, ipUsuario] = await Promise.all([
+    Promise.all(
+      documentos.map(async (d) => ({
+        ...d,
+        url: await urlFirmadaDocumento(d.storage_path),
+      })),
+    ),
+    obtenerVersionMaxPreInforme(id),
+    admin
+      .from("usuarios")
+      .select("nombre, apellido_paterno, apellido_materno")
+      .eq("id", protocolo.investigador_principal_id)
+      .single(),
+  ]);
+
+  const ipNombre = ipUsuario.data
+    ? `${ipUsuario.data.nombre} ${ipUsuario.data.apellido_paterno}${ipUsuario.data.apellido_materno ? " " + ipUsuario.data.apellido_materno : ""}`
+    : "—";
+
+  const timeline = derivarTimeline({
+    estado: protocolo.estado,
+    submitted_at: protocolo.submitted_at,
+    versionMaxPreInforme,
+  });
 
   const puedeEditar =
     esPropietario && (protocolo.estado === "borrador" || protocolo.estado === "observaciones");
 
   return (
     <div className="space-y-6">
-      <header>
+      {(protocolo.numero_oficio || puedeEditar) && (
         <div className="flex items-center justify-between">
-          <p className="text-eyebrow text-ink-500">
-            {protocolo.clave ? `Protocolo ${protocolo.clave}` : "Protocolo"} ·{" "}
-            <EstadoBadge estado={protocolo.estado} />
-          </p>
+          {protocolo.numero_oficio ? (
+            <p className="font-mono text-sm text-ink-500">
+              Oficio: {protocolo.numero_oficio}
+            </p>
+          ) : (
+            <span />
+          )}
           {puedeEditar && (
             <Link href={`/protocolo/${id}/editar`} className="btn-secondary text-xs">
               Editar borrador
             </Link>
           )}
         </div>
-        <h1 className="text-display-1 mt-2">{protocolo.titulo}</h1>
-        {protocolo.numero_oficio && (
-          <p className="mt-1 font-mono text-sm text-ink-500">
-            Oficio: {protocolo.numero_oficio}
-          </p>
-        )}
-      </header>
+      )}
 
       {enviado === "1" && (
         <div className="rounded-md border border-good/30 bg-good-soft px-4 py-4 text-sm text-good">
@@ -63,6 +82,14 @@ export default async function VerProtocoloPage({
           su dictamen. Puedes seguir el estado desde este expediente.
         </div>
       )}
+
+      {/* Timeline visual: 7 etapas + card metadata */}
+      <TimelineProtocolo
+        protocolo={protocolo}
+        ipNombre={ipNombre}
+        coInvestigadores={coInvestigadores}
+        timeline={timeline}
+      />
 
       {/* Resumen */}
       {protocolo.resumen && (
@@ -241,23 +268,3 @@ function Dato({ label, value }: { label: string; value: string | null | undefine
   );
 }
 
-function EstadoBadge({ estado }: { estado: EstadoProtocolo }) {
-  const colorPorEstado: Record<EstadoProtocolo, string> = {
-    borrador: "bg-ink-100 text-ink-700",
-    en_evaluacion_ia: "bg-warn-soft text-warn",
-    en_revision_comite: "bg-warn-soft text-warn",
-    listo_dictamen: "bg-warn-soft text-warn",
-    aprobado: "bg-good-soft text-good",
-    aprobado_con_observaciones: "bg-good-soft text-good",
-    observaciones: "bg-warn-soft text-warn",
-    rechazado: "bg-bad-soft text-bad",
-    retirado: "bg-ink-100 text-ink-500",
-  };
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colorPorEstado[estado]}`}
-    >
-      {ETIQUETAS_ESTADO[estado]}
-    </span>
-  );
-}

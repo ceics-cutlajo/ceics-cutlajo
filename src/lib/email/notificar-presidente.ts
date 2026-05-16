@@ -8,12 +8,11 @@
  * bloquearse por un fallo de email. La idempotencia (notificacion_presidente_at)
  * la garantiza el llamador.
  *
- * Limitación conocida del sandbox: el remitente `onboarding@resend.dev` solo
- * entrega correo al email con el que el usuario se registró en Resend, hasta
- * que se verifique un dominio propio (planeado para sesión 10).
+ * Remitente: dominio propio `ceics-cutlajo.com` verificado en Resend
+ * (DKIM/SPF/MX/DMARC en Cloudflare DNS desde 2026-05-12).
  */
 const RESEND_API_URL = "https://api.resend.com/emails";
-const RESEND_FROM_DEFAULT = "CEICS CUTLAJO <onboarding@resend.dev>";
+const RESEND_FROM_DEFAULT = "CEICS CUTLAJO <dictamenes@ceics-cutlajo.com>";
 const BASE_URL_PUBLICO = "https://ceics-cutlajo.com";
 
 export type NotificacionPresidenteInput = {

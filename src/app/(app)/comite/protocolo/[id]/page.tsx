@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
 import { obtenerProtocolo, urlFirmadaDocumento } from "@/lib/protocolos/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { obtenerUsuarioActual } from "@/lib/auth/usuario-actual";
@@ -9,6 +10,9 @@ import {
   listarEvaluacionesProtocolo,
   listarMiembrosElegiblesComite,
 } from "@/lib/evaluaciones/queries";
+import { obtenerVersionMaxPreInforme } from "@/lib/timeline/queries";
+import { derivarTimeline } from "@/lib/timeline/derivar-etapa";
+import { TimelineProtocolo } from "@/components/timeline/timeline-protocolo";
 
 export const dynamic = "force-dynamic";
 
@@ -85,26 +89,46 @@ export default async function ComiteProtocoloPage({
 
   const esPresidente = usuario.roles.includes("presidente");
 
-  // URLs firmadas para los documentos (TTL 1h por default en el helper)
-  const documentosConUrl = await Promise.all(
-    datos.documentos.map(async (d) => ({
-      ...d,
-      urlDescarga: await urlFirmadaDocumento(d.storage_path),
-    })),
-  );
+  // URLs firmadas + versión máxima de pre-informe (en paralelo)
+  const [documentosConUrl, versionMaxPreInforme] = await Promise.all([
+    Promise.all(
+      datos.documentos.map(async (d) => ({
+        ...d,
+        urlDescarga: await urlFirmadaDocumento(d.storage_path),
+      })),
+    ),
+    obtenerVersionMaxPreInforme(id),
+  ]);
+
+  const timeline = derivarTimeline({
+    estado: datos.protocolo.estado,
+    submitted_at: datos.protocolo.submitted_at,
+    versionMaxPreInforme,
+  });
 
   return (
-    <Revisar
-      protocoloId={id}
-      protocolo={datos.protocolo}
-      coInvestigadores={datos.coInvestigadores}
-      documentos={documentosConUrl}
-      ipNombre={ipNombre}
-      conflictoInteres={conflictoInteres}
-      esPresidente={esPresidente}
-      evaluacionPrevia={evaluacionPrevia}
-      progresoVotacion={progresoVotacion}
-      preInforme={
+    <div className="space-y-6">
+      <Link href="/comite/bandeja" className="block text-sm text-ink-500 hover:underline">
+        ← Volver a la bandeja
+      </Link>
+      <TimelineProtocolo
+        protocolo={datos.protocolo}
+        ipNombre={ipNombre}
+        coInvestigadores={datos.coInvestigadores}
+        timeline={timeline}
+        progresoVotacion={progresoVotacion}
+      />
+      <Revisar
+        protocoloId={id}
+        protocolo={datos.protocolo}
+        coInvestigadores={datos.coInvestigadores}
+        documentos={documentosConUrl}
+        ipNombre={ipNombre}
+        conflictoInteres={conflictoInteres}
+        esPresidente={esPresidente}
+        evaluacionPrevia={evaluacionPrevia}
+        progresoVotacion={progresoVotacion}
+        preInforme={
         preInformeRow
           ? {
               id: preInformeRow.id,
@@ -124,7 +148,8 @@ export default async function ComiteProtocoloPage({
               contenido: preInformeRow.contenido as PreDictamen,
             }
           : null
-      }
-    />
+        }
+      />
+    </div>
   );
 }

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import type {
   ProtocoloCompleto,
   CoInvestigadorRow,
@@ -99,32 +98,6 @@ export function Revisar(props: Props) {
 
   return (
     <div className="space-y-6">
-      <header>
-        <p className="text-eyebrow text-ink-500">
-          Comité · {props.protocolo.clave ?? "—"}
-        </p>
-        <h1 className="text-display-1 mt-1">{props.protocolo.titulo}</h1>
-        <p className="mt-2 text-sm text-ink-500">
-          IP: {props.ipNombre}
-          {props.protocolo.submitted_at && (
-            <>
-              {" "}
-              · Enviado{" "}
-              {new Date(props.protocolo.submitted_at).toLocaleDateString("es-MX", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })}
-            </>
-          )}
-        </p>
-        <p className="mt-2">
-          <Link href="/comite/bandeja" className="text-sm text-ink-500 hover:underline">
-            ← Volver a la bandeja
-          </Link>
-        </p>
-      </header>
-
       {props.conflictoInteres && !props.evaluacionPrevia && (
         <div className="rounded-md border border-bad/30 bg-bad-soft px-4 py-3 text-sm text-bad">
           ⚠ <strong>Conflicto de interés.</strong> Eres el Investigador Principal de este
