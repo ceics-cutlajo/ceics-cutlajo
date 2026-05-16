@@ -21,9 +21,17 @@ const mm = (n: number) => n * MM_TO_PT;
 
 type Doc = InstanceType<typeof PDFDocument>;
 
+/**
+ * Header y footer dibujan en posiciones absolutas SIN tocar el cursor del
+ * body para evitar recursión infinita (pageAdded → header escribe → wrapping
+ * del body → pageAdded → ...). Guardamos x/y/font antes y restauramos después.
+ * `lineBreak: false` evita que un texto largo desborde y dispare nueva página.
+ */
 function dibujarHeader(doc: Doc, escudoBuffer: Buffer) {
+  const savedX = doc.x;
+  const savedY = doc.y;
+
   const pageWidth = doc.page.width;
-  // Escudo centrado en la banda superior
   const imgWidth = mm(170);
   const imgHeight = mm(28);
   doc.image(escudoBuffer, (pageWidth - imgWidth) / 2, mm(8), {
@@ -31,46 +39,64 @@ function dibujarHeader(doc: Doc, escudoBuffer: Buffer) {
     height: imgHeight,
   });
 
-  doc
-    .fillColor(COLOR_HEADER)
-    .font("Times-Roman")
-    .fontSize(9)
-    .text("CENTRO UNIVERSITARIO DE TLAJOMULCO", 0, mm(38), {
-      align: "center",
-      width: pageWidth,
-    })
-    .text("DIVISIÓN DE SALUD", { align: "center", width: pageWidth })
-    .font("Times-Bold")
-    .text(
-      "COMITÉ DE ÉTICA EN INVESTIGACIÓN EN CIENCIAS DE LA SALUD (CEICS)",
-      { align: "center", width: pageWidth },
-    );
+  doc.fillColor(COLOR_HEADER).font("Times-Roman").fontSize(9);
+  doc.text("CENTRO UNIVERSITARIO DE TLAJOMULCO", 0, mm(38), {
+    align: "center",
+    width: pageWidth,
+    lineBreak: false,
+  });
+  doc.text("DIVISIÓN DE SALUD", 0, mm(38) + 11, {
+    align: "center",
+    width: pageWidth,
+    lineBreak: false,
+  });
+  doc.font("Times-Bold").text(
+    "COMITÉ DE ÉTICA EN INVESTIGACIÓN EN CIENCIAS DE LA SALUD (CEICS)",
+    0,
+    mm(38) + 22,
+    { align: "center", width: pageWidth, lineBreak: false },
+  );
+
+  doc.fillColor(COLOR_NEGRO).font("Times-Roman").fontSize(11);
+  doc.x = savedX;
+  doc.y = savedY;
 }
 
 function dibujarFooter(doc: Doc, paginaActual: number) {
+  const savedX = doc.x;
+  const savedY = doc.y;
+
   const pageWidth = doc.page.width;
   const pageHeight = doc.page.height;
   const y = pageHeight - mm(20);
 
-  doc
-    .fillColor(COLOR_HEADER)
-    .font("Times-Roman")
-    .fontSize(8)
-    .text(
-      "Carretera Tlajomulco Santa Fe, KM 3.5 #595. Colonia Lomas de Tejeda",
-      0,
-      y,
-      { align: "center", width: pageWidth },
-    )
-    .text(
-      "CP 45670, Tlajomulco de Zúñiga, Jalisco. Tel. (33) 30 40 99 37 ext. 937",
-      { align: "center", width: pageWidth },
-    )
-    .text("www.cutlajomulco.udg.mx", { align: "center", width: pageWidth })
-    .text(`Página ${paginaActual}`, {
-      align: "right",
-      width: pageWidth - mm(20),
-    });
+  doc.fillColor(COLOR_HEADER).font("Times-Roman").fontSize(8);
+  doc.text(
+    "Carretera Tlajomulco Santa Fe, KM 3.5 #595. Colonia Lomas de Tejeda",
+    0,
+    y,
+    { align: "center", width: pageWidth, lineBreak: false },
+  );
+  doc.text(
+    "CP 45670, Tlajomulco de Zúñiga, Jalisco. Tel. (33) 30 40 99 37 ext. 937",
+    0,
+    y + 10,
+    { align: "center", width: pageWidth, lineBreak: false },
+  );
+  doc.text("www.cutlajomulco.udg.mx", 0, y + 20, {
+    align: "center",
+    width: pageWidth,
+    lineBreak: false,
+  });
+  doc.text(`Página ${paginaActual}`, 0, y + 20, {
+    align: "right",
+    width: pageWidth - mm(20),
+    lineBreak: false,
+  });
+
+  doc.fillColor(COLOR_NEGRO).font("Times-Roman").fontSize(11);
+  doc.x = savedX;
+  doc.y = savedY;
 }
 
 function dibujarFondo(doc: Doc, hex: string, h: number) {
