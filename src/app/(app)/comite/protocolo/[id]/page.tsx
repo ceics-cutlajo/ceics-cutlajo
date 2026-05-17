@@ -163,6 +163,7 @@ export default async function ComiteProtocoloPage({
         coInvestigadores={datos.coInvestigadores}
         timeline={timeline}
         progresoVotacion={progresoVotacion}
+        firmaPorDelegacion={presidenteEsIP}
       />
       {mostrarBannerEmitir && modoBanner && (
         <BannerEmitirDictamen

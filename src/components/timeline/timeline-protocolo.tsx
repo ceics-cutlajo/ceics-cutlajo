@@ -27,6 +27,8 @@ type Props = {
   timeline: TimelineSnapshot;
   /** Solo presente para la vista del comité; activa el estado contextual con conteo. */
   progresoVotacion?: { emitidos: number; total: number };
+  /** True cuando el Presidente titular es el IP y la Secretaría firma por delegación. */
+  firmaPorDelegacion?: boolean;
 };
 
 export function TimelineProtocolo({
@@ -35,6 +37,7 @@ export function TimelineProtocolo({
   coInvestigadores,
   timeline,
   progresoVotacion,
+  firmaPorDelegacion,
 }: Props) {
   const coInvNombres = coInvestigadores
     .map((c) =>
@@ -46,6 +49,7 @@ export function TimelineProtocolo({
     protocolo.estado,
     timeline,
     progresoVotacion,
+    firmaPorDelegacion,
   );
 
   return (
@@ -272,6 +276,7 @@ function generarMensajeContextual(
   estado: Props["protocolo"]["estado"],
   timeline: TimelineSnapshot,
   progreso?: { emitidos: number; total: number },
+  firmaPorDelegacion?: boolean,
 ): string | null {
   switch (estado) {
     case "borrador":
@@ -291,7 +296,9 @@ function generarMensajeContextual(
     case "observaciones":
       return "El comité solicitó correcciones. El investigador principal debe atender las observaciones y reenviar.";
     case "listo_dictamen":
-      return "El comité concluyó su evaluación. El Presidente debe emitir el dictamen final y firmar el acta.";
+      return firmaPorDelegacion
+        ? "El comité concluyó su evaluación. La Secretaría debe emitir el dictamen final y firmar el acta por delegación del Presidente."
+        : "El comité concluyó su evaluación. El Presidente debe emitir el dictamen final y firmar el acta.";
     case "aprobado":
       return "Protocolo aprobado por el CEICS. El acta oficial está disponible.";
     case "aprobado_con_observaciones":
