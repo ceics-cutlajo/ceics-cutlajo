@@ -53,6 +53,13 @@ export type DatosBaseActa = {
     codigo_udg: string;
     email: string;
   };
+  secretario: {
+    id: string;
+    titulo: string;
+    nombre: string;
+    codigo_udg: string;
+    email: string;
+  } | null;
   miembros: MiembroVoto[];
   conteoVotos: {
     favor: number;
@@ -70,13 +77,16 @@ const ETIQUETA_RIESGO: Record<string, string> = {
   riesgo_mayor_minimo: "Riesgo mayor al mínimo",
 };
 
-/** Asume "Dr." / "Dra." por terminación de la primera palabra del nombre. */
+/** Asume "Dr." / "Dra." por terminación de cualquier nombre de pila. */
 function inferirTitulo(nombre: string): string {
-  const primero = nombre.trim().split(/\s+/)[0] ?? "";
-  // Heurística simple: nombres que terminan en 'a' suelen ser femeninos en español.
-  // Como fallback, default "Dr.". Es editable en el formulario antes de emitir.
-  if (primero.endsWith("a") || primero.endsWith("á")) return "Dra.";
-  return "Dr.";
+  // Heurística case-insensitive sobre todos los tokens de la parte del nombre
+  // (no apellidos). Cubre nombres compuestos como "Judith Carolina" o
+  // "María José", y datos guardados en mayúsculas ("JUDITH CAROLINA").
+  // Limitación conocida: no detecta "Beatriz", "Carmen", etc. — si el padrón
+  // crece, agregar columna `genero` o `titulo_preferido` en `usuarios`.
+  const tokens = nombre.trim().toLowerCase().split(/\s+/);
+  const algunFemenino = tokens.some((t) => t.endsWith("a") || t.endsWith("á"));
+  return algunFemenino ? "Dra." : "Dr.";
 }
 
 function nombreCompleto(u: {
@@ -157,24 +167,40 @@ export async function obtenerDatosBaseActa(
     .filter(Boolean)
     .join(" — ");
 
-  // 2. Presidente actual del comité
-  const { data: presRoles } = await admin
-    .from("usuario_roles")
-    .select(
-      "usuario_id, usuarios:usuario_id(id, nombre, apellido_paterno, apellido_materno, codigo_udg, email)",
-    )
-    .eq("rol", "presidente")
-    .limit(1)
-    .maybeSingle();
-  if (!presRoles?.usuarios) return null;
-  const pres = presRoles.usuarios as unknown as {
-    id: string;
-    nombre: string;
-    apellido_paterno: string;
-    apellido_materno: string | null;
-    codigo_udg: string;
-    email: string;
+  // 2. Presidente y Secretario(a) actuales del comité (en paralelo)
+  type TitularRow = {
+    usuarios: {
+      id: string;
+      nombre: string;
+      apellido_paterno: string;
+      apellido_materno: string | null;
+      codigo_udg: string;
+      email: string;
+    } | null;
   };
+  const [presResp, secResp] = await Promise.all([
+    admin
+      .from("usuario_roles")
+      .select(
+        "usuario_id, usuarios:usuario_id(id, nombre, apellido_paterno, apellido_materno, codigo_udg, email)",
+      )
+      .eq("rol", "presidente")
+      .limit(1)
+      .maybeSingle(),
+    admin
+      .from("usuario_roles")
+      .select(
+        "usuario_id, usuarios:usuario_id(id, nombre, apellido_paterno, apellido_materno, codigo_udg, email)",
+      )
+      .eq("rol", "comite_secretario")
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  const presRow = presResp.data as TitularRow | null;
+  if (!presRow?.usuarios) return null;
+  const pres = presRow.usuarios;
+  const secRow = secResp.data as TitularRow | null;
+  const secUser = secRow?.usuarios ?? null;
 
   // 3. Lista de miembros del comité + sus votos
   const { data: rolesRows } = await admin
@@ -318,6 +344,15 @@ export async function obtenerDatosBaseActa(
       codigo_udg: pres.codigo_udg,
       email: pres.email,
     },
+    secretario: secUser
+      ? {
+          id: secUser.id,
+          titulo: inferirTitulo(secUser.nombre),
+          nombre: nombreCompleto(secUser),
+          codigo_udg: secUser.codigo_udg,
+          email: secUser.email,
+        }
+      : null,
     miembros: miembrosPresentes,
     conteoVotos,
     comentariosComite: comentarios,

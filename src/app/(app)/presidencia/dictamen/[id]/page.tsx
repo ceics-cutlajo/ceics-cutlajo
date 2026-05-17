@@ -19,7 +19,9 @@ export default async function EmitirDictamenPage({
   const { id } = await params;
 
   const usuario = await obtenerUsuarioActual();
-  if (!usuario.roles.includes("presidente")) {
+  const esPresidente = usuario.roles.includes("presidente");
+  const esSecretario = usuario.roles.includes("comite_secretario");
+  if (!esPresidente && !esSecretario) {
     redirect("/dashboard");
   }
 
@@ -29,6 +31,66 @@ export default async function EmitirDictamenPage({
   const yaEmitida = await obtenerActaPorProtocolo(id);
   if (yaEmitida) {
     redirect(`/comite/protocolo/${id}`);
+  }
+
+  // Determinar si esta emisión es por delegación a Secretaría.
+  const presidenteEsIP =
+    datos.presidente.id === datos.protocolo.investigador_principal_id;
+  const firmaPorDelegacion = esSecretario && presidenteEsIP;
+
+  // Casos que no permitimos llegar al formulario.
+  if (esPresidente && presidenteEsIP && !esSecretario) {
+    return (
+      <div className="space-y-6">
+        <header>
+          <p className="text-eyebrow text-ink-500">Presidencia · Dictamen</p>
+          <h1 className="text-display-1 mt-1">Conflicto de interés</h1>
+        </header>
+        <div className="card border border-warn/30 bg-warn-soft/40 p-6 text-sm leading-relaxed">
+          <p>
+            Eres el Investigador Principal del protocolo{" "}
+            <strong>{datos.protocolo.clave}</strong>. Como Presidente del CEICS no
+            puedes emitir su propia acta. Conforme al Reglamento Interno, la
+            emisión corresponde al(la) Secretario(a) del comité.
+          </p>
+          <p className="mt-3 text-ink-700">
+            Cierra sesión e ingresa con la cuenta de Secretaría para emitir este
+            dictamen.
+          </p>
+          <Link
+            href={`/comite/protocolo/${id}`}
+            className="mt-4 inline-block text-sm font-medium text-[var(--accent)] hover:underline"
+          >
+            ← Volver al protocolo
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (esSecretario && !esPresidente && !presidenteEsIP) {
+    return (
+      <div className="space-y-6">
+        <header>
+          <p className="text-eyebrow text-ink-500">Secretaría · Dictamen</p>
+          <h1 className="text-display-1 mt-1">Emisión no autorizada</h1>
+        </header>
+        <div className="card border border-warn/30 bg-warn-soft/40 p-6 text-sm leading-relaxed">
+          <p>
+            El Presidente del CEICS no tiene conflicto de interés con el
+            protocolo <strong>{datos.protocolo.clave}</strong>. La emisión del
+            acta le corresponde a él(ella); la delegación a Secretaría solo
+            procede ante COI presidencial.
+          </p>
+          <Link
+            href={`/comite/protocolo/${id}`}
+            className="mt-4 inline-block text-sm font-medium text-[var(--accent)] hover:underline"
+          >
+            ← Volver al protocolo
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   if (datos.protocolo.estado !== "listo_dictamen") {
@@ -66,13 +128,19 @@ export default async function EmitirDictamenPage({
     <div className="space-y-8">
       <header className="flex items-start justify-between">
         <div>
-          <p className="text-eyebrow text-ink-500">Presidencia · Emitir dictamen</p>
+          <p className="text-eyebrow text-ink-500">
+            {firmaPorDelegacion
+              ? "Secretaría · Emitir dictamen (delegación)"
+              : "Presidencia · Emitir dictamen"}
+          </p>
           <h1 className="text-display-1 mt-1">Acta de aprobación CEICS</h1>
           <p className="mt-2 max-w-2xl text-sm text-ink-600">
             Protocolo <strong>{datos.protocolo.clave}</strong> · IP{" "}
             {datos.ip.nombre_completo}. El comité cerró la votación con la
-            recomendación que verás más abajo. Como Presidente puedes ratificarla
-            o ajustar resolución, vigencia y observaciones antes de emitir.
+            recomendación que verás más abajo.{" "}
+            {firmaPorDelegacion
+              ? "Como Secretario(a) del CEICS firmas en delegación por COI presidencial; puedes ratificar la recomendación o ajustar resolución, vigencia y observaciones antes de emitir."
+              : "Como Presidente puedes ratificarla o ajustar resolución, vigencia y observaciones antes de emitir."}
           </p>
         </div>
         <Link
@@ -82,6 +150,21 @@ export default async function EmitirDictamenPage({
           ← Cancelar
         </Link>
       </header>
+
+      {firmaPorDelegacion && (
+        <div className="card border border-brand-magenta/30 bg-brand-magenta/5 p-5">
+          <p className="text-eyebrow text-brand-magenta-deep">
+            Delegación a Secretaría
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-ink-800">
+            El Presidente del CEICS (<strong>{datos.presidente.nombre}</strong>)
+            figura como Investigador Principal del protocolo{" "}
+            <strong>{datos.protocolo.clave}</strong>. Conforme al Reglamento
+            Interno del comité, la emisión y firma del acta corresponde al(la)
+            Secretario(a). Esa constancia quedará impresa en el acta.
+          </p>
+        </div>
+      )}
 
       <section className="card p-6">
         <h2 className="text-display-2 mb-4">Resumen del protocolo</h2>

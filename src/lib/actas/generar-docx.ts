@@ -509,8 +509,24 @@ function buildTablaVotacion(datos: DatosActa): Table {
 }
 
 function buildFirma(datos: DatosActa): Paragraph[] {
-  const pres = datos.presidente;
-  return [
+  const f = datos.firmante;
+  const paras: Paragraph[] = [];
+
+  if (f.por_delegacion) {
+    paras.push(
+      p({
+        before: 200,
+        after: 120,
+        text:
+          `NOTA. El presente dictamen es emitido y firmado por el(la) ${f.cargo} del CEICS en delegación expresa, conforme al Reglamento Interno del comité, dado que el Presidente titular` +
+          (f.presidente_titular_nombre ? ` (${f.presidente_titular_nombre})` : "") +
+          ` figura como Investigador Principal del protocolo y declaró conflicto de interés.`,
+        size: 20,
+      }),
+    );
+  }
+
+  paras.push(
     p({
       before: 300,
       align: AlignmentType.CENTER,
@@ -541,33 +557,31 @@ function buildFirma(datos: DatosActa): Paragraph[] {
       bold: true,
       before: 20,
       after: 0,
-      text: `${pres.titulo} ${pres.nombre}`,
+      text: `${f.titulo} ${f.nombre}`,
     }),
+  );
+
+  for (const linea of f.cargo_lineas) {
+    paras.push(
+      p({
+        align: AlignmentType.CENTER,
+        text: linea,
+        before: 0,
+        after: 0,
+      }),
+    );
+  }
+
+  paras.push(
     p({
       align: AlignmentType.CENTER,
-      text: "Presidente del Comité de Ética en Investigación",
-      before: 0,
-      after: 0,
-    }),
-    p({
-      align: AlignmentType.CENTER,
-      text: "en Ciencias de la Salud (CEICS)",
-      before: 0,
-      after: 0,
-    }),
-    p({
-      align: AlignmentType.CENTER,
-      text: "Centro Universitario de Tlajomulco — Universidad de Guadalajara",
-      before: 0,
-      after: 0,
-    }),
-    p({
-      align: AlignmentType.CENTER,
-      text: `Código UDG: ${pres.codigo_udg}`,
+      text: `Código UDG: ${f.codigo_udg}`,
       before: 0,
       after: 200,
     }),
-  ];
+  );
+
+  return paras;
 }
 
 function buildTablaMiembros(datos: DatosActa): Table {

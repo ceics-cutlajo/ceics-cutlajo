@@ -43,25 +43,96 @@ export type ActionResult<T = void> =
 const BUCKET = "actas";
 const URL_BASE_VALIDACION = "https://ceics-cutlajo.com/v/";
 
-async function obtenerPresidenteActual(): Promise<
-  | { ok: true; usuarioId: string }
-  | { ok: false; error: string }
+type FirmanteResuelto = {
+  usuarioId: string;
+  rol: "presidente" | "comite_secretario";
+  cargo: "Presidente" | "Secretaria" | "Secretario";
+  porDelegacion: boolean;
+};
+
+/**
+ * Resuelve quién está habilitado para firmar el acta del protocolo dado.
+ *
+ * Reglas:
+ *   - Presidente y NO es IP del protocolo → firma (caso normal).
+ *   - Presidente y ES IP → bloqueo por COI; debe firmar Secretaría.
+ *   - Secretario(a) cuando Presidente es IP → firma por delegación.
+ *   - Secretario(a) cuando Presidente NO es IP → no autorizado.
+ *   - Cualquier otro rol → no autorizado.
+ */
+async function obtenerFirmanteActual(args: {
+  investigadorPrincipalId: string;
+  presidenteTitularId: string;
+}): Promise<
+  { ok: true; firmante: FirmanteResuelto } | { ok: false; error: string }
 > {
   const usuario = await obtenerUsuarioActual();
-  if (!usuario.roles.includes("presidente")) {
+  const esPresidente = usuario.roles.includes("presidente");
+  const esSecretario = usuario.roles.includes("comite_secretario");
+  if (!esPresidente && !esSecretario) {
     return {
       ok: false,
-      error: "Solo el Presidente del CEICS puede emitir el dictamen final.",
+      error:
+        "Solo el Presidente o el(la) Secretario(a) del CEICS pueden emitir el dictamen final.",
     };
   }
+
   const admin = createAdminClient();
   const { data: u } = await admin
     .from("usuarios")
-    .select("id")
+    .select("id, nombre")
     .eq("email", usuario.email)
     .single();
   if (!u) return { ok: false, error: "No se encontró tu perfil de usuario." };
-  return { ok: true, usuarioId: u.id };
+  const presidenteEsIP =
+    args.presidenteTitularId === args.investigadorPrincipalId;
+
+  if (esPresidente && !presidenteEsIP) {
+    return {
+      ok: true,
+      firmante: {
+        usuarioId: u.id,
+        rol: "presidente",
+        cargo: "Presidente",
+        porDelegacion: false,
+      },
+    };
+  }
+  if (esPresidente && presidenteEsIP) {
+    return {
+      ok: false,
+      error:
+        "Conflicto de interés: eres el Investigador Principal de este protocolo y, " +
+        "como Presidente del CEICS, no puedes emitir su acta. Conforme al Reglamento Interno, " +
+        "la emisión corresponde al(la) Secretario(a) del comité. Cierra sesión e ingresa " +
+        "con la cuenta de Secretaría para emitir este dictamen.",
+    };
+  }
+  if (esSecretario && presidenteEsIP) {
+    const nombre = u.nombre as string | null;
+    const tokens = (nombre ?? "").trim().toLowerCase().split(/\s+/);
+    const algunFemenino = tokens.some(
+      (t) => t.endsWith("a") || t.endsWith("á"),
+    );
+    const cargo = algunFemenino ? "Secretaria" : "Secretario";
+    return {
+      ok: true,
+      firmante: {
+        usuarioId: u.id,
+        rol: "comite_secretario",
+        cargo,
+        porDelegacion: true,
+      },
+    };
+  }
+  // Secretario sin COI presidencial.
+  return {
+    ok: false,
+    error:
+      "El Presidente del CEICS no tiene conflicto de interés con este protocolo; " +
+      "la emisión del acta le corresponde a él(ella). La delegación a Secretaría " +
+      "solo procede ante COI presidencial.",
+  };
 }
 
 export async function emitirDictamenAction(
@@ -84,13 +155,9 @@ export async function emitirDictamenAction(
   }
   const datos = parsed.data;
 
-  // 2. Auth: solo Presidente
-  const pres = await obtenerPresidenteActual();
-  if (!pres.ok) return pres;
-
   const admin = createAdminClient();
 
-  // 3. Idempotencia: si ya existe acta para este protocolo, devolverla
+  // 2. Idempotencia: si ya existe acta para este protocolo, devolverla
   const { data: actaExistente } = await admin
     .from("actas")
     .select("id, numero_oficio, docx_storage_path, pdf_storage_path")
@@ -108,7 +175,7 @@ export async function emitirDictamenAction(
     };
   }
 
-  // 4. Verificar estado y recopilar datos
+  // 3. Recopilar datos y verificar estado
   const base = await obtenerDatosBaseActa(datos.protocoloId);
   if (!base) {
     return { ok: false, error: "No se encontró el protocolo o sus datos están incompletos." };
@@ -120,18 +187,21 @@ export async function emitirDictamenAction(
     };
   }
 
-  // 4.b Bloqueo de COI presidencial: el Presidente no puede emitir el acta de
-  // un protocolo donde él mismo es el Investigador Principal. La delegación
-  // formal a Secretario(a) queda como pieza futura; por ahora bloqueamos.
-  if (pres.usuarioId === base.protocolo.investigador_principal_id) {
+  // 4. Resolución de firmante: Presidente o Secretaria por delegación
+  // (cuando el Presidente es Investigador Principal del protocolo).
+  const firmanteResp = await obtenerFirmanteActual({
+    investigadorPrincipalId: base.protocolo.investigador_principal_id,
+    presidenteTitularId: base.presidente.id,
+  });
+  if (!firmanteResp.ok) return firmanteResp;
+  const firmante = firmanteResp.firmante;
+
+  if (firmante.porDelegacion && !base.secretario) {
     return {
       ok: false,
       error:
-        "Conflicto de interés: eres el Investigador Principal de este protocolo y, " +
-        "como Presidente, no puedes emitir su acta. Conforme al Reglamento Interno " +
-        "del CEICS, el acta debe ser emitida por el(la) Secretario(a) del comité. " +
-        "La delegación formal a Secretario(a) se habilitará en una próxima versión; " +
-        "mientras tanto, contacta a la Secretaria del CEICS para emitir el dictamen.",
+        "Se requiere delegación al Secretario(a) por COI presidencial, pero no hay " +
+        "un(a) Secretario(a) titular configurado(a) en el padrón del CEICS.",
     };
   }
 
@@ -225,6 +295,40 @@ export async function emitirDictamenAction(
       nombre: base.presidente.nombre,
       codigo_udg: base.presidente.codigo_udg,
     },
+    firmante: (() => {
+      const cargoLineasPresidente = [
+        "Presidente del Comité de Ética en Investigación",
+        "en Ciencias de la Salud (CEICS)",
+        "Centro Universitario de Tlajomulco — Universidad de Guadalajara",
+      ];
+      const cargoLineasSecretaria = [
+        `${firmante.cargo} del Comité de Ética en Investigación`,
+        "en Ciencias de la Salud (CEICS)",
+        "Centro Universitario de Tlajomulco — Universidad de Guadalajara",
+      ];
+      if (firmante.rol === "presidente") {
+        return {
+          titulo: base.presidente.titulo,
+          nombre: base.presidente.nombre,
+          codigo_udg: base.presidente.codigo_udg,
+          rol: "presidente" as const,
+          cargo: "Presidente" as const,
+          cargo_lineas: cargoLineasPresidente,
+          por_delegacion: false,
+        };
+      }
+      const sec = base.secretario!;
+      return {
+        titulo: sec.titulo,
+        nombre: sec.nombre,
+        codigo_udg: sec.codigo_udg,
+        rol: "comite_secretario" as const,
+        cargo: firmante.cargo,
+        cargo_lineas: cargoLineasSecretaria,
+        por_delegacion: true,
+        presidente_titular_nombre: base.presidente.nombre,
+      };
+    })(),
     folio: {
       hash: hashFolio,
       url_verificacion: urlValidacion,
@@ -287,7 +391,9 @@ export async function emitirDictamenAction(
       protocolo_id: datos.protocoloId,
       numero_oficio: numeroOficioStr,
       fecha_emision: fechaEmisionIso,
-      presidente_id: pres.usuarioId,
+      presidente_id: base.presidente.id,
+      firmante_id: firmante.usuarioId,
+      firmante_rol: firmante.rol,
       resolucion: resolucionDb,
       vigencia_meses: datos.vigenciaMeses,
       fecha_vencimiento: fechaVencimientoIso,
@@ -346,13 +452,17 @@ export async function emitirDictamenAction(
   await admin.from("protocolo_eventos").insert({
     protocolo_id: datos.protocoloId,
     tipo: "acta_emitida",
-    descripcion: `Acta emitida (${numeroOficioStr}). Resolución: ${datos.resolucion}.`,
-    actor_id: pres.usuarioId,
+    descripcion: firmante.porDelegacion
+      ? `Acta emitida (${numeroOficioStr}) por ${firmante.cargo} en delegación por COI presidencial. Resolución: ${datos.resolucion}.`
+      : `Acta emitida (${numeroOficioStr}). Resolución: ${datos.resolucion}.`,
+    actor_id: firmante.usuarioId,
     datos: {
       numero_oficio: numeroOficioStr,
       resolucion: datos.resolucion,
       vigencia_meses: datos.vigenciaMeses,
       hash_folio: hashFolio,
+      firmante_rol: firmante.rol,
+      por_delegacion: firmante.porDelegacion,
     },
   });
 

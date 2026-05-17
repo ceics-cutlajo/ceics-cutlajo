@@ -16,6 +16,23 @@ export type VotoActa = "A favor" | "En contra" | "Abstención";
 
 export type CargoActa = "Presidente" | "Secretaria" | "Secretario" | "Vocal";
 
+export type RolFirmante = "presidente" | "comite_secretario";
+
+export type FirmanteActa = {
+  titulo: string;
+  nombre: string;
+  codigo_udg: string;
+  rol: RolFirmante;
+  /** Cargo corto bajo la firma (Presidente / Secretaria / Secretario). */
+  cargo: "Presidente" | "Secretaria" | "Secretario";
+  /** Cargo extendido institucional (multiple lineas), para impresión bajo la firma. */
+  cargo_lineas: string[];
+  /** Si el firmante actuó por delegación (Secretaria firmando ante COI del Presidente). */
+  por_delegacion: boolean;
+  /** Si por_delegacion, nombre del Presidente titular para nota institucional. */
+  presidente_titular_nombre?: string;
+};
+
 export type TipoSesionActa = "ordinaria" | "extraordinaria";
 
 export type MiembroActa = {
@@ -75,6 +92,7 @@ export type DatosActa = {
     nombre: string;
     codigo_udg: string;
   };
+  firmante: FirmanteActa;
   folio: {
     hash: string;
     url_verificacion: string;

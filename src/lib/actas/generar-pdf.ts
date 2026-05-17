@@ -704,7 +704,18 @@ export async function generarActaPdf(datos: DatosActa): Promise<Buffer> {
     fonts,
   );
 
-  // ----- 9. Firma del Presidente -----
+  // ----- 9. Firma -----
+  // Cuando hay delegación a Secretaría por COI presidencial, dejamos
+  // constancia institucional antes del bloque de firma.
+  if (datos.firmante.por_delegacion) {
+    moveDown(s, 8);
+    drawParrafo(
+      s,
+      `NOTA. El presente dictamen es emitido y firmado por el(la) ${datos.firmante.cargo} del CEICS en delegación expresa, conforme al Reglamento Interno del comité, dado que el Presidente titular${datos.firmante.presidente_titular_nombre ? ` (${datos.firmante.presidente_titular_nombre})` : ""} figura como Investigador Principal del protocolo y declaró conflicto de interés.`,
+      regular,
+      10,
+    );
+  }
   moveDown(s, 16);
   drawLineas(s, ["A T E N T A M E N T E"], bold, 11, { align: "center" });
   drawLineas(s, ['"Piensa y Trabaja"'], regular, 11, { align: "center" });
@@ -728,18 +739,13 @@ export async function generarActaPdf(datos: DatosActa): Promise<Buffer> {
   drawLineas(s, ["_________________________________________"], regular, 11, {
     align: "center",
   });
-  const pres = datos.presidente;
-  drawLineas(s, [`${pres.titulo} ${pres.nombre}`], bold, 11, {
+  const f = datos.firmante;
+  drawLineas(s, [`${f.titulo} ${f.nombre}`], bold, 11, {
     align: "center",
   });
   drawLineas(
     s,
-    [
-      "Presidente del Comité de Ética en Investigación",
-      "en Ciencias de la Salud (CEICS)",
-      "Centro Universitario de Tlajomulco — Universidad de Guadalajara",
-      `Código UDG: ${pres.codigo_udg}`,
-    ],
+    [...f.cargo_lineas, `Código UDG: ${f.codigo_udg}`],
     regular,
     11,
     { align: "center" },

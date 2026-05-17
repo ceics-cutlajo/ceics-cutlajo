@@ -91,6 +91,19 @@ export default async function ComiteProtocoloPage({
   };
 
   const esPresidente = usuario.roles.includes("presidente");
+  const esSecretario = usuario.roles.includes("comite_secretario");
+
+  // Quién es el Presidente titular del CEICS hoy (para detectar COI presidencial)
+  const { data: presidenteTitularRow } = await admin
+    .from("usuario_roles")
+    .select("usuario_id")
+    .eq("rol", "presidente")
+    .limit(1)
+    .maybeSingle();
+  const presidenteTitularId = presidenteTitularRow?.usuario_id ?? null;
+  const presidenteEsIP =
+    !!presidenteTitularId &&
+    presidenteTitularId === datos.protocolo.investigador_principal_id;
 
   // URLs firmadas + versión máxima de pre-informe (en paralelo)
   const [documentosConUrl, versionMaxPreInforme] = await Promise.all([
@@ -121,8 +134,21 @@ export default async function ComiteProtocoloPage({
     docxUrl = docxResp.data?.signedUrl ?? null;
     pdfUrl = pdfResp.data?.signedUrl ?? null;
   }
+  // El banner se muestra cuando:
+  //  - es Presidente y NO es IP del protocolo, o
+  //  - es Secretario(a) y el Presidente titular SÍ es IP (delegación por COI).
+  const puedeEmitirComoPresidente =
+    esPresidente && !presidenteEsIP;
+  const puedeEmitirComoSecretaria =
+    esSecretario && presidenteEsIP;
+  const modoBanner: "presidente" | "delegacion_secretaria" | null =
+    puedeEmitirComoPresidente
+      ? "presidente"
+      : puedeEmitirComoSecretaria
+        ? "delegacion_secretaria"
+        : null;
   const mostrarBannerEmitir =
-    esPresidente &&
+    modoBanner !== null &&
     datos.protocolo.estado === "listo_dictamen" &&
     acta === null;
 
@@ -138,10 +164,11 @@ export default async function ComiteProtocoloPage({
         timeline={timeline}
         progresoVotacion={progresoVotacion}
       />
-      {mostrarBannerEmitir && (
+      {mostrarBannerEmitir && modoBanner && (
         <BannerEmitirDictamen
           protocoloId={id}
           recomendacion={datos.protocolo.recomendacion_comite}
+          modo={modoBanner}
         />
       )}
       {acta && (
