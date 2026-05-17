@@ -34,7 +34,7 @@ import {
   pathActa,
 } from "./formatos";
 import { notificarInvestigador } from "@/lib/email/notificar-investigador";
-import type { DatosActa, MiembroActa, ResolucionActa, VotoActa } from "./types";
+import type { DatosActa, MiembroActa, ResolucionActa } from "./types";
 
 export type ActionResult<T = void> =
   | { ok: true; data?: T }
@@ -238,6 +238,26 @@ export async function emitirDictamenAction(
     ...MARCO_NORMATIVO_DEFAULT,
     ...(datos.marcoNormativoExtra ?? []),
   ];
+
+  // Tabla "Miembros que participaron en la sesión": además de quienes votaron,
+  // incluye a la Secretaria firmante cuando actuó por delegación (COI presidencial).
+  // base.miembros solo trae a los votantes; aquí añadimos a la firmante con voto=null
+  // para que aparezca en la tabla sin contar en el quórum.
+  const miembrosTabla = [...base.miembros];
+  if (
+    firmante.porDelegacion &&
+    base.secretario &&
+    !miembrosTabla.some((m) => m.usuario_id === firmante.usuarioId)
+  ) {
+    miembrosTabla.unshift({
+      usuario_id: firmante.usuarioId,
+      cargo: firmante.cargo,
+      nombre_completo: base.secretario.nombre,
+      codigo_udg: base.secretario.codigo_udg,
+      voto: null,
+      motivo_abstencion: null,
+    });
+  }
   const datosActa: DatosActa = {
     numero_oficio: numeroOficioStr,
     anio_oficio: anio,
@@ -282,11 +302,11 @@ export async function emitirDictamenAction(
       favor: base.conteoVotos.favor,
       contra: base.conteoVotos.contra,
       abstencion: base.conteoVotos.abstencion,
-      miembros: base.miembros.map<MiembroActa>((m) => ({
+      miembros: miembrosTabla.map<MiembroActa>((m) => ({
         cargo: m.cargo,
         nombre: m.nombre_completo,
         codigo_udg: m.codigo_udg,
-        voto: m.voto as VotoActa,
+        voto: m.voto,
         motivo_abstencion: m.motivo_abstencion ?? undefined,
       })),
     },

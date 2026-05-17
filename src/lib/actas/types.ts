@@ -39,7 +39,8 @@ export type MiembroActa = {
   cargo: CargoActa;
   nombre: string;
   codigo_udg: string;
-  voto: VotoActa;
+  /** null = participó en la sesión pero no le correspondía votar (p. ej. Secretaria firmante por delegación). Se renderiza como "—". */
+  voto: VotoActa | null;
   motivo_abstencion?: string;
 };
 

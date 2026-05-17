@@ -423,6 +423,18 @@ function dibujarTablaMiembros(
   miembros: MiembroActa[],
   fonts: Fonts,
 ): void {
+  // Caso "sin votos registrados": rinde un párrafo informativo en lugar de
+  // una tabla vacía con solo headers (acta luce profesional aunque el
+  // comité no haya evaluado el protocolo formalmente).
+  if (miembros.length === 0) {
+    drawParrafo(
+      s,
+      "Sin miembros con voto registrado para este protocolo.",
+      fonts.regular,
+      10,
+    );
+    return;
+  }
   const rowH = mm(7);
   const cols = [mm(10), mm(28), mm(95), mm(35)];
   // Si la suma de cols excede CONTENT_W, ajustar la 3a columna
@@ -460,12 +472,11 @@ function dibujarTablaMiembros(
   for (let i = 0; i < miembros.length; i++) {
     const ry = yTop - (i + 2) * rowH;
     const m = miembros[i];
-    const valores = [
-      String(i + 1),
-      m.cargo,
-      m.nombre,
-      m.voto + (m.voto === "Abstención" ? " *" : ""),
-    ];
+    const votoStr =
+      m.voto === null
+        ? "—"
+        : m.voto + (m.voto === "Abstención" ? " *" : "");
+    const valores = [String(i + 1), m.cargo, m.nombre, votoStr];
     for (let c = 0; c < 4; c++) {
       s.page.drawRectangle({
         x: colsX[c],

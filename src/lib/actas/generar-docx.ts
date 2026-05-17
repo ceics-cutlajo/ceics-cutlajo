@@ -584,7 +584,19 @@ function buildFirma(datos: DatosActa): Paragraph[] {
   return paras;
 }
 
-function buildTablaMiembros(datos: DatosActa): Table {
+function buildTablaMiembros(datos: DatosActa): (Table | Paragraph)[] {
+  // Caso "sin votos registrados": un párrafo en lugar de una tabla con solo
+  // headers (acta luce profesional aunque el comité no haya evaluado el
+  // protocolo formalmente).
+  if (datos.votacion.miembros.length === 0) {
+    return [
+      p({
+        before: 20,
+        after: 20,
+        text: "Sin miembros con voto registrado para este protocolo.",
+      }),
+    ];
+  }
   const header = new TableRow({
     tableHeader: true,
     height: { value: 400, rule: HeightRule.ATLEAST },
@@ -653,7 +665,10 @@ function buildTablaMiembros(datos: DatosActa): Table {
                 alignment: AlignmentType.CENTER,
                 children: [
                   new TextRun({
-                    text: m.voto + (m.voto === "Abstención" ? " *" : ""),
+                    text:
+                      m.voto === null
+                        ? "—"
+                        : m.voto + (m.voto === "Abstención" ? " *" : ""),
                     font: FUENTE_CUERPO,
                     size: 22,
                   }),
@@ -665,10 +680,12 @@ function buildTablaMiembros(datos: DatosActa): Table {
       }),
   );
 
-  return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [header, ...filas],
-  });
+  return [
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [header, ...filas],
+    }),
+  ];
 }
 
 function buildFolio(datos: DatosActa, qrBuffer: Buffer): Paragraph[] {
@@ -776,7 +793,7 @@ export async function generarActaDocx(datos: DatosActa): Promise<Buffer> {
             bold: true,
             text: "MIEMBROS DEL COMITÉ QUE PARTICIPARON EN LA SESIÓN",
           }),
-          buildTablaMiembros(datos),
+          ...buildTablaMiembros(datos),
           ...buildFolio(datos, qrBuffer),
         ],
       },

@@ -15,7 +15,8 @@ export type MiembroVoto = {
   cargo: CargoActa;
   nombre_completo: string;
   codigo_udg: string;
-  voto: VotoActa;
+  /** null = miembro presente sin voto (p. ej. firmante por delegación, agregado en actions.ts). queries.ts solo devuelve presentes con voto, pero el tipo lo admite por consistencia con MiembroActa. */
+  voto: VotoActa | null;
   motivo_abstencion: string | null;
 };
 
@@ -283,7 +284,7 @@ export async function obtenerDatosBaseActa(
         cargo: m.cargo,
         nombre_completo: m.nombre_completo,
         codigo_udg: m.codigo_udg,
-        voto: v?.voto ?? ("Abstención" as VotoActa),
+        voto: v?.voto ?? null,
         motivo_abstencion: v?.motivo ?? null,
       };
     })
