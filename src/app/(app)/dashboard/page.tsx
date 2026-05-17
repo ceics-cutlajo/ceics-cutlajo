@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { obtenerUsuarioActual, nombreCompletoDe } from "@/lib/auth/usuario-actual";
 import { listarProtocolos } from "@/lib/protocolos/queries";
 import { ETIQUETAS_ESTADO, type EstadoProtocolo } from "@/types/domain";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export default async function DashboardPage() {
   const usuario = await obtenerUsuarioActual();
@@ -25,18 +26,19 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <header className="flex items-start justify-between">
-        <div>
-          <p className="text-eyebrow text-ink-500">Bienvenido/a</p>
-          <h1 className="text-display-1 mt-1">{nombreCompletoDe(usuario)}</h1>
-          <p className="mt-2 text-ink-600">
-            Aquí podrás someter y dar seguimiento a tus protocolos.
-          </p>
-        </div>
-        <Link href="/protocolo/nuevo" className="btn-primary">
-          + Nuevo protocolo
-        </Link>
-      </header>
+      <PageHeader
+        eyebrow="Bienvenido/a"
+        title={nombreCompletoDe(usuario)}
+        description="Aquí podrás someter y dar seguimiento a tus protocolos."
+        actions={
+          <Link
+            href="/protocolo/nuevo"
+            className="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-medium text-brand-magenta-deep shadow-sm transition hover:bg-white/90"
+          >
+            + Nuevo protocolo
+          </Link>
+        }
+      />
 
       <section className="grid grid-cols-1 gap-6 sm:grid-cols-3">
         <KpiCard

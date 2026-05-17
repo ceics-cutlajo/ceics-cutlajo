@@ -4,6 +4,7 @@ import {
   listarProtocolosAno,
 } from "@/lib/protocolos/queries";
 import { ETIQUETAS_ESTADO, type EstadoProtocolo } from "@/types/domain";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const FORMATO_FECHA: Intl.DateTimeFormatOptions = {
   day: "numeric",
@@ -20,15 +21,19 @@ export default async function PresidenciaPage() {
 
   return (
     <div className="space-y-8">
-      <header className="flex items-start justify-between">
-        <div>
-          <p className="text-eyebrow text-ink-500">Presidencia · CEICS</p>
-          <h1 className="text-display-1 mt-1">Tablero {ANIO_ACTUAL}</h1>
-        </div>
-        <Link href="/protocolo/nuevo" className="btn-secondary text-xs">
-          Someter protocolo propio
-        </Link>
-      </header>
+      <PageHeader
+        variant="teal"
+        eyebrow="Presidencia · CEICS"
+        title={`Tablero ${ANIO_ACTUAL}`}
+        actions={
+          <Link
+            href="/protocolo/nuevo"
+            className="inline-flex items-center rounded-md bg-white px-3 py-1.5 text-xs font-medium text-brand-teal shadow-sm transition hover:bg-white/90"
+          >
+            Someter protocolo propio
+          </Link>
+        }
+      />
 
       <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <Kpi label={`Total ${ANIO_ACTUAL}`} valor={kpis.totalAno} />

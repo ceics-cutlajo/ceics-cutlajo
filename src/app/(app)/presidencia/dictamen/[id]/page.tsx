@@ -8,6 +8,7 @@ import {
   RESOLUCIONES_ACTA,
 } from "@/lib/actas/schemas";
 import { FormularioDictamen } from "./formulario";
+import { SideStrip } from "@/components/visual/SideStrip";
 
 export const dynamic = "force-dynamic";
 
@@ -125,7 +126,12 @@ export default async function EmitirDictamenPage({
   );
 
   return (
-    <div className="space-y-8">
+    <div className="flex gap-5">
+      <SideStrip
+        label={firmaPorDelegacion ? "Dictamen · Secretaría" : "Dictamen presidencial"}
+        tone="teal"
+      />
+      <div className="flex-1 space-y-8">
       <header className="flex items-start justify-between">
         <div>
           <p className="text-eyebrow text-ink-500">
@@ -133,7 +139,7 @@ export default async function EmitirDictamenPage({
               ? "Secretaría · Emitir dictamen (delegación)"
               : "Presidencia · Emitir dictamen"}
           </p>
-          <h1 className="text-display-1 mt-1">Acta de aprobación CEICS</h1>
+          <h1 className="font-display text-3xl font-bold mt-1 text-ink-900">Acta de aprobación CEICS</h1>
           <p className="mt-2 max-w-2xl text-sm text-ink-600">
             Protocolo <strong>{datos.protocolo.clave}</strong> · IP{" "}
             {datos.ip.nombre_completo}. El comité cerró la votación con la
@@ -262,6 +268,7 @@ export default async function EmitirDictamenPage({
         claveProtocolo={datos.protocolo.clave}
         ipNombre={datos.ip.nombre_completo}
       />
+      </div>
     </div>
   );
 }

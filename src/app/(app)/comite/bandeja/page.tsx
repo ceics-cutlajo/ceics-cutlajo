@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listarBandejaComite } from "@/lib/protocolos/queries";
 import { ETIQUETAS_ESTADO, type EstadoProtocolo } from "@/types/domain";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export default async function BandejaComitePage() {
   const protocolos = await listarBandejaComite();
@@ -10,14 +11,11 @@ export default async function BandejaComitePage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <p className="text-eyebrow text-ink-500">Comité</p>
-        <h1 className="text-display-1 mt-1">Bandeja de protocolos</h1>
-        <p className="mt-2 text-ink-600">
-          Protocolos pendientes de tu evaluación. El sistema marca automáticamente los que tienen
-          conflicto de interés.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Comité"
+        title="Bandeja de protocolos"
+        description="Protocolos pendientes de tu evaluación. El sistema marca automáticamente los que tienen conflicto de interés."
+      />
 
       {/* Pendientes */}
       <section className="card overflow-hidden">

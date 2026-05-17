@@ -53,8 +53,13 @@ export default {
         },
       },
       fontFamily: {
-        display: ["var(--font-barlow)", "system-ui", "sans-serif"],
+        // Display: serif slab institucional para titulares y secciones.
+        display: ["var(--font-roboto-slab)", "Georgia", "serif"],
+        // Body: humanist sans para texto corrido.
         body: ["var(--font-barlow)", "Inter", "system-ui", "sans-serif"],
+        // Sans-only (sin caer a serif), para chips/badges/etiquetas pequeñas
+        // donde el slab se vería pesado.
+        sans: ["var(--font-barlow)", "Inter", "system-ui", "sans-serif"],
         mono: ['"JetBrains Mono"', '"IBM Plex Mono"', "ui-monospace", "monospace"],
       },
       fontSize: {

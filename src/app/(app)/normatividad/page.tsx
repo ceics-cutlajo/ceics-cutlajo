@@ -1,16 +1,14 @@
 import { ExternalLink } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export default function NormatividadPage() {
   return (
     <div className="space-y-8">
-      <header>
-        <p className="text-eyebrow text-ink-500">Marco normativo</p>
-        <h1 className="text-display-1 mt-1">Normatividad aplicable</h1>
-        <p className="mt-2 max-w-2xl text-ink-600">
-          La evaluación de protocolos se realiza contra un checklist consolidado de 100 ítems
-          basado en normatividad mexicana e internacional.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Marco normativo"
+        title="Normatividad aplicable"
+        description="La evaluación de protocolos se realiza contra un checklist consolidado de 100 ítems basado en normatividad mexicana e internacional."
+      />
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Bloque
