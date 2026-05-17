@@ -475,6 +475,48 @@ export async function enviarProtocoloAction(
     actor_id: check.usuarioId,
   });
 
+  // Acuse de recibo institucional al investigador (fail-soft: si Resend
+  // falla no revertimos el sometimiento).
+  try {
+    const { data: ipFull } = await admin
+      .from("protocolos")
+      .select(
+        "clave, titulo, investigador_principal_id, usuarios:investigador_principal_id (nombre, apellido_paterno, apellido_materno, email)",
+      )
+      .eq("id", protocoloId)
+      .single();
+    type IpJoin = {
+      clave: string | null;
+      titulo: string;
+      usuarios:
+        | {
+            nombre: string;
+            apellido_paterno: string;
+            apellido_materno: string | null;
+            email: string;
+          }
+        | null;
+    };
+    const j = ipFull as IpJoin | null;
+    if (j?.usuarios?.email) {
+      const u = j.usuarios;
+      const nombre = `${u.nombre} ${u.apellido_paterno}${u.apellido_materno ? " " + u.apellido_materno : ""}`.trim();
+      const { notificarSometimiento } = await import("@/lib/email/notificar-sometimiento");
+      const r = await notificarSometimiento({
+        protocoloId,
+        claveProtocolo: j.clave,
+        tituloProtocolo: j.titulo,
+        ipNombre: nombre,
+        ipEmail: u.email,
+      });
+      if (!r.ok) {
+        console.error("[enviarProtocoloAction] notificarSometimiento error:", r.error);
+      }
+    }
+  } catch (e) {
+    console.error("[enviarProtocoloAction] excepción notificando sometimiento:", e);
+  }
+
   revalidatePath(`/protocolo/${protocoloId}`);
   revalidatePath("/dashboard");
   return { ok: true };
