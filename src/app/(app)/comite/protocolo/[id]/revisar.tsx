@@ -42,7 +42,7 @@ type Props = {
   conflictoInteres: boolean;
   esPresidente: boolean;
   evaluacionPrevia: EvaluacionConBloques | null;
-  progresoVotacion: { emitidos: number; total: number };
+  progresoVotacion: { emitidos: number; decisivos: number; total: number };
   preInforme: PreInforme | null;
 };
 

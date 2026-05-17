@@ -82,11 +82,14 @@ export default async function ComiteProtocoloPage({
     ? await obtenerEvaluacionUsuario(id, usuarioActualId)
     : null;
 
-  // Progreso de la votación: cuántos miembros han emitido y el total elegible
+  // Progreso de la votación: cuántos miembros han emitido y el total elegible.
+  // `decisivos` excluye abstenciones; sirve para ocultar el botón "Forzar cierre"
+  // cuando solo hay abstenciones por COI (cerrar en ese estado no tiene sentido).
   const miembrosElegibles = await listarMiembrosElegiblesComite();
   const evaluacionesEmitidas = await listarEvaluacionesProtocolo(id);
   const progresoVotacion = {
     emitidos: evaluacionesEmitidas.length,
+    decisivos: evaluacionesEmitidas.filter((e) => e.voto_global !== "abstener").length,
     total: miembrosElegibles.length,
   };
 

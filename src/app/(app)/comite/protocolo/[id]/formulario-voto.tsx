@@ -23,7 +23,7 @@ type Props = {
   conflictoInteres: boolean;
   esPresidente: boolean;
   evaluacionPrevia: EvaluacionConBloques | null;
-  progresoVotacion: { emitidos: number; total: number };
+  progresoVotacion: { emitidos: number; decisivos: number; total: number };
 };
 
 const ETIQUETA_RESULTADO: Record<ResultadoCumplimiento, string> = {
@@ -111,7 +111,7 @@ function FormularioVotoCompleto({
   protocoloId: string;
   preDictamen: PreDictamen;
   esPresidente: boolean;
-  progreso: { emitidos: number; total: number };
+  progreso: { emitidos: number; decisivos: number; total: number };
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -526,7 +526,7 @@ function ResumenVotoEmitido({
   evaluacion: EvaluacionConBloques;
   esPresidente: boolean;
   protocoloId: string;
-  progreso: { emitidos: number; total: number };
+  progreso: { emitidos: number; decisivos: number; total: number };
 }) {
   return (
     <section className="card p-6">
@@ -626,14 +626,16 @@ function BotonForzarCierreFooter({
   progreso,
 }: {
   protocoloId: string;
-  progreso: { emitidos: number; total: number };
+  progreso: { emitidos: number; decisivos: number; total: number };
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState(false);
 
-  if (progreso.emitidos === 0) return null;
+  // Ocultar si no hay votos o si todos los emitidos son abstenciones por COI:
+  // cerrar la votación sin votos decisivos no produce un dictamen útil.
+  if (progreso.decisivos === 0) return null;
 
   function forzar() {
     setError(null);

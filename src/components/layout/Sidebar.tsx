@@ -31,7 +31,7 @@ const NAVS: Record<RolSistema, Item[]> = {
     { href: "/normatividad",      icon: BookOpen,        label: "Normatividad" },
   ],
   admin_sistema: [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard", icon: LayoutDashboard, label: "Inicio" },
   ],
 };
 
