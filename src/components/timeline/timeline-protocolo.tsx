@@ -147,14 +147,12 @@ function BarraEtapas({ etapas, rondaComite }: { etapas: Etapa[]; rondaComite: nu
               <SegmentoLinea visible={!ultima} estado={estadoDelSegmentoDer(etapas, idx)} />
             </div>
             <span
-              className={`mt-2 text-center text-[11px] leading-tight ${
+              className={`mt-2 text-center text-sm font-bold leading-tight ${
                 etapa.estado === "actual"
-                  ? "font-semibold text-accent"
-                  : etapa.estado === "completada"
-                    ? "font-medium text-ink-700"
-                    : etapa.estado === "no_aplica"
-                      ? "text-ink-300"
-                      : "text-ink-500"
+                  ? "text-accent"
+                  : etapa.estado === "no_aplica"
+                    ? "text-[#416473]/40"
+                    : "text-[#416473]"
               }`}
             >
               {etapa.nombre}

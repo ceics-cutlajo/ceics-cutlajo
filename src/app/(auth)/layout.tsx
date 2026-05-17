@@ -42,7 +42,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               {/* Jerarquía 2: CUTLAJO */}
               <div>
                 <Image
-                  src="/logo-cutlajo-blanco.png"
+                  src="/logo-cutlajo.png"
                   alt="Centro Universitario de Tlajomulco"
                   width={220}
                   height={64}

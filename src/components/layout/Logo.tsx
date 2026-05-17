@@ -21,7 +21,11 @@ export function Logo({
   variant?: "dark" | "light";
   size?: "default" | "lg";
 }) {
-  const src = variant === "dark" ? "/logo-cutlajo-blanco.png" : "/logo-cutlajo.png";
+  // Usamos siempre el logo a color: los degradados característicos CUTLAJO
+  // (magenta/teal/verde) destacan sobre fondo oscuro y refuerzan la identidad
+  // institucional. El logo blanco/negro queda disponible en /public como
+  // fallback de alto contraste si se necesita en futuro.
+  const src = "/logo-cutlajo.png";
   const colorSub = variant === "dark" ? "text-side-muted" : "text-ink-500";
   const colorRule = variant === "dark" ? "bg-white/15" : "bg-ink-200";
   const colorEyebrow = variant === "dark" ? "text-white" : "text-brand-magenta-deep";
