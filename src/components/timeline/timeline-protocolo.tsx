@@ -170,7 +170,7 @@ function CirculoEtapa({ etapa, rondaComite }: { etapa: Etapa; rondaComite: numbe
   if (etapa.estado === "completada") {
     return (
       <div
-        className={`${base} bg-accent text-white shadow-sm`}
+        className={`${base} bg-[#416473] text-white shadow-sm`}
         title={`Etapa ${etapa.numero} completada`}
       >
         <svg viewBox="0 0 16 16" className="h-4 w-4" aria-hidden>
@@ -190,9 +190,9 @@ function CirculoEtapa({ etapa, rondaComite }: { etapa: Etapa; rondaComite: numbe
   if (etapa.estado === "actual") {
     return (
       <div className="relative">
-        <span className="absolute inset-0 -m-1 rounded-full bg-accent/20 animate-pulse" aria-hidden />
+        <span className="absolute inset-0 -m-1 rounded-full bg-[#416473]/20 animate-pulse" aria-hidden />
         <div
-          className={`${base} relative bg-accent text-white shadow-sm`}
+          className={`${base} relative bg-[#416473] text-white shadow-sm`}
           title={`Etapa actual: ${etapa.nombre}${etapa.numero === 5 && rondaComite > 1 ? ` (ronda ${rondaComite})` : ""}`}
         >
           {etapa.numero}
@@ -233,7 +233,7 @@ function SegmentoLinea({
   if (!visible) return <span className="flex-1" aria-hidden />;
   const color =
     estado === "completada"
-      ? "bg-accent"
+      ? "bg-[#416473]"
       : estado === "no_aplica"
         ? "bg-ink-150"
         : "bg-ink-200";
