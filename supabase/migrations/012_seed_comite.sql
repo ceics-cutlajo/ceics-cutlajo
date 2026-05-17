@@ -31,13 +31,13 @@ with miembros as (
 insert into usuario_roles (usuario_id, rol)
 select id, 'presidente'::rol_sistema        from miembros where email = 'jaime.briseno@academicos.udg.mx'
 union all
-select id, 'comite_secretario'::rol_sistema from miembros where email = 'judith.dearcos@academicos.udg.mx'
+select id, 'comite_secretario'::rol_sistema from miembros where email = 'anayeli.patino@academicos.udg.mx'
 union all
 select id, 'comite_vocal'::rol_sistema      from miembros where email in (
   'oscar.fernandezdiaz@academicos.udg.mx',
   'cecilia.mendez@academicos.udg.mx',
   'ruth.rodriguez@academicos.udg.mx',
-  'anayeli.patino@academicos.udg.mx',
+  'judith.dearcos@academicos.udg.mx',
   'nancye.navarro@academicos.udg.mx'
 )
 on conflict (usuario_id, rol) do nothing;
