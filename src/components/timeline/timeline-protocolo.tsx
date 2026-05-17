@@ -280,7 +280,7 @@ function generarMensajeContextual(
     case "borrador":
       return "Este protocolo está en construcción. Aún no ha sido enviado al CEICS.";
     case "en_evaluacion_ia":
-      return "La inteligencia artificial está realizando un pre-análisis del protocolo. Esto normalmente tarda menos de un minuto.";
+      return "La inteligencia artificial realizará un pre-análisis del protocolo que los miembros del comité analizarán y validarán manualmente.";
     case "en_revision_comite": {
       const ronda =
         timeline.etapaActual === 5

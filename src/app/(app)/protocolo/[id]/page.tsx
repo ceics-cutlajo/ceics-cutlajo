@@ -8,6 +8,7 @@ import {
   ETIQUETAS_DOCUMENTO,
   type TipoDocumento,
 } from "@/lib/protocolos/schemas";
+import { formatearDescripcionEvento } from "@/lib/protocolos/eventos";
 import { obtenerVersionMaxPreInforme } from "@/lib/timeline/queries";
 import { derivarTimeline } from "@/lib/timeline/derivar-etapa";
 import { TimelineProtocolo } from "@/components/timeline/timeline-protocolo";
@@ -266,7 +267,7 @@ export default async function VerProtocoloPage({
             <li key={e.id} className="flex gap-3 text-sm">
               <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[var(--accent)]" />
               <div>
-                <div className="text-ink-700">{e.descripcion ?? e.tipo}</div>
+                <div className="text-ink-700">{formatearDescripcionEvento(e.descripcion) || e.tipo}</div>
                 <div className="text-xs text-ink-400">
                   {new Date(e.created_at).toLocaleString("es-MX", {
                     dateStyle: "medium",

@@ -21,6 +21,7 @@ import {
   TIPOS_DOCUMENTO,
   type TipoDocumento,
 } from "./schemas";
+import { formatearErrorZodClinico } from "./errores";
 
 export type ActionResult<T = void> =
   | { ok: true; data?: T }
@@ -168,10 +169,7 @@ export async function guardarDatosClinicosAction(
 
   const parsed = datosClinicosSchema.safeParse(payload);
   if (!parsed.success) {
-    return {
-      ok: false,
-      error: parsed.error.errors[0]?.message ?? "Datos inválidos",
-    };
+    return { ok: false, error: formatearErrorZodClinico(parsed.error) };
   }
 
   const admin = createAdminClient();

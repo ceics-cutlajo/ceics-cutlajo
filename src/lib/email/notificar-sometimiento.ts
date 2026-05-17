@@ -83,7 +83,7 @@ function construirTexto(i: NotificacionSometimientoInput): string {
     `   Título: ${i.tituloProtocolo}`,
     ``,
     `Próximos pasos del flujo:`,
-    `   1. La inteligencia artificial del comité está realizando un pre-análisis automático del protocolo (suele tardar menos de un minuto).`,
+    `   1. La inteligencia artificial realizará un pre-análisis del protocolo que los miembros del comité analizarán y validarán manualmente.`,
     `   2. Los miembros del CEICS revisarán tu protocolo a la luz del marco normativo nacional e internacional y emitirán sus votos.`,
     `   3. El Presidente del CEICS emitirá el dictamen final y firmará el acta oficial.`,
     `   4. Recibirás un correo con el acta de aprobación en formato PDF y DOCX cuando el dictamen esté listo.`,
@@ -144,13 +144,13 @@ function construirHtml(i: NotificacionSometimientoInput): string {
     </div>
     <p><strong>Próximos pasos del flujo:</strong></p>
     <ol class="pasos">
-      <li>La inteligencia artificial del comité está realizando un pre-análisis automático del protocolo (suele tardar menos de un minuto).</li>
+      <li>La inteligencia artificial realizará un pre-análisis del protocolo que los miembros del comité analizarán y validarán manualmente.</li>
       <li>Los miembros del CEICS revisarán tu protocolo a la luz del marco normativo nacional e internacional y emitirán sus votos.</li>
       <li>El Presidente del CEICS emitirá el dictamen final y firmará el acta oficial.</li>
       <li>Recibirás un correo con el acta de aprobación en formato PDF y DOCX cuando el dictamen esté listo.</li>
     </ol>
     <p>Puedes consultar el estado de tu protocolo en cualquier momento:</p>
-    <p><a class="cta" href="${link}">Ver mi protocolo →</a></p>
+    <p><a href="${link}" style="display:inline-block;background:#ed1e77;color:#ffffff !important;text-decoration:none;padding:12px 22px;border-radius:6px;font-weight:600;margin:8px 0 18px 0;"><span style="color:#ffffff !important;text-decoration:none;">Ver mi protocolo →</span></a></p>
     <p class="nota">Este acuse de recibo no implica resolución del CEICS. El dictamen oficial se emitirá conforme a la Ley General de Salud, NOM-012-SSA3-2012 y la Declaración de Helsinki.</p>
   </div>
   <div class="footer">
