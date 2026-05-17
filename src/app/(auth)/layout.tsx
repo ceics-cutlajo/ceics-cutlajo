@@ -3,7 +3,7 @@ import { ChevronStrip } from "@/components/visual/Chevron";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-ink-50">
+    <div className="min-h-screen bg-animated-cutlajo">
       <div className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-4 py-10">
         <div className="grid w-full grid-cols-1 overflow-hidden rounded-xl bg-white shadow-lg lg:grid-cols-2">
           {/* Panel izquierdo: branding institucional UDG → CUTLAJO → CEICS */}
