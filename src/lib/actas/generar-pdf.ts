@@ -707,7 +707,7 @@ export async function generarActaPdf(datos: DatosActa): Promise<Buffer> {
   dibujarTablaVotacion(
     s,
     [
-      ["Miembros presentes (quórum)", `${v.presentes} de ${v.total_miembros}`],
+      ["Miembros con voto registrado", `${v.presentes} de ${v.total_miembros}`],
       ["Votos a favor", String(v.favor)],
       ["Votos en contra", String(v.contra)],
       ["Abstenciones (por conflicto de interés)", String(v.abstencion)],

@@ -500,7 +500,7 @@ function buildTablaVotacion(datos: DatosActa): Table {
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: [
-      fila("Miembros presentes (quórum)", `${v.presentes} de ${v.total_miembros}`),
+      fila("Miembros con voto registrado", `${v.presentes} de ${v.total_miembros}`),
       fila("Votos a favor", String(v.favor)),
       fila("Votos en contra", String(v.contra)),
       fila("Abstenciones (por conflicto de interés)", String(v.abstencion)),

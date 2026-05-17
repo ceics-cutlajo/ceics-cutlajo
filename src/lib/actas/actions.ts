@@ -206,7 +206,16 @@ export async function emitirDictamenAction(
   }
 
   // 5. Asignar número de oficio atómicamente
-  const anio = new Date().getUTCFullYear();
+  // Año en zona México para que el oficio sea consistente con fecha_emision_iso
+  // (que también se calcula en TZ México vía hoyIso). Evita que oficios emitidos
+  // en la noche del 31-dic salgan con el año siguiente por estar ya en UTC.
+  const anio = parseInt(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Mexico_City",
+      year: "numeric",
+    }).format(new Date()),
+    10,
+  );
   const { data: numeroOficio, error: errOficio } = await admin.rpc(
     "siguiente_numero_oficio",
     { p_anio: anio },

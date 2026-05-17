@@ -26,9 +26,19 @@ export function fechaLarga(iso: string): string {
   return `${d} de ${MESES_ES[m - 1]} de ${y}`;
 }
 
-/** Devuelve YYYY-MM-DD del día actual en zona local de la app. */
+/**
+ * Devuelve YYYY-MM-DD del día calendario en zona México (America/Mexico_City).
+ *
+ * Evita que actas emitidas después de las 18:00 hora México (≈ medianoche UTC)
+ * salgan con la fecha del día siguiente en el oficio y en la BD.
+ */
 export function hoyIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Mexico_City",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 /** Suma meses a una fecha ISO y devuelve nueva ISO. */
