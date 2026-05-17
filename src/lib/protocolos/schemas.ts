@@ -56,15 +56,15 @@ export const datosClinicosSchema = z.object({
     .min(30, "El objetivo general debe tener al menos 30 caracteres")
     .max(2000),
   objetivos_especificos: z
-    .array(z.string().trim().min(5).max(500))
+    .array(z.string().trim().min(5).max(1500, "Cada objetivo específico no debe exceder 1500 caracteres"))
     .min(1, "Agrega al menos un objetivo específico")
     .max(15),
   criterios_inclusion: z
-    .array(z.string().trim().min(3).max(500))
+    .array(z.string().trim().min(3).max(1000, "Cada criterio de inclusión no debe exceder 1000 caracteres"))
     .min(1, "Agrega al menos un criterio de inclusión")
     .max(20),
   criterios_exclusion: z
-    .array(z.string().trim().min(3).max(500))
+    .array(z.string().trim().min(3).max(1000, "Cada criterio de exclusión no debe exceder 1000 caracteres"))
     .min(1, "Agrega al menos un criterio de exclusión")
     .max(20),
   metodologia: z
