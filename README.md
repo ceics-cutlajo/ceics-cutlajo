@@ -5,7 +5,7 @@ del Comité de Ética en Investigación en Ciencias de la Salud (CEICS)
 de la División de Salud, Centro Universitario de Tlajomulco,
 Universidad de Guadalajara.
 
-[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20264976-blue)](https://doi.org/10.5281/zenodo.20264976)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20276517-blue)](https://doi.org/10.5281/zenodo.20276517)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Manual: CC BY-NC-SA 4.0](https://img.shields.io/badge/Manual-CC%20BY--NC--SA%204.0-lightgrey)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 [![Plataforma](https://img.shields.io/badge/Plataforma-ceics--cutlajo.com-brightgreen)](https://ceics-cutlajo.com)
@@ -38,7 +38,7 @@ Marco normativo aplicado: Ley General de Salud, NOM-012-SSA3-2012, Declaración 
 
 ## Citación académica
 
-> Briseño-Ramírez, J., & De Arcos-Jiménez, J. C. (2026). *Manual de Usuario CEICS CUTLAJO — Plataforma digital de gestión de protocolos de investigación* (Versión 1.2.0) [Manual]. Zenodo. https://doi.org/10.5281/zenodo.20264976
+> Briseño-Ramírez, J., & De Arcos-Jiménez, J. C. (2026). *Manual de Usuario CEICS CUTLAJO — Plataforma digital de gestión de protocolos de investigación* (Versión 1.2.1) [Manual]. Zenodo. https://doi.org/10.5281/zenodo.20276517
 
 **BibTeX:**
 
@@ -50,10 +50,10 @@ Marco normativo aplicado: Ley General de Salud, NOM-012-SSA3-2012, Declaración 
                digital de gesti{\'o}n de protocolos de
                investigaci{\'o}n},
   year      = {2026},
-  version   = {1.2.0},
+  version   = {1.2.1},
   publisher = {Zenodo},
-  doi       = {10.5281/zenodo.20264976},
-  url       = {https://doi.org/10.5281/zenodo.20264976}
+  doi       = {10.5281/zenodo.20276517},
+  url       = {https://doi.org/10.5281/zenodo.20276517}
 }
 ```
 
@@ -221,6 +221,6 @@ Por designación de la División de Salud, CUTLAJO — UdeG:
 ## Recursos
 
 - 🌐 Plataforma en producción: https://ceics-cutlajo.com
-- 📘 Manual de Usuario (PDF): https://doi.org/10.5281/zenodo.20264976
+- 📘 Manual de Usuario (PDF): https://doi.org/10.5281/zenodo.20276517
 - 📦 Código fuente: https://github.com/ceics-cutlajo/ceics-cutlajo
 - 🏛️ Centro Universitario de Tlajomulco: http://www.cutlajomulco.udg.mx
