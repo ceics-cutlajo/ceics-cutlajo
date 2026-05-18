@@ -385,3 +385,39 @@ export async function obtenerActaPorProtocolo(protocoloId: string): Promise<
     .maybeSingle();
   return data;
 }
+
+export type ActaListadoItem = {
+  id: string;
+  numero_oficio: string;
+  fecha_emision: string;
+  resolucion: "aprobado" | "aprobado_con_observaciones" | "no_aprobado";
+  fecha_vencimiento: string | null;
+  hash_folio: string;
+  protocolo_clave: string;
+  protocolo_titulo: string;
+};
+
+export async function listarActas(): Promise<ActaListadoItem[]> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("actas")
+    .select(
+      `id, numero_oficio, fecha_emision, resolucion, fecha_vencimiento, hash_folio,
+       protocolo:protocolos(clave, titulo)`,
+    )
+    .order("fecha_emision", { ascending: false });
+  if (error || !data) return [];
+  return data.map((row) => {
+    const p = Array.isArray(row.protocolo) ? row.protocolo[0] : row.protocolo;
+    return {
+      id: row.id,
+      numero_oficio: row.numero_oficio,
+      fecha_emision: row.fecha_emision,
+      resolucion: row.resolucion as ActaListadoItem["resolucion"],
+      fecha_vencimiento: row.fecha_vencimiento,
+      hash_folio: row.hash_folio,
+      protocolo_clave: p?.clave ?? "—",
+      protocolo_titulo: p?.titulo ?? "—",
+    };
+  });
+}
