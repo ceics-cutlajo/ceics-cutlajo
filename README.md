@@ -18,7 +18,7 @@ El código fuente de esta plataforma y su documentación de usuario se ceden, **
 
 La autoría intelectual del diseño y del manual queda atribuida a sus autores conforme a la Cita académica más abajo. El código fuente se publica bajo Licencia **MIT**; el manual de usuario, depositado en Zenodo con DOI persistente, se distribuye bajo **CC BY-NC-SA 4.0**.
 
-Durante la gestión del autor principal como Presidente del CEICS, el repositorio queda bajo su administración. La División, representada institucionalmente por la Secretaría Académica y la Coordinación de Investigación, dispone de permisos administrativos sobre este repositorio para garantizar la continuidad institucional.
+Durante la gestión del autor principal como Presidente del CEICS, el repositorio queda bajo su administración. La División, representada institucionalmente por la Dirección de la División de Salud y la Secretaría de la División, dispone de permisos administrativos sobre este repositorio para garantizar la continuidad institucional.
 
 ---
 
