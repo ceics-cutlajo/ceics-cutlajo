@@ -82,7 +82,7 @@ DOI persistente concept (apunta siempre a la última versión): [10.5281/zenodo.
 ## Instalación rápida
 
 ```bash
-git clone https://github.com/jaimebriseno-boop/ceics-cutlajo.git
+git clone https://github.com/ceics-cutlajo/ceics-cutlajo.git
 cd ceics-cutlajo/app
 
 # 1. Dependencias
@@ -222,5 +222,5 @@ Por designación de la División de Salud, CUTLAJO — UdeG:
 
 - 🌐 Plataforma en producción: https://ceics-cutlajo.com
 - 📘 Manual de Usuario (PDF): https://doi.org/10.5281/zenodo.20264976
-- 📦 Código fuente: https://github.com/jaimebriseno-boop/ceics-cutlajo
+- 📦 Código fuente: https://github.com/ceics-cutlajo/ceics-cutlajo
 - 🏛️ Centro Universitario de Tlajomulco: http://www.cutlajomulco.udg.mx
