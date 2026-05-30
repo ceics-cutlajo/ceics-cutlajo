@@ -1,8 +1,14 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   obtenerKpisPresidencia,
   listarProtocolosAno,
 } from "@/lib/protocolos/queries";
+import {
+  obtenerUsuarioActual,
+  esMiembroComite,
+  puedeEmitirDictamen,
+} from "@/lib/auth/usuario-actual";
 import { ETIQUETAS_ESTADO, type EstadoProtocolo } from "@/types/domain";
 import { PageHeader } from "@/components/layout/PageHeader";
 
@@ -14,6 +20,13 @@ const FORMATO_FECHA: Intl.DateTimeFormatOptions = {
 const ANIO_ACTUAL = new Date().getFullYear();
 
 export default async function PresidenciaPage() {
+  const usuario = await obtenerUsuarioActual();
+  // El tablero es para el comité (presidencia, secretaría, vocales). Los
+  // investigadores puros no tienen acceso.
+  if (!esMiembroComite(usuario.roles)) redirect("/dashboard");
+  const puedeEmitir = puedeEmitirDictamen(usuario.roles);
+  const esPresidente = usuario.roles.includes("presidente");
+
   const [kpis, protocolos] = await Promise.all([
     obtenerKpisPresidencia(),
     listarProtocolosAno(),
@@ -23,7 +36,7 @@ export default async function PresidenciaPage() {
     <div className="space-y-8">
       <PageHeader
         variant="teal"
-        eyebrow="Presidencia · CEICS"
+        eyebrow={esPresidente ? "Presidencia · CEICS" : "Comité · CEICS"}
         title={`Tablero ${ANIO_ACTUAL}`}
         actions={
           <Link
@@ -34,6 +47,13 @@ export default async function PresidenciaPage() {
           </Link>
         }
       />
+
+      {!puedeEmitir && (
+        <div className="rounded-md bg-info-soft px-4 py-3 text-sm text-info">
+          👁️ Tienes acceso de consulta a este tablero. La emisión de dictámenes
+          y actas corresponde a la Presidencia y la Secretaría.
+        </div>
+      )}
 
       <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <Kpi label={`Total ${ANIO_ACTUAL}`} valor={kpis.totalAno} />
@@ -116,6 +136,7 @@ export default async function PresidenciaPage() {
                         estado={p.estado}
                         protocoloId={p.id}
                         conflictoInteres={p.conflictoInteres}
+                        puedeEmitir={puedeEmitir}
                       />
                     </td>
                   </tr>
@@ -169,12 +190,14 @@ function AccionRapida({
   estado,
   protocoloId,
   conflictoInteres,
+  puedeEmitir,
 }: {
   estado: EstadoProtocolo;
   protocoloId: string;
   conflictoInteres: boolean;
+  puedeEmitir: boolean;
 }) {
-  if (estado === "listo_dictamen" && !conflictoInteres) {
+  if (puedeEmitir && estado === "listo_dictamen" && !conflictoInteres) {
     return (
       <Link
         href={`/presidencia/dictamen/${protocoloId}`}

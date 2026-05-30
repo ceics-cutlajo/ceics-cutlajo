@@ -11,24 +11,34 @@ type Item = { href: string; icon: React.ElementType; label: string; count?: numb
 
 const NAVS: Record<RolSistema, Item[]> = {
   investigador: [
-    { href: "/dashboard",     icon: LayoutDashboard, label: "Mis protocolos" },
-    { href: "/protocolo/nuevo", icon: Upload,        label: "Nuevo protocolo" },
-    { href: "/normatividad",  icon: BookOpen,        label: "Normatividad" },
+    { href: "/dashboard",      icon: LayoutDashboard, label: "Mis protocolos" },
+    { href: "/protocolo/nuevo", icon: Upload,         label: "Nuevo protocolo" },
+    { href: "/comite/integrantes", icon: Users,       label: "Comité" },
+    { href: "/normatividad",   icon: BookOpen,        label: "Normatividad" },
   ],
+  // Vocales y Secretaría ven las mismas secciones que la Presidencia en modo
+  // lectura (Tablero y Actas), además de su Bandeja de votación y el directorio
+  // del Comité. La emisión de actas/dictamen sigue restringida por página.
   comite_vocal: [
-    { href: "/comite/bandeja", icon: Inbox,         label: "Bandeja" },
-    { href: "/normatividad",   icon: BookOpen,      label: "Normatividad" },
+    { href: "/presidencia",        icon: LayoutDashboard, label: "Tablero" },
+    { href: "/comite/bandeja",     icon: Inbox,           label: "Bandeja" },
+    { href: "/presidencia/actas",  icon: FileText,        label: "Actas" },
+    { href: "/comite/integrantes", icon: Users,           label: "Comité" },
+    { href: "/normatividad",       icon: BookOpen,        label: "Normatividad" },
   ],
   comite_secretario: [
-    { href: "/comite/bandeja", icon: Inbox,         label: "Bandeja" },
-    { href: "/normatividad",   icon: BookOpen,      label: "Normatividad" },
+    { href: "/presidencia",        icon: LayoutDashboard, label: "Tablero" },
+    { href: "/comite/bandeja",     icon: Inbox,           label: "Bandeja" },
+    { href: "/presidencia/actas",  icon: FileText,        label: "Actas" },
+    { href: "/comite/integrantes", icon: Users,           label: "Comité" },
+    { href: "/normatividad",       icon: BookOpen,        label: "Normatividad" },
   ],
   presidente: [
-    { href: "/presidencia",       icon: LayoutDashboard, label: "Tablero" },
-    { href: "/comite/bandeja",    icon: Inbox,           label: "Todos los protocolos" },
-    { href: "/presidencia/actas", icon: FileText,        label: "Actas" },
-    { href: "/presidencia/comite",icon: Users,           label: "Comité" },
-    { href: "/normatividad",      icon: BookOpen,        label: "Normatividad" },
+    { href: "/presidencia",        icon: LayoutDashboard, label: "Tablero" },
+    { href: "/comite/bandeja",     icon: Inbox,           label: "Todos los protocolos" },
+    { href: "/presidencia/actas",  icon: FileText,        label: "Actas" },
+    { href: "/comite/integrantes", icon: Users,           label: "Comité" },
+    { href: "/normatividad",       icon: BookOpen,        label: "Normatividad" },
   ],
   admin_sistema: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Inicio" },

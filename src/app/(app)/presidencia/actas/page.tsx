@@ -1,10 +1,17 @@
+import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { TablaActas } from "@/components/actas/TablaActas";
 import { listarActas } from "@/lib/actas/queries";
+import { obtenerUsuarioActual, esMiembroComite } from "@/lib/auth/usuario-actual";
 
 export const dynamic = "force-dynamic";
 
 export default async function PresidenciaActasPage() {
+  const usuario = await obtenerUsuarioActual();
+  // Histórico de actas: visible para todo el comité (lectura). Las actas no
+  // exponen acciones de emisión aquí; solo consulta y folio público.
+  if (!esMiembroComite(usuario.roles)) redirect("/dashboard");
+
   const actas = await listarActas();
   const vencidas = actas.filter((a) => {
     if (!a.fecha_vencimiento) return false;

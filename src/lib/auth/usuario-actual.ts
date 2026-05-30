@@ -83,6 +83,21 @@ export function nombreCompletoDe(u: UsuarioActual): string {
   return `${u.nombre} ${u.apellido_paterno}${u.apellido_materno ? " " + u.apellido_materno : ""}`;
 }
 
+/** ¿El usuario pertenece al comité (presidente, secretario o vocal)? */
+export function esMiembroComite(roles: RolSistema[]): boolean {
+  return roles.some((r) =>
+    ["presidente", "comite_secretario", "comite_vocal", "admin_sistema"].includes(r),
+  );
+}
+
+/**
+ * ¿Puede emitir/firmar dictamen? Solo Presidente y Secretaría.
+ * (La página de dictamen aplica además las reglas de conflicto de interés.)
+ */
+export function puedeEmitirDictamen(roles: RolSistema[]): boolean {
+  return roles.includes("presidente") || roles.includes("comite_secretario");
+}
+
 export function cargoDe(rol: RolSistema): string {
   const map: Record<RolSistema, string> = {
     presidente: "Presidente · CEICS",
