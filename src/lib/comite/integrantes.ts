@@ -86,11 +86,20 @@ export const INTEGRANTES_COMITE: IntegranteComite[] = [
   {
     nombre: "Dra. Ruth Rodríguez Montaño",
     rolComite: "vocal",
-    cargoTitulo: "Vocal del CEICS",
-    foto: null,
+    cargoTitulo: "Profesora de Asignatura B · CUTLAJO, UdeG",
+    foto: "/comite/ruth-rodriguez.jpg",
     resena:
-      "Vocal del Comité de Ética en Investigación en Ciencias de la Salud (CEICS). Reseña curricular en preparación.",
-    orcid: null,
+      "Cirujana Dentista y Doctora en Ciencias Biomédicas con orientación en Inmunología por la Universidad de Guadalajara, con nivel Candidata del Sistema Nacional de Investigadoras e Investigadores (SNII). Profesora de Asignatura B en el Centro Universitario de Tlajomulco —primera odontóloga docente del campus, donde apoyó la apertura de la Licenciatura en Cirujano Dentista—; imparte Inmunología médica, Histología, Microbiología, Metodología de la Investigación y Estadística, entre otras. Su línea de trabajo es la inmunología de las enfermedades orales y su relación con padecimientos sistémicos; ha dirigido tesis de licenciatura, especialidad y maestría y participado en 33 congresos nacionales e internacionales.",
+    orcid: "0000-0002-0712-0334",
+  },
+  {
+    nombre: "Dr. José Manuel Pérez Casillas",
+    rolComite: "vocal",
+    cargoTitulo: "Profesor de Asignatura · CUTLAJO, UdeG",
+    foto: "/comite/jose-perez.jpg",
+    resena:
+      "Doctor en Ciencias de la Nutrición y Dietética con formación transdisciplinaria: Maestría en Nutrición Humana, Maestría en Actividad Física y Estilo de Vida, especialidad en Rehabilitación Cardiovascular (Universidad de La Plata, Argentina) y Licenciatura en Terapia Física y Rehabilitación, además de la certificación “Exercise is Medicine” del American College of Sports Medicine. Profesor de Asignatura en el Departamento de Vida Saludable y Promoción de la Salud del Centro Universitario de Tlajomulco y coordinador de Radiología en la Unidad de Urgencias Médicas del Valle (Dirección de Salud Pública de Tlajomulco); preside la Asociación Jalisciense de Fisioterapia y Rehabilitación. Sus líneas de investigación son los efectos moleculares del ejercicio, la obesidad y el riesgo cardiometabólico, y el estilo de vida y salud.",
+    orcid: "0009-0005-6300-664X",
   },
 ];
 
