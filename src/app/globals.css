@@ -81,25 +81,38 @@ h4 {
 .bg-animated-cutlajo {
   position: relative;
   background-color: theme("colors.ink.50");
+  /* Luces de fondo del entramado hexagonal — paleta CUTLAJO apagada
+     (Jaime, 30 may 2026). Poca transparencia (alpha 0.85) para que los
+     tonos muted se perciban; se alternan en las 5 esquinas/centro. */
   background-image:
     radial-gradient(
+      /* rojo #662C21 */
       circle at 18% 28%,
-      rgba(104, 5, 56, 0.2) 0px,
+      rgba(102, 44, 33, 0.85) 0px,
       transparent 45%
     ),
     radial-gradient(
+      /* azul #314E61 */
       circle at 78% 18%,
-      rgba(5, 79, 86, 0.18) 0px,
+      rgba(49, 78, 97, 0.85) 0px,
       transparent 45%
     ),
     radial-gradient(
+      /* verde #2E473C */
       circle at 82% 78%,
-      rgba(33, 181, 114, 0.16) 0px,
+      rgba(46, 71, 60, 0.85) 0px,
       transparent 45%
     ),
     radial-gradient(
+      /* morado #8D8CA1 */
       circle at 22% 78%,
-      rgba(237, 30, 119, 0.16) 0px,
+      rgba(141, 140, 161, 0.85) 0px,
+      transparent 45%
+    ),
+    radial-gradient(
+      /* rosa #726873 */
+      circle at 50% 50%,
+      rgba(114, 104, 115, 0.85) 0px,
       transparent 45%
     );
   background-size: 200% 200%;
