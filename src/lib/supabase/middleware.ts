@@ -8,7 +8,10 @@ import type { Database } from "@/types/database.types";
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
-const RUTAS_PUBLICAS = ["/", "/login", "/signup", "/verifica-correo", "/crear-contrasena", "/api/auth/callback", "/v"];
+// `/api/cron` se deja pasar el middleware de sesión porque lo invoca Vercel
+// Cron (sin sesión de usuario, solo header Bearer). La protección real la hace
+// el route handler verificando CRON_SECRET.
+const RUTAS_PUBLICAS = ["/", "/login", "/signup", "/verifica-correo", "/crear-contrasena", "/api/auth/callback", "/api/cron", "/v"];
 
 function esRutaPublica(pathname: string) {
   return RUTAS_PUBLICAS.some((ruta) => pathname === ruta || pathname.startsWith(`${ruta}/`));
