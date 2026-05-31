@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Upload, BookOpen, Inbox, Users, FileText, LogOut } from "lucide-react";
+import { LayoutDashboard, Upload, BookOpen, Inbox, Users, FileText, CalendarDays, LogOut } from "lucide-react";
 import { Logo } from "./Logo";
 import type { RolSistema } from "@/types/domain";
 import { logoutAction } from "@/lib/auth/actions";
@@ -13,6 +13,7 @@ const NAVS: Record<RolSistema, Item[]> = {
   investigador: [
     { href: "/dashboard",      icon: LayoutDashboard, label: "Mis protocolos" },
     { href: "/protocolo/nuevo", icon: Upload,         label: "Nuevo protocolo" },
+    { href: "/comite/calendario", icon: CalendarDays, label: "Calendario de Reuniones" },
     { href: "/comite/integrantes", icon: Users,       label: "Comité" },
     { href: "/normatividad",   icon: BookOpen,        label: "Normatividad" },
   ],
@@ -23,6 +24,7 @@ const NAVS: Record<RolSistema, Item[]> = {
     { href: "/presidencia",        icon: LayoutDashboard, label: "Tablero" },
     { href: "/comite/bandeja",     icon: Inbox,           label: "Bandeja" },
     { href: "/presidencia/actas",  icon: FileText,        label: "Actas" },
+    { href: "/comite/calendario",  icon: CalendarDays,    label: "Calendario de Reuniones" },
     { href: "/comite/integrantes", icon: Users,           label: "Comité" },
     { href: "/normatividad",       icon: BookOpen,        label: "Normatividad" },
   ],
@@ -30,6 +32,7 @@ const NAVS: Record<RolSistema, Item[]> = {
     { href: "/presidencia",        icon: LayoutDashboard, label: "Tablero" },
     { href: "/comite/bandeja",     icon: Inbox,           label: "Bandeja" },
     { href: "/presidencia/actas",  icon: FileText,        label: "Actas" },
+    { href: "/comite/calendario",  icon: CalendarDays,    label: "Calendario de Reuniones" },
     { href: "/comite/integrantes", icon: Users,           label: "Comité" },
     { href: "/normatividad",       icon: BookOpen,        label: "Normatividad" },
   ],
@@ -37,6 +40,7 @@ const NAVS: Record<RolSistema, Item[]> = {
     { href: "/presidencia",        icon: LayoutDashboard, label: "Tablero" },
     { href: "/comite/bandeja",     icon: Inbox,           label: "Todos los protocolos" },
     { href: "/presidencia/actas",  icon: FileText,        label: "Actas" },
+    { href: "/comite/calendario",  icon: CalendarDays,    label: "Calendario de Reuniones" },
     { href: "/comite/integrantes", icon: Users,           label: "Comité" },
     { href: "/normatividad",       icon: BookOpen,        label: "Normatividad" },
   ],

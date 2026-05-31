@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/recordatorio-reuniones",
+      "schedule": "0 15 * * *"
+    }
+  ]
+}
