@@ -41,11 +41,11 @@ export const INTEGRANTES_COMITE: IntegranteComite[] = [
   {
     nombre: "Mtra. Anayeli de Jesús Patiño Laguna",
     rolComite: "secretario",
-    cargoTitulo: "Secretaría del CEICS",
-    foto: null,
+    cargoTitulo: "Maestra en Farmacología · Docente CUTLAJO, ITESO y UAL",
+    foto: "/comite/anayeli-patino.jpg",
     resena:
-      "Secretaria del Comité de Ética en Investigación en Ciencias de la Salud (CEICS). Reseña curricular en preparación.",
-    orcid: null,
+      "Licenciada en Nutrición y Maestra en Farmacología por la Universidad de Guadalajara, con estudios de Doctorado en Farmacología (créditos terminados) en la misma casa de estudios. Secretaria del CEICS y docente en el Centro Universitario de Tlajomulco, el ITESO y la Universidad América Latina. Su línea de investigación son las enfermedades metabólicas (nutrición y endocrinología); es miembro de la Sociedad Jalisciense de Endocrinología y Nutrición, la Sociedad Mexicana de Endocrinología y Nutrición y la Sociedad de Anestesiología, con publicaciones en revistas como Revista Médica de Chile y Vitamin and Nutrition Research, y participación en congresos de la ADA y la EASD.",
+    orcid: "0000-0002-2754-2542",
   },
   {
     nombre: "Dra. Judith Carolina De Arcos Jiménez",
