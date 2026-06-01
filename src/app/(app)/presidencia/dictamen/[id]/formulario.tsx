@@ -38,6 +38,50 @@ export function FormularioDictamen({
   const [observacionesTexto, setObservacionesTexto] = useState<string>("");
   const [confirmar, setConfirmar] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [iaPending, setIaPending] = useState(false);
+  const [iaError, setIaError] = useState<string | null>(null);
+  const [iaNota, setIaNota] = useState<string | null>(null);
+
+  async function handleGenerarBorradorIA() {
+    setIaError(null);
+    setIaNota(null);
+    setIaPending(true);
+    try {
+      const resp = await fetch("/api/ia/resumen-observaciones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ protocoloId }),
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.ok) {
+        setIaError(
+          json?.message ?? "No se pudo generar el borrador. Intenta de nuevo.",
+        );
+        return;
+      }
+      const generadas: string[] = json.observaciones ?? [];
+      if (generadas.length === 0) {
+        setIaNota(
+          json?.nota_sintesis ??
+            "La IA no encontró observaciones que sintetizar a partir de los comentarios del comité.",
+        );
+        return;
+      }
+      const nuevo = generadas.join("\n");
+      // Preserva lo que el Presidente ya hubiera escrito: añade debajo.
+      setObservacionesTexto((prev) =>
+        prev.trim().length > 0 ? `${prev.trim()}\n${nuevo}` : nuevo,
+      );
+      setIaNota(
+        json?.nota_sintesis ??
+          `Se generaron ${generadas.length} observaciones a partir de los comentarios del comité. Revísalas y edítalas antes de emitir.`,
+      );
+    } catch {
+      setIaError("Error de red al generar el borrador. Intenta de nuevo.");
+    } finally {
+      setIaPending(false);
+    }
+  }
 
   const requiereObservaciones =
     resolucion === "APROBADO CON OBSERVACIONES MENORES" ||
@@ -194,6 +238,30 @@ export function FormularioDictamen({
         <p className="mt-1 text-xs text-ink-500">
           Una observación por línea. Cada una debe tener al menos 10 caracteres.
         </p>
+
+        <div className="mt-3 rounded-md border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs leading-relaxed text-ink-600">
+              ✨ La IA puede redactar un borrador sintetizando los comentarios
+              que el comité dejó al votar. Tú lo revisas y editas antes de emitir.
+            </p>
+            <button
+              type="button"
+              onClick={handleGenerarBorradorIA}
+              disabled={iaPending || pending}
+              className="btn-secondary shrink-0 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {iaPending ? "Generando…" : "Generar borrador con IA"}
+            </button>
+          </div>
+          {iaNota && (
+            <p className="mt-2 text-xs leading-relaxed text-ink-600">{iaNota}</p>
+          )}
+          {iaError && (
+            <p className="mt-2 text-xs leading-relaxed text-bad">{iaError}</p>
+          )}
+        </div>
+
         <textarea
           id="observaciones"
           value={observacionesTexto}

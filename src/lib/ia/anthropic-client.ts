@@ -36,3 +36,11 @@ export const MODELO_PRE_DICTAMEN = "claude-haiku-4-5-20251001";
 // a reportar solo items relevantes (no_cumple/parcial/severidad alta), no los
 // 100, así que en la práctica usa 2-3K tokens.
 export const MAX_TOKENS_PRE_DICTAMEN = 8000;
+
+// Resumen de observaciones (sesión 10, Job 3): Haiku 4.5 — síntesis de los
+// comentarios del comité en observaciones formales para el acta. Tarea de
+// redacción acotada (1 sola llamada), cabe holgada en 60s. El resultado es un
+// borrador editable que el Presidente revisa antes de emitir el acta.
+export const MODELO_RESUMEN_OBSERVACIONES = "claude-haiku-4-5-20251001";
+// 4096 sobra para ~30 observaciones cortas + nota de síntesis.
+export const MAX_TOKENS_RESUMEN_OBSERVACIONES = 4096;
