@@ -400,7 +400,11 @@ export type ActaListadoItem = {
   id: string;
   numero_oficio: string;
   fecha_emision: string;
-  resolucion: "aprobado" | "aprobado_con_observaciones" | "no_aprobado";
+  resolucion:
+    | "aprobado"
+    | "aprobado_con_observaciones"
+    | "condicionado"
+    | "no_aprobado";
   fecha_vencimiento: string | null;
   hash_folio: string;
   protocolo_clave: string;

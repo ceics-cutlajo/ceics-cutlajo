@@ -141,7 +141,13 @@ export default async function VerProtocoloPage({
       {acta && (
         <CardActa
           numeroOficio={acta.numero_oficio}
-          resolucion={acta.resolucion as "aprobado" | "aprobado_con_observaciones" | "no_aprobado"}
+          resolucion={
+            acta.resolucion as
+              | "aprobado"
+              | "aprobado_con_observaciones"
+              | "condicionado"
+              | "no_aprobado"
+          }
           fechaEmisionIso={acta.fecha_emision}
           vigenciaMeses={acta.vigencia_meses}
           fechaVencimientoIso={acta.fecha_vencimiento}

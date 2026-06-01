@@ -17,17 +17,23 @@ const HASH_REGEX = /^[a-f0-9]{16}$/i;
 const UDG_NAVY = "#202945";
 const UDG_RED = "#B12028";
 
-type Resolucion = "aprobado" | "aprobado_con_observaciones" | "no_aprobado";
+type Resolucion =
+  | "aprobado"
+  | "aprobado_con_observaciones"
+  | "condicionado"
+  | "no_aprobado";
 
 const ETIQUETA_RES: Record<Resolucion, string> = {
   aprobado: "APROBADO",
   aprobado_con_observaciones: "APROBADO CON OBSERVACIONES MENORES",
+  condicionado: "CONDICIONADO A MODIFICACIONES MAYORES",
   no_aprobado: "NO APROBADO",
 };
 
 const COLOR_RES: Record<Resolucion, string> = {
   aprobado: "text-ok",
   aprobado_con_observaciones: "text-warn",
+  condicionado: "text-warn",
   no_aprobado: "text-bad",
 };
 

@@ -413,12 +413,18 @@ export async function emitirDictamenAction(
   }
 
   // 10. INSERT en `actas`
-  const resolucionDb: "aprobado" | "aprobado_con_observaciones" | "no_aprobado" =
+  const resolucionDb:
+    | "aprobado"
+    | "aprobado_con_observaciones"
+    | "condicionado"
+    | "no_aprobado" =
     datos.resolucion === "APROBADO"
       ? "aprobado"
       : datos.resolucion === "NO APROBADO"
         ? "no_aprobado"
-        : "aprobado_con_observaciones";
+        : datos.resolucion === "CONDICIONADO A MODIFICACIONES MAYORES"
+          ? "condicionado"
+          : "aprobado_con_observaciones";
 
   const { data: insertActa, error: errActa } = await admin
     .from("actas")

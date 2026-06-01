@@ -2,7 +2,11 @@ import { fechaLargaDesdeIsoOFallback } from "@/lib/actas/formatos";
 
 export type CardActaProps = {
   numeroOficio: string;
-  resolucion: "aprobado" | "aprobado_con_observaciones" | "no_aprobado";
+  resolucion:
+    | "aprobado"
+    | "aprobado_con_observaciones"
+    | "condicionado"
+    | "no_aprobado";
   fechaEmisionIso: string;
   vigenciaMeses: number;
   fechaVencimientoIso: string | null;
@@ -15,12 +19,14 @@ export type CardActaProps = {
 const ETIQUETA_RES: Record<CardActaProps["resolucion"], string> = {
   aprobado: "APROBADO",
   aprobado_con_observaciones: "APROBADO CON OBSERVACIONES MENORES",
+  condicionado: "CONDICIONADO A MODIFICACIONES MAYORES",
   no_aprobado: "NO APROBADO",
 };
 
 const COLOR_RES: Record<CardActaProps["resolucion"], string> = {
   aprobado: "text-good",
   aprobado_con_observaciones: "text-warn",
+  condicionado: "text-warn",
   no_aprobado: "text-bad",
 };
 

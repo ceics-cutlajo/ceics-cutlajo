@@ -5,12 +5,14 @@ import { fechaLargaDesdeIsoOFallback } from "@/lib/actas/formatos";
 const ETIQUETA_RES: Record<ActaListadoItem["resolucion"], string> = {
   aprobado: "Aprobado",
   aprobado_con_observaciones: "Aprobado c/obs.",
+  condicionado: "Condicionado",
   no_aprobado: "No aprobado",
 };
 
 const CHIP_RES: Record<ActaListadoItem["resolucion"], string> = {
   aprobado: "bg-ok-soft text-ok border-ok/30",
   aprobado_con_observaciones: "bg-warn-soft text-warn border-warn/30",
+  condicionado: "bg-warn-soft text-warn border-warn/30",
   no_aprobado: "bg-bad-soft text-bad border-bad/30",
 };
 
