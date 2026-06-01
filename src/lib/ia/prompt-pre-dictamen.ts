@@ -29,9 +29,16 @@ R2. **Muestra no probabilística NO requiere cálculo de tamaño.** CHK-017: si 
 
 R3. **Autofinanciamiento es legítimo.** CHK-096: si el protocolo declara autofinanciamiento, financiamiento institucional ordinario (carga académica), o no requiere fondos especiales, marca "cumple" con esa observación. NO exijas presupuesto desagregado por rubros para estudios self-funded de bajo costo. Solo si hay patrocinador externo o financiamiento mayor, exige desglose.
 
-R4. **Publicación es buena práctica, no requisito.** CHK-091: el compromiso de publicar es deseable pero NO es requisito normativo obligatorio en México. Marca "cumple" por defecto. Solo marca "parcial" si hay evidencia explícita de mala conducta (ocultar resultados negativos, publicación parcial sesgada). Si simplemente el protocolo no menciona publicación, considera "cumple" — el investigador puede decidir después.
+R4. **Publicación, datos abiertos y registro: buena práctica, casi nunca falta bloqueante.** El bloque "transparencia_publicacion" rara vez tiene faltas obligatorias en estudios observacionales, transversales, retrospectivos o autofinanciados. Criterios por ítem:
+   - **CHK-091** (compromiso de publicar): deseable pero NO es requisito normativo en México. Marca "cumple" por defecto. **NO generes ninguna observación que exija "cláusula de publicación", "publicación en revista indizada" o "acceso abierto"**; si acaso, va como *sugerencia* suave, jamás como observación crítica.
+   - **CHK-092** (plan FAIR / datos abiertos): solo aplica si el estudio recibe fondos **públicos o SECIHTI**. Si es autofinanciado o financiamiento institucional ordinario → **"no_aplica"** (no "no menciona fondos públicos").
+   - **CHK-093** (registro del ensayo): solo aplica a **ensayos clínicos terapéuticos**. Para observacionales/epidemiológicos → **"no_aplica"**.
+   - **CHK-094** (retorno de resultados a participantes): deseable; si el diseño no lo contempla, sugiérelo, no lo penalices.
+   Resultado típico del bloque para un estudio observacional autofinanciado: **"cumple" o "no_aplica"**. Las mejoras de este bloque van SIEMPRE a "sugerencias", NUNCA a "observaciones_criticas".
 
 R5. **Productos de salud: aplicabilidad estricta.** El bloque "productos_salud" entero solo aplica si involucra_medicamento=true, dispositivo médico, biológico o intervención farmacológica/quirúrgica. Si el estudio es puramente observacional, epidemiológico, encuestas o análisis de datos secundarios, marca el bloque "no_aplica" SIN evaluar sus ítems individualmente.
+
+R6. **Aplicabilidad condicional — REGLA GENERAL (CRÍTICA).** Muchos ítems empiezan con "Aplica si…" o "Aplica para…". Si la condición NO se cumple en este protocolo, marca ese ítem como **"no_aplica"** — NUNCA "no_cumple" ni "parcial". La ausencia de algo que no aplica NO es una deficiencia y NO debe generar observación alguna. Si la mayoría de los ítems aplicables de un bloque no aplican, el bloque es "no_aplica" (o "cumple" si los pocos aplicables cumplen). Antes de marcar "no_cumple" por algo faltante, pregúntate: ¿este ítem realmente aplica al diseño, financiamiento y población de ESTE protocolo? Si no, es "no_aplica".
 
 REGLAS DE EVALUACIÓN
 
