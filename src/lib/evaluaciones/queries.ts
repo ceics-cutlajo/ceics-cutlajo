@@ -71,6 +71,20 @@ export async function obtenerPresidente(): Promise<MiembroComite | null> {
   return miembros.find((m) => m.esPresidente) ?? null;
 }
 
+/**
+ * Ronda en curso del protocolo (1, 2, 3…). Fuente de verdad del ciclo de
+ * re-evaluación. Devuelve 1 si la columna no existe o el protocolo no se halla.
+ */
+export async function obtenerRondaActual(protocoloId: string): Promise<number> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("protocolos")
+    .select("ronda_actual")
+    .eq("id", protocoloId)
+    .maybeSingle();
+  return (data?.ronda_actual as number | null) ?? 1;
+}
+
 export type EvaluacionConBloques = {
   id: string;
   miembro_id: string;
@@ -89,8 +103,10 @@ export type EvaluacionConBloques = {
 export async function obtenerEvaluacionUsuario(
   protocoloId: string,
   usuarioId: string,
+  ronda?: number,
 ): Promise<EvaluacionConBloques | null> {
   const admin = createAdminClient();
+  const rondaFiltro = ronda ?? (await obtenerRondaActual(protocoloId));
   const { data: cabecera } = await admin
     .from("evaluaciones")
     .select(
@@ -98,6 +114,7 @@ export async function obtenerEvaluacionUsuario(
     )
     .eq("protocolo_id", protocoloId)
     .eq("miembro_id", usuarioId)
+    .eq("ronda", rondaFiltro)
     .maybeSingle();
 
   if (!cabecera) return null;
@@ -126,15 +143,22 @@ export async function obtenerEvaluacionUsuario(
   };
 }
 
-/** Lista las cabeceras de evaluación de un protocolo (todas las emitidas). */
+/**
+ * Lista las cabeceras de evaluación de un protocolo para una ronda dada
+ * (por defecto, la ronda en curso). Solo cuenta los votos de esa ronda — los
+ * de rondas anteriores se conservan pero no participan en el cierre actual.
+ */
 export async function listarEvaluacionesProtocolo(
   protocoloId: string,
+  ronda?: number,
 ): Promise<EvaluacionMiembro[]> {
   const admin = createAdminClient();
+  const rondaFiltro = ronda ?? (await obtenerRondaActual(protocoloId));
   const { data } = await admin
     .from("evaluaciones")
     .select("miembro_id, voto_global, conflicto_interes")
-    .eq("protocolo_id", protocoloId);
+    .eq("protocolo_id", protocoloId)
+    .eq("ronda", rondaFiltro);
 
   return (data ?? []).map((e) => ({
     miembro_id: e.miembro_id,

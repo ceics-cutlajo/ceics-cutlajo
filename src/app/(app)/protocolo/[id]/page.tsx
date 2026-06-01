@@ -99,6 +99,37 @@ export default async function VerProtocoloPage({
         </div>
       )}
 
+      {/* Acción requerida: el comité devolvió el protocolo con observaciones */}
+      {esPropietario && protocolo.estado === "observaciones" && (
+        <section className="card border border-warn/40 bg-warn-soft/40 p-6">
+          <p className="text-eyebrow text-warn">Acción requerida</p>
+          <h2 className="mt-1 text-display-2">
+            El comité solicitó modificaciones
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-ink-700">
+            Atiende las siguientes observaciones, actualiza tus documentos y
+            vuelve a enviar el protocolo. Se evaluará en una nueva ronda
+            conservando el historial de la anterior.
+          </p>
+          {acta?.observaciones && (
+            <div className="mt-4 rounded-md bg-bg-1 p-4">
+              <p className="text-eyebrow text-ink-500">
+                Observaciones del acta {acta.numero_oficio}
+              </p>
+              <pre className="mt-2 whitespace-pre-wrap font-sans text-sm leading-relaxed text-ink-800">
+                {acta.observaciones}
+              </pre>
+            </div>
+          )}
+          <Link
+            href={`/protocolo/${id}/editar`}
+            className="btn-primary mt-5 inline-block text-sm"
+          >
+            Corregir y reenviar
+          </Link>
+        </section>
+      )}
+
       {/* Timeline visual: 7 etapas + card metadata */}
       <TimelineProtocolo
         protocolo={protocolo}

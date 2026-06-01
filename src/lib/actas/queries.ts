@@ -33,6 +33,7 @@ export type DatosBaseActa = {
     clave: string;
     titulo: string;
     estado: string;
+    ronda_actual: number;
     recomendacion_comite: RecomendacionComiteValor;
     investigador_principal_id: string;
     tipo_investigacion_nombre: string;
@@ -127,7 +128,7 @@ export async function obtenerDatosBaseActa(
       id, clave, titulo, estado, recomendacion_comite,
       clasificacion_riesgo, submitted_at,
       investigador_principal_id,
-      area_conocimiento_id, tipo_investigacion_id
+      area_conocimiento_id, tipo_investigacion_id, ronda_actual
       `,
     )
     .eq("id", protocoloId)
@@ -253,12 +254,15 @@ export async function obtenerDatosBaseActa(
     });
   }
 
+  // Solo los votos de la ronda en curso participan en este acta.
+  const rondaActual = (prot.ronda_actual as number | null) ?? 1;
   const { data: evals } = await admin
     .from("evaluaciones")
     .select(
       "miembro_id, voto_global, conflicto_interes, comentario_global, motivo_abstencion",
     )
-    .eq("protocolo_id", protocoloId);
+    .eq("protocolo_id", protocoloId)
+    .eq("ronda", rondaActual);
 
   const votoPorId = new Map<
     string,
@@ -316,6 +320,7 @@ export async function obtenerDatosBaseActa(
       clave: prot.clave ?? "(sin clave)",
       titulo: prot.titulo,
       estado: prot.estado as string,
+      ronda_actual: rondaActual,
       recomendacion_comite:
         (prot.recomendacion_comite as RecomendacionComiteValor) ?? null,
       investigador_principal_id: prot.investigador_principal_id as string,
@@ -363,11 +368,13 @@ export async function obtenerDatosBaseActa(
 export async function obtenerActaPorProtocolo(protocoloId: string): Promise<
   | {
       id: string;
+      ronda: number;
       numero_oficio: string;
       fecha_emision: string;
       resolucion: string;
       vigencia_meses: number;
       fecha_vencimiento: string | null;
+      observaciones: string | null;
       docx_storage_path: string | null;
       pdf_storage_path: string | null;
       hash_folio: string;
@@ -376,12 +383,15 @@ export async function obtenerActaPorProtocolo(protocoloId: string): Promise<
   | null
 > {
   const admin = createAdminClient();
+  // Puede haber varias actas (una por ronda). La vigente es la de mayor ronda.
   const { data } = await admin
     .from("actas")
     .select(
-      "id, numero_oficio, fecha_emision, resolucion, vigencia_meses, fecha_vencimiento, docx_storage_path, pdf_storage_path, hash_folio, enviada_a_investigador_at",
+      "id, ronda, numero_oficio, fecha_emision, resolucion, vigencia_meses, fecha_vencimiento, observaciones, docx_storage_path, pdf_storage_path, hash_folio, enviada_a_investigador_at",
     )
     .eq("protocolo_id", protocoloId)
+    .order("ronda", { ascending: false })
+    .limit(1)
     .maybeSingle();
   return data;
 }

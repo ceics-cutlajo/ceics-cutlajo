@@ -402,7 +402,7 @@ export async function enviarProtocoloAction(
   const { data: prot } = await admin
     .from("protocolos")
     .select(
-      "titulo, resumen, area_conocimiento_id, tipo_investigacion_id, clasificacion_riesgo, involucra_humanos, involucra_menores",
+      "titulo, resumen, area_conocimiento_id, tipo_investigacion_id, clasificacion_riesgo, involucra_humanos, involucra_menores, estado, ronda_actual",
     )
     .eq("id", protocoloId)
     .single();
@@ -455,12 +455,20 @@ export async function enviarProtocoloAction(
     };
   }
 
-  // Cambiar estado a "en_evaluacion_ia" (próxima sesión la IA lo recogerá)
+  // Re-evaluación: si el protocolo regresa desde "observaciones", esta es una
+  // nueva ronda. Incrementamos ronda_actual para que los votos, el pre-informe
+  // y el acta de esta ronda no se mezclen con los de la anterior (que se
+  // conservan como historial). Primer envío (desde borrador) → ronda 1.
+  const esReenvio = prot.estado === "observaciones";
+  const rondaPrevia = (prot.ronda_actual as number | null) ?? 1;
+  const nuevaRonda = esReenvio ? rondaPrevia + 1 : rondaPrevia;
+
   const { error } = await admin
     .from("protocolos")
     .update({
       estado: "en_evaluacion_ia",
       submitted_at: new Date().toISOString(),
+      ronda_actual: nuevaRonda,
     })
     .eq("id", protocoloId);
 
@@ -468,9 +476,12 @@ export async function enviarProtocoloAction(
 
   await admin.from("protocolo_eventos").insert({
     protocolo_id: protocoloId,
-    tipo: "protocolo_enviado",
-    descripcion: "Protocolo enviado al CEICS para evaluación",
+    tipo: esReenvio ? "protocolo_reenviado" : "protocolo_enviado",
+    descripcion: esReenvio
+      ? `Protocolo corregido reenviado al CEICS para re-evaluación (ronda ${nuevaRonda}).`
+      : "Protocolo enviado al CEICS para evaluación",
     actor_id: check.usuarioId,
+    datos: esReenvio ? { ronda: nuevaRonda } : null,
   });
 
   // Acuse de recibo institucional al investigador (fail-soft: si Resend

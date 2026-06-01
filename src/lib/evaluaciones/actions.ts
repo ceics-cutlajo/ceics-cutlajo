@@ -75,6 +75,7 @@ type ProtocoloEnVotacion = {
   estado: string;
   clave: string | null;
   titulo: string;
+  ronda_actual: number;
 };
 
 async function verificarProtocoloVotable(
@@ -85,7 +86,7 @@ async function verificarProtocoloVotable(
 > {
   const { data: prot } = await admin
     .from("protocolos")
-    .select("id, investigador_principal_id, estado, clave, titulo")
+    .select("id, investigador_principal_id, estado, clave, titulo, ronda_actual")
     .eq("id", protocoloId)
     .single();
   if (!prot) return { ok: false, error: "Protocolo no encontrado." };
@@ -129,14 +130,16 @@ export async function registrarEvaluacionAction(
     };
   }
 
+  const rondaActual = check.protocolo.ronda_actual ?? 1;
   const { data: yaVoto } = await admin
     .from("evaluaciones")
     .select("id")
     .eq("protocolo_id", protocoloId)
     .eq("miembro_id", user.usuarioId)
+    .eq("ronda", rondaActual)
     .maybeSingle();
   if (yaVoto) {
-    return { ok: false, error: "Ya emitiste tu voto sobre este protocolo." };
+    return { ok: false, error: "Ya emitiste tu voto en esta ronda de revisión." };
   }
 
   const visto = new Set(bloques.map((b) => b.bloque));
@@ -159,6 +162,7 @@ export async function registrarEvaluacionAction(
       comentario_global: comentarioGlobal ?? null,
       conflicto_interes: false,
       motivo_abstencion: null,
+      ronda: rondaActual,
     })
     .select("id")
     .single();
@@ -230,16 +234,18 @@ export async function registrarAbstencionCoiAction(
     };
   }
 
+  const rondaActual = check.protocolo.ronda_actual ?? 1;
   const { data: yaVoto } = await admin
     .from("evaluaciones")
     .select("id")
     .eq("protocolo_id", protocoloId)
     .eq("miembro_id", user.usuarioId)
+    .eq("ronda", rondaActual)
     .maybeSingle();
   if (yaVoto) {
     return {
       ok: false,
-      error: "Ya registraste tu abstención sobre este protocolo.",
+      error: "Ya registraste tu abstención en esta ronda de revisión.",
     };
   }
 
@@ -253,6 +259,7 @@ export async function registrarAbstencionCoiAction(
       conflicto_interes: true,
       motivo_abstencion:
         motivo ?? "Investigador Principal del protocolo — abstención obligatoria.",
+      ronda: rondaActual,
     })
     .select("id")
     .single();
@@ -297,7 +304,10 @@ export async function forzarCierreAction(
   const check = await verificarProtocoloVotable(admin, protocoloId);
   if (!check.ok) return check;
 
-  const evals = await listarEvaluacionesProtocolo(protocoloId);
+  const evals = await listarEvaluacionesProtocolo(
+    protocoloId,
+    check.protocolo.ronda_actual ?? 1,
+  );
   const decisivos = evals.filter((e) => e.voto_global !== "abstener");
   if (decisivos.length === 0) {
     return {
@@ -327,7 +337,7 @@ async function cerrarYNotificarSiCorresponde(
   const { data: prot } = await admin
     .from("protocolos")
     .select(
-      "estado, clave, titulo, investigador_principal_id, notificacion_presidente_at",
+      "estado, clave, titulo, investigador_principal_id, notificacion_presidente_at, ronda_actual",
     )
     .eq("id", protocoloId)
     .single();
@@ -339,8 +349,9 @@ async function cerrarYNotificarSiCorresponde(
     };
   }
 
+  const rondaActual = (prot.ronda_actual as number | null) ?? 1;
   const miembros = await listarMiembrosElegiblesComite();
-  const evals = await listarEvaluacionesProtocolo(protocoloId);
+  const evals = await listarEvaluacionesProtocolo(protocoloId, rondaActual);
   if (!forzado && evals.length < miembros.length) {
     return {
       ok: true,

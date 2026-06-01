@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
   const { data: prot } = await admin
     .from("protocolos")
     .select(
-      "id, titulo, resumen, area_conocimiento_id, tipo_investigacion_id, clasificacion_riesgo, involucra_humanos, involucra_menores, involucra_datos_geneticos, involucra_medicamento, objetivo_general, objetivos_especificos, criterios_inclusion, criterios_exclusion, metodologia, cronograma, investigador_principal_id, estado",
+      "id, titulo, resumen, area_conocimiento_id, tipo_investigacion_id, clasificacion_riesgo, involucra_humanos, involucra_menores, involucra_datos_geneticos, involucra_medicamento, objetivo_general, objetivos_especificos, criterios_inclusion, criterios_exclusion, metodologia, cronograma, investigador_principal_id, estado, ronda_actual",
     )
     .eq("id", body.protocoloId)
     .single();
@@ -120,20 +120,23 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 4. ¿Ya existe un pre_informe? → idempotente
-  const { data: preInformeExistente } = await admin
+  // 4. ¿Ya existe un pre_informe PARA LA RONDA ACTUAL? → idempotente.
+  // En el ciclo de re-evaluación, cada ronda genera su propio pre_informe
+  // (version = ronda_actual). No basta con "existe alguno": una ronda 2 debe
+  // generar la versión 2 aunque la 1 ya exista.
+  const rondaActual = (prot.ronda_actual as number | null) ?? 1;
+  const { data: preInformeRonda } = await admin
     .from("pre_informes")
-    .select("id, version")
+    .select("id")
     .eq("protocolo_id", body.protocoloId)
-    .order("version", { ascending: false })
-    .limit(1)
+    .eq("version", rondaActual)
     .maybeSingle();
-  if (preInformeExistente) {
+  if (preInformeRonda) {
     return NextResponse.json({
       ok: true,
       skipped: true,
       reason: "pre-informe-ya-existe",
-      pre_informe_id: preInformeExistente.id,
+      pre_informe_id: preInformeRonda.id,
     });
   }
 
@@ -314,7 +317,7 @@ export async function POST(req: NextRequest) {
       .from("pre_informes")
       .insert({
         protocolo_id: body.protocoloId,
-        version: 1,
+        version: rondaActual,
         generado_por: "route-handler-sonnet-4-6",
         modelo_usado: MODELO_PRE_DICTAMEN,
         contenido: validated.data,

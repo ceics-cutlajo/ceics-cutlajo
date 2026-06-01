@@ -157,11 +157,21 @@ export async function emitirDictamenAction(
 
   const admin = createAdminClient();
 
-  // 2. Idempotencia: si ya existe acta para este protocolo, devolverla
+  // 2. Recopilar datos (incluye la ronda en curso)
+  const base = await obtenerDatosBaseActa(datos.protocoloId);
+  if (!base) {
+    return { ok: false, error: "No se encontró el protocolo o sus datos están incompletos." };
+  }
+  const rondaActual = base.protocolo.ronda_actual ?? 1;
+
+  // 3. Idempotencia POR RONDA: si ya existe acta para la ronda en curso,
+  // devolverla. Las actas de rondas anteriores no bloquean la emisión de la
+  // ronda actual (ciclo de re-evaluación).
   const { data: actaExistente } = await admin
     .from("actas")
     .select("id, numero_oficio, docx_storage_path, pdf_storage_path")
     .eq("protocolo_id", datos.protocoloId)
+    .eq("ronda", rondaActual)
     .maybeSingle();
   if (actaExistente) {
     return {
@@ -175,11 +185,7 @@ export async function emitirDictamenAction(
     };
   }
 
-  // 3. Recopilar datos y verificar estado
-  const base = await obtenerDatosBaseActa(datos.protocoloId);
-  if (!base) {
-    return { ok: false, error: "No se encontró el protocolo o sus datos están incompletos." };
-  }
+  // 4. Verificar estado
   if (base.protocolo.estado !== "listo_dictamen") {
     return {
       ok: false,
@@ -418,6 +424,7 @@ export async function emitirDictamenAction(
     .from("actas")
     .insert({
       protocolo_id: datos.protocoloId,
+      ronda: rondaActual,
       numero_oficio: numeroOficioStr,
       fecha_emision: fechaEmisionIso,
       presidente_id: base.presidente.id,
@@ -564,6 +571,8 @@ export async function urlsFirmadasActaAction(
     .from("actas")
     .select("docx_storage_path, pdf_storage_path")
     .eq("protocolo_id", protocoloId)
+    .order("ronda", { ascending: false })
+    .limit(1)
     .maybeSingle();
   if (!acta || !acta.docx_storage_path || !acta.pdf_storage_path) {
     return { ok: false, error: "No hay acta emitida para este protocolo." };

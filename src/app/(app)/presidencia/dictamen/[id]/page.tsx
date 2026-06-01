@@ -29,8 +29,10 @@ export default async function EmitirDictamenPage({
   const datos = await obtenerDatosBaseActa(id);
   if (!datos) notFound();
 
+  // Solo bloquea si YA hay acta para la ronda en curso. Si el acta existente es
+  // de una ronda anterior (ciclo de re-evaluación), se permite emitir la nueva.
   const yaEmitida = await obtenerActaPorProtocolo(id);
-  if (yaEmitida) {
+  if (yaEmitida && yaEmitida.ronda >= datos.protocolo.ronda_actual) {
     redirect(`/comite/protocolo/${id}`);
   }
 
