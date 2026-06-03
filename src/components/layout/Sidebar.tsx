@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Upload, BookOpen, Inbox, Users, FileText, CalendarDays, LogOut } from "lucide-react";
+import { LayoutDashboard, Upload, BookOpen, Inbox, Users, FileText, CalendarDays, ClipboardCheck, LogOut } from "lucide-react";
 import { Logo } from "./Logo";
 import type { RolSistema } from "@/types/domain";
 import { logoutAction } from "@/lib/auth/actions";
@@ -16,6 +16,7 @@ const NAVS: Record<RolSistema, Item[]> = {
     { href: "/comite/calendario", icon: CalendarDays, label: "Calendario de Reuniones" },
     { href: "/comite/integrantes", icon: Users,       label: "Comité" },
     { href: "/normatividad",   icon: BookOpen,        label: "Normatividad" },
+    { href: "/requisitos",     icon: ClipboardCheck,  label: "Requisitos de sometimiento" },
   ],
   // Vocales y Secretaría ven las mismas secciones que la Presidencia en modo
   // lectura (Tablero y Actas), además de su Bandeja de votación y el directorio
@@ -27,6 +28,7 @@ const NAVS: Record<RolSistema, Item[]> = {
     { href: "/comite/calendario",  icon: CalendarDays,    label: "Calendario de Reuniones" },
     { href: "/comite/integrantes", icon: Users,           label: "Comité" },
     { href: "/normatividad",       icon: BookOpen,        label: "Normatividad" },
+    { href: "/requisitos",         icon: ClipboardCheck,  label: "Requisitos de sometimiento" },
   ],
   comite_secretario: [
     { href: "/presidencia",        icon: LayoutDashboard, label: "Tablero" },
@@ -35,6 +37,7 @@ const NAVS: Record<RolSistema, Item[]> = {
     { href: "/comite/calendario",  icon: CalendarDays,    label: "Calendario de Reuniones" },
     { href: "/comite/integrantes", icon: Users,           label: "Comité" },
     { href: "/normatividad",       icon: BookOpen,        label: "Normatividad" },
+    { href: "/requisitos",         icon: ClipboardCheck,  label: "Requisitos de sometimiento" },
   ],
   presidente: [
     { href: "/presidencia",        icon: LayoutDashboard, label: "Tablero" },
@@ -43,6 +46,7 @@ const NAVS: Record<RolSistema, Item[]> = {
     { href: "/comite/calendario",  icon: CalendarDays,    label: "Calendario de Reuniones" },
     { href: "/comite/integrantes", icon: Users,           label: "Comité" },
     { href: "/normatividad",       icon: BookOpen,        label: "Normatividad" },
+    { href: "/requisitos",         icon: ClipboardCheck,  label: "Requisitos de sometimiento" },
   ],
   admin_sistema: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Inicio" },

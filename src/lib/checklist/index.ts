@@ -46,6 +46,7 @@ export type ChecklistItem = {
   subcategoria?: string;
   criterio: string;
   evidencia_esperada: string;
+  fuentes?: { ref: string; url: string }[];
   severidad: Severidad;
   peso: number;
   aplicabilidad: {
