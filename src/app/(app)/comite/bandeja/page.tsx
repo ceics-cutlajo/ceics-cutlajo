@@ -2,6 +2,7 @@ import Link from "next/link";
 import { listarBandejaComite } from "@/lib/protocolos/queries";
 import { ETIQUETAS_ESTADO, type EstadoProtocolo } from "@/types/domain";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { SemaforoSometimiento } from "@/components/protocolos/SemaforoSometimiento";
 
 export default async function BandejaComitePage() {
   const protocolos = await listarBandejaComite();
@@ -72,6 +73,7 @@ function ProtocoloRow({
           <div className="flex items-center gap-2">
             <span className="font-mono text-xs text-ink-500">{p.clave ?? "—"}</span>
             <EstadoBadge estado={p.estado} />
+            <SemaforoSometimiento submittedAt={p.submitted_at} estado={p.estado} />
             {p.conflictoInteres && (
               <span className="inline-flex items-center rounded-full bg-bad-soft px-2 py-0.5 text-xs text-bad">
                 Abstención obligatoria

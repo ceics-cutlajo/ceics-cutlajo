@@ -11,6 +11,7 @@ import {
 } from "@/lib/auth/usuario-actual";
 import { ETIQUETAS_ESTADO, type EstadoProtocolo } from "@/types/domain";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { SemaforoSometimiento } from "@/components/protocolos/SemaforoSometimiento";
 
 const FORMATO_FECHA: Intl.DateTimeFormatOptions = {
   day: "numeric",
@@ -113,7 +114,13 @@ export default async function PresidenciaPage() {
                       {p.ip_nombre}
                     </td>
                     <td className="px-4 py-3">
-                      <EstadoBadge estado={p.estado} />
+                      <span className="inline-flex items-center gap-2">
+                        <EstadoBadge estado={p.estado} />
+                        <SemaforoSometimiento
+                          submittedAt={p.submitted_at}
+                          estado={p.estado}
+                        />
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-xs text-ink-500 whitespace-nowrap">
                       {p.submitted_at

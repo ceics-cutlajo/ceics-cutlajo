@@ -19,6 +19,9 @@ import {
   datosClinicosSchema,
   coInvestigadorSchema,
   TIPOS_DOCUMENTO,
+  ETIQUETAS_AREA,
+  ETIQUETAS_TIPO_INV,
+  ETIQUETAS_RIESGO,
   type TipoDocumento,
 } from "./schemas";
 import { formatearErrorZodClinico } from "./errores";
@@ -543,6 +546,98 @@ export async function enviarProtocoloAction(
     }
   } catch (e) {
     console.error("[enviarProtocoloAction] excepción notificando sometimiento:", e);
+  }
+
+  // Aviso a TODO el comité de que llegó un nuevo protocolo (fail-soft: si Resend
+  // falla no revertimos el sometimiento). Se dispara en cada envío, también en
+  // re-evaluación. No se excluye a ningún miembro.
+  try {
+    const { data: ipFull } = await admin
+      .from("protocolos")
+      .select(
+        "clave, titulo, area_conocimiento_id, tipo_investigacion_id, clasificacion_riesgo, usuarios:investigador_principal_id (nombre, apellido_paterno, apellido_materno)",
+      )
+      .eq("id", protocoloId)
+      .single();
+    type ProtJoin = {
+      clave: string | null;
+      titulo: string;
+      area_conocimiento_id: number | null;
+      tipo_investigacion_id: string | null;
+      clasificacion_riesgo: string | null;
+      usuarios:
+        | {
+            nombre: string;
+            apellido_paterno: string;
+            apellido_materno: string | null;
+          }
+        | null;
+    };
+    const p = ipFull as ProtJoin | null;
+    if (p) {
+      const u = p.usuarios;
+      const ipNombre = u
+        ? `${u.nombre} ${u.apellido_paterno}${u.apellido_materno ? " " + u.apellido_materno : ""}`.trim()
+        : "(no especificado)";
+
+      const { data: coInvRows } = await admin
+        .from("protocolo_co_investigadores")
+        .select("nombre, apellido_paterno, apellido_materno, orden")
+        .eq("protocolo_id", protocoloId)
+        .order("orden", { ascending: true });
+      const coInvestigadores = (coInvRows ?? []).map((c) =>
+        `${c.nombre} ${c.apellido_paterno}${c.apellido_materno ? " " + c.apellido_materno : ""}`.trim(),
+      );
+
+      const area =
+        p.area_conocimiento_id != null
+          ? ETIQUETAS_AREA[p.area_conocimiento_id]
+          : undefined;
+      const tipoInvestigacion =
+        p.tipo_investigacion_id != null
+          ? ETIQUETAS_TIPO_INV[
+              p.tipo_investigacion_id as keyof typeof ETIQUETAS_TIPO_INV
+            ]
+          : undefined;
+      const riesgo =
+        p.clasificacion_riesgo != null
+          ? ETIQUETAS_RIESGO[
+              p.clasificacion_riesgo as keyof typeof ETIQUETAS_RIESGO
+            ]
+          : undefined;
+
+      const { listarMiembrosElegiblesComite } = await import(
+        "@/lib/evaluaciones/queries"
+      );
+      const { notificarComiteSometimiento } = await import(
+        "@/lib/email/notificar-comite-sometimiento"
+      );
+      const miembros = await listarMiembrosElegiblesComite();
+
+      const resultados = await Promise.all(
+        miembros.map((m) =>
+          notificarComiteSometimiento({
+            protocoloId,
+            claveProtocolo: p.clave,
+            tituloProtocolo: p.titulo,
+            ipNombre,
+            coInvestigadores,
+            area,
+            tipoInvestigacion,
+            riesgo,
+            destinatarioEmail: m.email,
+            destinatarioNombre: `${m.nombre} ${m.apellidoPaterno}`.trim(),
+          }),
+        ),
+      );
+      for (const r of resultados) {
+        if (!r.ok) {
+          console.error("[enviarProtocoloAction] notificarComiteSometimiento error:", r.error);
+        }
+      }
+    }
+  } catch (e) {
+    console.error("[enviarProtocoloAction] excepción notificando al comité:", e);
   }
 
   revalidatePath(`/protocolo/${protocoloId}`);

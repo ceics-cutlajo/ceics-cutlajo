@@ -43,6 +43,8 @@ export default {
         warn: { DEFAULT: "#c47600", soft: "#faf0dc" },
         bad: { DEFAULT: "#b3261e", soft: "#fbe9e7" },
         info: { DEFAULT: "#38a5c6", soft: "#e3f3f8" },
+        // Semáforo de urgencia por días desde el sometimiento.
+        semaforo: { verde: "#88A87C", amarillo: "#CFCFA1", rojo: "#870C0C" },
         // Sidebar (siempre oscuro)
         side: {
           bg: "#0f0e0d",

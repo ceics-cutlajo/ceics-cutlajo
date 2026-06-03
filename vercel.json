@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/recordatorio-reuniones",
       "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron/recordatorio-votos-protocolo",
+      "schedule": "0 16 * * *"
     }
   ]
 }
