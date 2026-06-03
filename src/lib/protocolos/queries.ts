@@ -190,7 +190,8 @@ export async function obtenerProtocolo(
       .from("protocolo_documentos")
       .select("id, tipo_documento_id, nombre_original, storage_path, mime_type, tamano_bytes, uploaded_at")
       .eq("protocolo_id", protocoloId)
-      .order("uploaded_at"),
+      .order("ronda", { ascending: false })
+      .order("uploaded_at", { ascending: false }),
     admin
       .from("protocolo_eventos")
       .select("id, tipo, descripcion, created_at, datos")
@@ -218,10 +219,29 @@ export async function obtenerProtocolo(
     cronograma: protocolo.cronograma ?? [],
   } as ProtocoloCompleto;
 
+  // Versionado por ronda: mostrar solo la ÚLTIMA versión de cada tipo de
+  // documento. `docs` viene ordenado por (ronda desc, uploaded_at desc) desde
+  // la query, así que la PRIMERA ocurrencia de cada tipo es la vigente. Las
+  // versiones de rondas anteriores se conservan en Storage/BD pero no se listan
+  // en el expediente (acarreo de la versión más reciente entre rondas).
+  // (La dedupe depende de ese orden de la query — no reordenar antes de aquí.)
+  const docsVigentes: NonNullable<typeof docs> = [];
+  if (docs) {
+    const tiposVistos = new Set<string>();
+    for (const d of docs) {
+      if (tiposVistos.has(d.tipo_documento_id)) continue;
+      tiposVistos.add(d.tipo_documento_id);
+      docsVigentes.push(d);
+    }
+    // Orden de presentación estable por tipo (independiente de la ronda/fecha,
+    // para no mezclar visualmente versiones de distintas rondas por timestamp).
+    docsVigentes.sort((a, b) => a.tipo_documento_id.localeCompare(b.tipo_documento_id));
+  }
+
   return {
     protocolo: protocoloNorm,
     coInvestigadores: (coInvs ?? []) as CoInvestigadorRow[],
-    documentos: (docs ?? []) as DocumentoRow[],
+    documentos: docsVigentes as DocumentoRow[],
     eventos: (eventos ?? []) as EventoRow[],
     esPropietario,
     extraccion,

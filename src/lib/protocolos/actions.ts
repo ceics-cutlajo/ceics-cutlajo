@@ -43,14 +43,17 @@ async function obtenerUsuarioId(): Promise<string | null> {
 
 async function verificarPropiedadEditable(
   protocoloId: string,
-): Promise<{ ok: true; usuarioId: string } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; usuarioId: string; estado: string; rondaActual: number }
+  | { ok: false; error: string }
+> {
   const usuarioId = await obtenerUsuarioId();
   if (!usuarioId) return { ok: false, error: "No se encontró tu perfil de usuario." };
 
   const admin = createAdminClient();
   const { data: prot } = await admin
     .from("protocolos")
-    .select("investigador_principal_id, estado")
+    .select("investigador_principal_id, estado, ronda_actual")
     .eq("id", protocoloId)
     .single();
   if (!prot) return { ok: false, error: "Protocolo no encontrado." };
@@ -61,7 +64,12 @@ async function verificarPropiedadEditable(
       ok: false,
       error: "Solo puedes editar protocolos en estado borrador o con observaciones.",
     };
-  return { ok: true, usuarioId };
+  return {
+    ok: true,
+    usuarioId,
+    estado: prot.estado,
+    rondaActual: (prot.ronda_actual as number | null) ?? 1,
+  };
 }
 
 // ============================================================
@@ -291,12 +299,22 @@ export async function subirDocumentoAction(
 
   const admin = createAdminClient();
 
-  // Si ya existe un documento de este tipo, lo reemplazamos (eliminamos el viejo)
+  // Versionado por ronda: un documento subido mientras el protocolo está en
+  // "observaciones" pertenece a la PRÓXIMA ronda (la que se prepara para
+  // reenviar), no a la actual — así no sobrescribe la versión de la ronda
+  // previa, que se conserva como historial. Alinea con `nuevaRonda` de
+  // enviarProtocoloAction (que incrementa ronda_actual al reenviar).
+  const rondaDoc =
+    check.estado === "observaciones" ? check.rondaActual + 1 : check.rondaActual;
+
+  // Si ya existe un documento de este tipo EN ESTA MISMA RONDA, lo reemplazamos
+  // (las versiones de rondas anteriores se conservan intactas).
   const { data: existente } = await admin
     .from("protocolo_documentos")
     .select("id, storage_path")
     .eq("protocolo_id", protocoloId)
     .eq("tipo_documento_id", tipo)
+    .eq("ronda", rondaDoc)
     .maybeSingle();
 
   if (existente) {
@@ -304,9 +322,9 @@ export async function subirDocumentoAction(
     await admin.from("protocolo_documentos").delete().eq("id", existente.id);
   }
 
-  // Subir a Storage
+  // Subir a Storage — path por ronda: {protocolo}/r{ronda}/{tipo}-{ts}.{ext}
   const ext = file.name.split(".").pop() ?? "bin";
-  const storagePath = `${protocoloId}/${tipo}-${Date.now()}.${ext}`;
+  const storagePath = `${protocoloId}/r${rondaDoc}/${tipo}-${Date.now()}.${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
 
   const { error: errorUpload } = await admin.storage
@@ -330,6 +348,7 @@ export async function subirDocumentoAction(
       storage_path: storagePath,
       mime_type: file.type,
       tamano_bytes: file.size,
+      ronda: rondaDoc,
       uploaded_by: check.usuarioId,
     })
     .select("id")
@@ -588,7 +607,7 @@ export async function crearProtocoloConIAAction(
 
   // 2. Subir archivo a Storage
   const ext = file.name.split(".").pop() ?? "bin";
-  const storagePath = `${prot.id}/formato_protocolo-${Date.now()}.${ext}`;
+  const storagePath = `${prot.id}/r1/formato_protocolo-${Date.now()}.${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
 
   const { error: errUpload } = await admin.storage
@@ -610,6 +629,7 @@ export async function crearProtocoloConIAAction(
       storage_path: storagePath,
       mime_type: file.type,
       tamano_bytes: file.size,
+      ronda: 1,
       uploaded_by: usuarioId,
     })
     .select("id")
@@ -677,12 +697,17 @@ export async function reintentarExtraccionAction(
 
   const admin = createAdminClient();
 
-  // Buscar el documento formato_protocolo
+  // Buscar el documento formato_protocolo VIGENTE (la última versión por ronda).
+  // Con versionado por ronda puede haber varias versiones; tomamos la más
+  // reciente para no romper con maybeSingle ni re-extraer una versión vieja.
   const { data: doc } = await admin
     .from("protocolo_documentos")
     .select("id, storage_path, mime_type")
     .eq("protocolo_id", protocoloId)
     .eq("tipo_documento_id", "formato_protocolo")
+    .order("ronda", { ascending: false })
+    .order("uploaded_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
   if (!doc) return { ok: false, error: "No hay formato_protocolo subido en este protocolo." };
 
