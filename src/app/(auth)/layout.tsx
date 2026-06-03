@@ -62,7 +62,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                 variant="hex"
                 count={3}
                 size={28}
-                className="opacity-80"
+                className="opacity-100"
               />
               <h2 className="font-display text-2xl font-bold leading-tight text-white">
                 Comité de Ética
