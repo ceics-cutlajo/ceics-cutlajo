@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow, Roboto_Slab } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const barlow = Barlow({
@@ -42,7 +43,10 @@ export default function RootLayout({
       data-theme="light"
       className={`${barlow.variable} ${robotoSlab.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }

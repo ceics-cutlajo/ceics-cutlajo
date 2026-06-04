@@ -48,6 +48,15 @@ export async function signupAction(formData: FormData): Promise<ActionResult> {
   const admin = createAdminClient();
   const supabase = await createClient();
 
+  // 0. ¿Es un registro genuinamente nuevo? (para avisar a Presidencia una sola
+  // vez y no en cada reenvío del formulario, que es idempotente vía upsert)
+  const { data: usuarioPrevio } = await admin
+    .from("usuarios")
+    .select("id")
+    .eq("email", parsed.data.email)
+    .maybeSingle();
+  const esNuevoRegistro = !usuarioPrevio;
+
   // 1. Crear el perfil en `usuarios` (idempotente vía upsert)
   const { error: errorPerfil } = await admin.from("usuarios").upsert(
     {
@@ -96,6 +105,45 @@ export async function signupAction(formData: FormData): Promise<ActionResult> {
   });
   if (errorOtp) {
     return { ok: false, error: "Error al enviar correo: " + errorOtp.message };
+  }
+
+  // 4. Avisar a Presidencia del nuevo registro (fail-soft: nunca bloquea el alta)
+  if (esNuevoRegistro) {
+    try {
+      const { obtenerPresidente } = await import("@/lib/evaluaciones/queries");
+      const { notificarNuevoRegistro } = await import(
+        "@/lib/email/notificar-nuevo-registro"
+      );
+      const presidente = await obtenerPresidente();
+      if (presidente) {
+        const nombreCompleto = [
+          parsed.data.nombre,
+          parsed.data.apellido_paterno,
+          parsed.data.apellido_materno,
+        ]
+          .filter(Boolean)
+          .join(" ");
+        const adscripcion = [
+          parsed.data.departamento,
+          parsed.data.division,
+          parsed.data.centro_universitario,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        const r = await notificarNuevoRegistro({
+          nombreCompleto,
+          emailNuevo: parsed.data.email,
+          codigoUdg: parsed.data.codigo_udg,
+          adscripcion,
+          emailPresidente: presidente.email,
+        });
+        if (!r.ok) {
+          console.error("[signupAction] notificarNuevoRegistro error:", r.error);
+        }
+      }
+    } catch (e) {
+      console.error("[signupAction] aviso de nuevo registro falló:", e);
+    }
   }
 
   redirect(`/verifica-correo?email=${encodeURIComponent(parsed.data.email)}`);
