@@ -29,10 +29,12 @@ import {
 } from "@/lib/ia/prompt-extraccion";
 import { resultadoIASchema } from "@/lib/ia/schema-resultado";
 
-// Llamadas a Sonnet con un protocolo largo pueden tardar 30-50s. Vercel Hobby
-// permite hasta 60s con maxDuration. Si llegamos al límite, el handler aborta
-// y el cliente puede reintentar.
-export const maxDuration = 60;
+// La extracción usa Haiku 4.5 (rápido) sobre el documento completo. En Vercel
+// Pro elevamos el límite a 120s como margen de seguridad para documentos muy
+// extensos (con Haiku rara vez se necesita; típico ~15-40s). Si la llamada se
+// pasa de tiempo, el SDK aborta antes (timeout por-request abajo) y el handler
+// marca 'error' en vez de dejar la fila colgada.
+export const maxDuration = 120;
 export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
@@ -160,12 +162,12 @@ export async function POST(req: NextRequest) {
           { role: "user", content: buildUserMessage(ext.texto_fuente) },
         ],
       },
-      // Timeout < 60s de Vercel y SIN reintentos: si Sonnet tarda demasiado
-      // (protocolo largo), el SDK lanza APIConnectionTimeoutError y cae al catch
-      // de abajo (→ marcarError) DENTRO del presupuesto de la función.
-      // maxRetries:0 evita que un reintento interno empuje el total más allá de
-      // 60s y la función muera dejando la fila colgada en 'procesando'.
-      { timeout: 50_000, maxRetries: 0 },
+      // Timeout < maxDuration (120s) y SIN reintentos: si la IA tarda demasiado,
+      // el SDK lanza APIConnectionTimeoutError y cae al catch de abajo
+      // (→ marcarError) DENTRO del presupuesto de la función. maxRetries:0 evita
+      // que un reintento interno empuje el total más allá del límite y la función
+      // muera dejando la fila colgada en 'procesando'.
+      { timeout: 110_000, maxRetries: 0 },
     );
 
     const textBlock = response.content.find((b) => b.type === "text");

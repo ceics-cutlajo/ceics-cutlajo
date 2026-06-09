@@ -497,16 +497,17 @@ export async function obtenerEstadoExtraccion(
   let esperando = prot.esperando_extraccion;
 
   // Auto-recuperación de extracciones colgadas. Si la función de IA murió (p.ej.
-  // Vercel mató el proceso al alcanzar su límite de 60s), la fila puede quedar
+  // Vercel mató el proceso al alcanzar su límite de 120s), la fila puede quedar
   // atrapada en 'procesando' indefinidamente y el investigador vería un spinner
-  // sin fin. La llamada a la IA se aborta a los ~50s y el handler marca 'error';
-  // por tanto, una fila que SIGA en 'procesando' pasados 90s implica que la
-  // función entera murió. La marcamos como 'error' (visible, con botón
-  // Reintentar) y apagamos la espera para que la pantalla redirija al wizard.
-  // Esta query se ejecuta en cada refresco (cada 15s) de la pantalla
-  // `procesando`, así que la recuperación es casi inmediata sin depender de
-  // crons (el plan Hobby de Vercel limita los crons a 1/día y máximo 2).
-  const STALE_MS = 90_000;
+  // sin fin. La llamada a la IA se aborta a los ~110s y el handler marca 'error';
+  // por tanto, una fila que SIGA en 'procesando' pasados 150s implica que la
+  // función entera murió. El umbral DEBE superar maxDuration (120s) para no
+  // marcar error a una extracción que sigue legítimamente en curso. La marcamos
+  // como 'error' (visible, con botón Reintentar) y apagamos la espera para que la
+  // pantalla redirija al wizard. Esta query se ejecuta en cada refresco (cada
+  // 15s) de la pantalla `procesando`, así que la recuperación es casi inmediata
+  // sin depender de crons.
+  const STALE_MS = 150_000;
   if (
     ext &&
     ext.estado === "procesando" &&

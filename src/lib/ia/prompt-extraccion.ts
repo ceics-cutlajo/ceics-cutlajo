@@ -86,13 +86,13 @@ QUÉ ALERTAR EXPLÍCITAMENTE
 
 Devuelve SOLO el objeto JSON. Nada de texto adicional.`;
 
-// Tope de caracteres enviados a Sonnet. Un protocolo completo puede superar los
-// 70.000 caracteres (~20K tokens), lo que empuja la latencia más allá del muro
-// de 60s de Vercel y cuelga la extracción. 48.000 caracteres (~13-15K tokens)
-// dejan a Sonnet terminar holgado dentro del timeout, conservando muchísimo más
-// contexto clínico que el pre-dictamen (que trunca a 5.000). El investigador
-// revisa y completa lo que falte en el formulario, así que el riesgo es acotado.
-export const MAX_CHARS_EXTRACCION = 48_000;
+// Se envía el documento COMPLETO a Haiku (rápido, cabe holgado en el límite de
+// tiempo). Este tope es solo una salvaguarda anti-desbordamiento: ~300.000
+// caracteres (~85K tokens) quedan muy por debajo del contexto de 200K tokens de
+// Haiku 4.5, dejando margen para el system prompt y la respuesta. Para un
+// protocolo real (decenas de miles de caracteres) NUNCA se activa — no se corta
+// el documento.
+export const MAX_CHARS_EXTRACCION = 300_000;
 
 export function buildUserMessage(textoFuente: string): string {
   const truncado = textoFuente.length > MAX_CHARS_EXTRACCION;

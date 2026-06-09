@@ -78,9 +78,10 @@ export function Procesando({ protocoloId, estadoInicial }: Props) {
 
   const ext = estado.extraccion;
   const faseActual = ext?.estado ?? "pendiente";
-  // Escape manual: si lleva mucho en "procesando" (más que el auto-rescate de
-  // 90s del servidor, por si el refresco fallara), ofrecer reintentar/saltar.
-  const mostrarTimeout = faseActual === "procesando" && segundos > 120;
+  // Escape manual: si lleva mucho en "procesando" (pasado el timeout del SDK de
+  // ~110s, antes del auto-rescate de 150s del servidor, por si el refresco
+  // fallara), ofrecer reintentar/saltar.
+  const mostrarTimeout = faseActual === "procesando" && segundos > 130;
 
   return (
     <div className="space-y-6">

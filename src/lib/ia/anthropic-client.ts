@@ -28,9 +28,16 @@ export function getAnthropicClient(): Anthropic {
   return _client;
 }
 
-// Extracción de protocolos (sesión 7): Sonnet 4.6 — 14 campos estructurados
-// con confianza y citas. Requiere precisión, vale la latencia.
-export const MODELO_EXTRACCION = "claude-sonnet-4-6";
+// Extracción de protocolos: Haiku 4.5 — 14 campos estructurados con confianza y
+// citas. Se cambió de Sonnet a Haiku (2026-06-09) porque Sonnet sobre el
+// documento COMPLETO (~73K caracteres) rebasaba el límite de tiempo de la
+// función y colgaba la extracción. Haiku genera 3-5× más rápido y procesa el
+// documento entero holgadamente; como esta extracción solo PRE-LLENA el
+// formulario (el investigador revisa y corrige todo en el wizard), la precisión
+// de Haiku es suficiente. Si la calidad del pre-llenado decepciona, se puede
+// volver a Sonnet (ahora cabe con maxDuration=120 en Vercel Pro para documentos
+// de tamaño típico).
+export const MODELO_EXTRACCION = "claude-haiku-4-5-20251001";
 export const MAX_TOKENS_EXTRACCION = 4096;
 
 // Pre-dictamen del comité (sesión 8a): Haiku 4.5 — evaluación guiada por
