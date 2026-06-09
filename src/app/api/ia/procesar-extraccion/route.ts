@@ -16,7 +16,6 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -28,7 +27,10 @@ import {
   SYSTEM_PROMPT_EXTRACCION,
   buildUserMessage,
 } from "@/lib/ia/prompt-extraccion";
-import { resultadoIASchema } from "@/lib/ia/schema-resultado";
+import {
+  resultadoIASchema,
+  resultadoJsonSchema,
+} from "@/lib/ia/schema-resultado";
 
 // La extracción usa Haiku 4.5 (rápido) sobre el documento completo. En Vercel
 // Pro elevamos el límite a 120s como margen de seguridad para documentos muy
@@ -156,9 +158,9 @@ export async function POST(req: NextRequest) {
     const anthropic = getAnthropicClient();
     // output_config.format obliga a la API a devolver JSON que cumple el schema
     // (sin comillas sin escapar ni JSON truncado a medias → elimina los errores
-    // de "JSON inválido"). messages.parse valida la respuesta contra el schema
-    // Zod y entrega response.parsed_output ya tipado.
-    const response = await anthropic.messages.parse(
+    // de "JSON inválido"). Pasamos un JSON Schema construido a mano para no
+    // depender del helper zodOutputFormat (que choca con la versión de Zod).
+    const response = await anthropic.messages.create(
       {
         model: MODELO_EXTRACCION,
         max_tokens: MAX_TOKENS_EXTRACCION,
@@ -166,7 +168,9 @@ export async function POST(req: NextRequest) {
         messages: [
           { role: "user", content: buildUserMessage(ext.texto_fuente) },
         ],
-        output_config: { format: zodOutputFormat(resultadoIASchema) },
+        output_config: {
+          format: { type: "json_schema", schema: resultadoJsonSchema },
+        },
       },
       // Timeout < maxDuration (120s) y SIN reintentos: si la IA tarda demasiado,
       // el SDK lanza APIConnectionTimeoutError y cae al catch de abajo
@@ -183,19 +187,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const parsed = response.parsed_output;
-    if (!parsed) {
+    const textBlock = response.content.find((b) => b.type === "text");
+    if (!textBlock || textBlock.type !== "text") {
+      throw new Error(
+        "La IA no devolvió contenido analizable. Reintenta o llena el formulario manualmente.",
+      );
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(textBlock.text);
+    } catch {
       throw new Error(
         "La IA no devolvió una respuesta con el formato esperado. Reintenta o llena el formulario manualmente.",
       );
     }
 
-    // El schema lleva tokens_* opcionales; los rellenamos con el uso real.
-    const resultado = {
-      ...parsed,
-      tokens_input: response.usage.input_tokens,
-      tokens_output: response.usage.output_tokens,
-    };
+    // Inyectar el uso real de tokens en el objeto parseado.
+    const conTokens =
+      typeof parsed === "object" && parsed !== null
+        ? {
+            ...(parsed as Record<string, unknown>),
+            tokens_input: response.usage.input_tokens,
+            tokens_output: response.usage.output_tokens,
+          }
+        : parsed;
+
+    // Las salidas estructuradas ya garantizan la FORMA y los tipos; validamos
+    // con Zod solo para limpiar, pero NO fallamos si difiere por longitudes
+    // mínimas (es un pre-llenado que el investigador revisa y corrige).
+    const validated = resultadoIASchema.safeParse(conTokens);
+    const resultado = validated.success ? validated.data : conTokens;
 
     // 6. Guardar completado (el trigger SQL aplica los campos al protocolo)
     const { error: errCompletado } = await admin

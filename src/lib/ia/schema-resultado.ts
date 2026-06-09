@@ -68,3 +68,83 @@ export const resultadoIASchema = z.object({
 });
 
 export type ResultadoIA = z.infer<typeof resultadoIASchema>;
+
+// ---------------------------------------------------------------------------
+// JSON Schema equivalente para SALIDAS ESTRUCTURADAS de la API (output_config.
+// format). Construido a mano (no con zodOutputFormat) para no depender de la
+// versión de Zod del SDK. Las salidas estructuradas NO admiten min/max/longitud,
+// así que aquí solo van tipos/enums/forma; las longitudes las valida el schema
+// Zod de arriba de forma tolerante tras parsear. Todos los campos de `campos`
+// son opcionales (la IA omite lo que no encuentra). Mantener en sync con el
+// schema Zod y con el trigger `aplicar_extraccion_ia` (migración 015).
+// ---------------------------------------------------------------------------
+function campoJson(valor: Record<string, unknown>): Record<string, unknown> {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: ["valor", "confianza"],
+    properties: {
+      valor,
+      confianza: { type: "string", enum: ["alta", "media", "baja"] },
+      fuente: { type: "string" },
+    },
+  };
+}
+
+export const resultadoJsonSchema: Record<string, unknown> = {
+  type: "object",
+  additionalProperties: false,
+  required: ["campos"],
+  properties: {
+    campos: {
+      type: "object",
+      additionalProperties: false,
+      required: [],
+      properties: {
+        titulo: campoJson({ type: "string" }),
+        resumen: campoJson({ type: "string" }),
+        area_conocimiento_id: campoJson({ type: "integer" }),
+        tipo_investigacion_id: campoJson({
+          type: "string",
+          enum: [...TIPOS_INVESTIGACION],
+        }),
+        clasificacion_riesgo: campoJson({
+          type: "string",
+          enum: [...CLASIFICACIONES_RIESGO],
+        }),
+        involucra_humanos: campoJson({ type: "boolean" }),
+        involucra_menores: campoJson({ type: "boolean" }),
+        involucra_datos_geneticos: campoJson({ type: "boolean" }),
+        involucra_medicamento: campoJson({ type: "boolean" }),
+        objetivo_general: campoJson({ type: "string" }),
+        objetivos_especificos: campoJson({
+          type: "array",
+          items: { type: "string" },
+        }),
+        criterios_inclusion: campoJson({
+          type: "array",
+          items: { type: "string" },
+        }),
+        criterios_exclusion: campoJson({
+          type: "array",
+          items: { type: "string" },
+        }),
+        metodologia: campoJson({ type: "string" }),
+        cronograma: campoJson({
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["etapa"],
+            properties: {
+              etapa: { type: "string" },
+              inicio: { type: "string" },
+              fin: { type: "string" },
+            },
+          },
+        }),
+      },
+    },
+    alertas: { type: "array", items: { type: "string" } },
+  },
+};

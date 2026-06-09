@@ -86,7 +86,7 @@ export function Procesando({ protocoloId, estadoInicial }: Props) {
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-eyebrow uppercase tracking-widest text-brand-magenta">
+        <p className="text-sm font-bold uppercase tracking-widest text-[#46728B]">
           Sometimiento · Análisis IA
         </p>
         <h1 className="text-display-1 mt-1 text-ink-900">Analizando tu protocolo</h1>
