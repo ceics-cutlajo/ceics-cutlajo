@@ -70,7 +70,7 @@
       "peso": 5,
       "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": "cualquiera", "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
       "seccion_protocolo": 2,
-      "ai_prompt_hint": "Verifica presencia de los 4 documentos: (1) CV con firma, (2) cedula profesional vigente, (3) constancia BPC con fecha de emision <=3 anos, (4) oficio del titular. Si falta cualquiera, marcar como NO cumple."
+      "ai_prompt_hint": "Verifica que el IP este acreditado con su CV/resumen curricular y su adscripcion institucional (UdeG/CUTlajo). NO exijas cedula profesional ni firma del CV: no son requisito del CEICS (ver R15). La constancia BPC solo aplica a estudios CON intervencion (ver R7) y el oficio del titular/sede solo si hay sede fisica (ver R14). Marca 'cumple' si el CV/credenciales del IP estan presentes; no marques 'no_cumple' por cedula, firma, BPC o sede cuando no apliquen."
     },
     {
       "id": "CHK-003",
@@ -122,7 +122,7 @@
       "peso": 3,
       "aplicabilidad": {"tipo_investigacion": ["clinica", "basica", "aplicada", "epidemiologica"], "involucra_humanos": true, "involucra_menores": "cualquiera", "involucra_datos_geneticos": "cualquiera"},
       "seccion_protocolo": 4,
-      "ai_prompt_hint": "Lista todas las sedes mencionadas en el protocolo y para cada una busca oficio de autorizacion firmado por el titular (Director/Jefe). En multicentrico verifica al menos una autorizacion por sede."
+      "ai_prompt_hint": "Solo aplica si el estudio tiene una o mas sedes fisicas (hospital/clinica/centro) con reclutamiento o acceso a pacientes/expedientes en sitio. Si el estudio usa exclusivamente bases de datos abiertas/publicas, datos secundarios o repositorios (sin sede fisica), marca 'no_aplica' (ver R14), no 'no_cumple'. Cuando si haya sede, lista cada una y busca el oficio de autorizacion del titular (Director/Jefe)."
     },
     {
       "id": "CHK-006",
