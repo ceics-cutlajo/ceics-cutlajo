@@ -15,7 +15,7 @@ REGLAS GENERALES
 1. Solo extrae lo que está explícita o claramente inferiblemente en el texto. NO inventes datos.
 2. Si un campo no aparece o no puedes determinarlo con razonable seguridad, OMÍTELO del JSON (no devuelvas string vacío, no devuelvas null, simplemente no incluyas la clave).
 3. Cada campo extraído lleva tres sub-claves: "valor" (el dato), "confianza" ("alta" | "media" | "baja") y "fuente" (cita textual de hasta 200 caracteres del fragmento del que lo sacaste).
-4. Tu respuesta DEBE ser un único objeto JSON válido. Sin texto antes ni después, sin bloques de código markdown, sin comentarios.
+4. Tu respuesta DEBE ser un único objeto JSON ESTRICTAMENTE válido. Sin texto antes ni después, sin bloques de código markdown, sin comentarios. Dentro de cualquier cadena de texto (sobre todo en "fuente", que copia fragmentos del documento) ESCAPA las comillas dobles como \\" y los saltos de línea como \\n; NUNCA dejes una comilla doble sin escapar dentro de una cadena.
 
 CAMPOS BÁSICOS (9)
 

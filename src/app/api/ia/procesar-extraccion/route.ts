@@ -16,6 +16,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { jsonrepair } from "jsonrepair";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -27,10 +28,7 @@ import {
   SYSTEM_PROMPT_EXTRACCION,
   buildUserMessage,
 } from "@/lib/ia/prompt-extraccion";
-import {
-  resultadoIASchema,
-  resultadoJsonSchema,
-} from "@/lib/ia/schema-resultado";
+import { resultadoIASchema } from "@/lib/ia/schema-resultado";
 
 // La extracción usa Haiku 4.5 (rápido) sobre el documento completo. En Vercel
 // Pro elevamos el límite a 120s como margen de seguridad para documentos muy
@@ -153,13 +151,14 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // 5. Llamar a la IA con SALIDAS ESTRUCTURADAS y validar
+  // 5. Llamar a la IA (modo normal, rápido) y parsear de forma robusta
   try {
     const anthropic = getAnthropicClient();
-    // output_config.format obliga a la API a devolver JSON que cumple el schema
-    // (sin comillas sin escapar ni JSON truncado a medias → elimina los errores
-    // de "JSON inválido"). Pasamos un JSON Schema construido a mano para no
-    // depender del helper zodOutputFormat (que choca con la versión de Zod).
+    // Generación normal (sin salidas estructuradas): éstas garantizan JSON
+    // válido pero la compilación de la gramática sobre el documento completo
+    // rebasa el límite de tiempo. En su lugar, Haiku genera rápido y reparamos
+    // el JSON con jsonrepair (corrige comillas internas sin escapar, comas
+    // finales, fences y truncados) — el defecto típico de Haiku.
     const response = await anthropic.messages.create(
       {
         model: MODELO_EXTRACCION,
@@ -168,9 +167,6 @@ export async function POST(req: NextRequest) {
         messages: [
           { role: "user", content: buildUserMessage(ext.texto_fuente) },
         ],
-        output_config: {
-          format: { type: "json_schema", schema: resultadoJsonSchema },
-        },
       },
       // Timeout < maxDuration (120s) y SIN reintentos: si la IA tarda demasiado,
       // el SDK lanza APIConnectionTimeoutError y cae al catch de abajo
@@ -194,13 +190,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Parseo robusto: intento directo y, si falla, reparación con jsonrepair.
+    const rawJson = extractJsonObject(textBlock.text);
     let parsed: unknown;
     try {
-      parsed = JSON.parse(textBlock.text);
+      parsed = JSON.parse(rawJson);
     } catch {
-      throw new Error(
-        "La IA no devolvió una respuesta con el formato esperado. Reintenta o llena el formulario manualmente.",
-      );
+      try {
+        parsed = JSON.parse(jsonrepair(rawJson));
+      } catch {
+        throw new Error(
+          "La IA no devolvió una respuesta con el formato esperado. Reintenta o llena el formulario manualmente.",
+        );
+      }
     }
 
     // Inyectar el uso real de tokens en el objeto parseado.
@@ -272,4 +274,23 @@ async function marcarError(
       error_mensaje: mensaje.slice(0, 1000),
     })
     .eq("id", extraccionId);
+}
+
+/**
+ * Haiku a veces envuelve el JSON en bloques markdown (```json ... ```) o añade
+ * preámbulo pese al system prompt. Extrae el primer objeto JSON balanceado de la
+ * respuesta. Si no encuentra estructura clara, devuelve el texto original (que
+ * pasará por jsonrepair y, si todo falla, dará un error informativo).
+ */
+function extractJsonObject(text: string): string {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenced) {
+    return fenced[1].trim();
+  }
+  const first = text.indexOf("{");
+  const last = text.lastIndexOf("}");
+  if (first !== -1 && last !== -1 && last > first) {
+    return text.slice(first, last + 1);
+  }
+  return text;
 }
