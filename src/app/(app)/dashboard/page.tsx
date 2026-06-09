@@ -4,6 +4,7 @@ import { obtenerUsuarioActual, nombreCompletoDe } from "@/lib/auth/usuario-actua
 import { listarProtocolos } from "@/lib/protocolos/queries";
 import { ETIQUETAS_ESTADO, type EstadoProtocolo } from "@/types/domain";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { BorrarBorradorBoton } from "./BorrarBorradorBoton";
 
 export default async function DashboardPage() {
   const usuario = await obtenerUsuarioActual();
@@ -103,12 +104,17 @@ export default async function DashboardPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       {p.estado === "borrador" || p.estado === "observaciones" ? (
-                        <Link
-                          href={`/protocolo/${p.id}/editar`}
-                          className="text-xs font-medium text-[var(--accent)] hover:underline"
-                        >
-                          Continuar →
-                        </Link>
+                        <div className="flex items-center justify-end gap-4">
+                          <Link
+                            href={`/protocolo/${p.id}/editar`}
+                            className="text-xs font-medium text-[var(--accent)] hover:underline"
+                          >
+                            Continuar →
+                          </Link>
+                          {p.estado === "borrador" && (
+                            <BorrarBorradorBoton protocoloId={p.id} />
+                          )}
+                        </div>
                       ) : (
                         <Link
                           href={`/protocolo/${p.id}`}

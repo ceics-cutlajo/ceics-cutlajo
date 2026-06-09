@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   crearProtocoloConIAAction,
   crearYEditarProtocoloAction,
@@ -10,7 +10,34 @@ export function NuevoProtocoloForm() {
   const [path, setPath] = useState<"elegir" | "ia" | "manual">("elegir");
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dragActive, setDragActive] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  // Evita que el navegador ABRA el archivo (comportamiento por defecto de Chrome:
+  // navegar al PDF) si el usuario lo suelta FUERA de la zona de carga. Mientras
+  // la pantalla de subida con IA está activa, cancelamos el drop a nivel de
+  // ventana; la zona de carga sí captura el archivo en su propio onDrop.
+  useEffect(() => {
+    if (path !== "ia") return;
+    const prevenir = (e: DragEvent) => e.preventDefault();
+    window.addEventListener("dragover", prevenir);
+    window.addEventListener("drop", prevenir);
+    return () => {
+      window.removeEventListener("dragover", prevenir);
+      window.removeEventListener("drop", prevenir);
+    };
+  }, [path]);
+
+  function seleccionarArchivo(f: File | null | undefined) {
+    if (!f) return;
+    if (!/\.(pdf|doc|docx)$/i.test(f.name)) {
+      setFile(null);
+      setError("Formato no permitido. Sube PDF o Word (.doc/.docx).");
+      return;
+    }
+    setFile(f);
+    setError(null);
+  }
 
   function dispararIA() {
     if (!file) {
@@ -128,10 +155,29 @@ export function NuevoProtocoloForm() {
 
       <label
         htmlFor="archivo-protocolo"
+        onDragEnter={(e) => {
+          e.preventDefault();
+          setDragActive(true);
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragActive(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setDragActive(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragActive(false);
+          seleccionarArchivo(e.dataTransfer.files?.[0]);
+        }}
         className={`mt-6 flex cursor-pointer flex-col items-center gap-2 rounded-md border-2 border-dashed p-8 text-center transition ${
-          file
-            ? "border-good/40 bg-good-soft/30"
-            : "border-ink-300 bg-ink-50 hover:border-[var(--accent)] hover:bg-[var(--accent)]/5"
+          dragActive
+            ? "border-[var(--accent)] bg-[var(--accent)]/10"
+            : file
+              ? "border-good/40 bg-good-soft/30"
+              : "border-ink-300 bg-ink-50 hover:border-[var(--accent)] hover:bg-[var(--accent)]/5"
         }`}
       >
         <span className="text-3xl">{file ? "📄" : "⬆️"}</span>
@@ -156,10 +202,7 @@ export function NuevoProtocoloForm() {
           type="file"
           hidden
           accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-          onChange={(e) => {
-            setFile(e.target.files?.[0] ?? null);
-            setError(null);
-          }}
+          onChange={(e) => seleccionarArchivo(e.target.files?.[0])}
         />
       </label>
 
