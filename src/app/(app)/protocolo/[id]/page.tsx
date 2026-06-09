@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { obtenerProtocolo, urlFirmadaDocumento } from "@/lib/protocolos/queries";
+import { obtenerProtocolo } from "@/lib/protocolos/queries";
 import {
   ETIQUETAS_AREA,
   ETIQUETAS_TIPO_INV,
@@ -32,13 +32,7 @@ export default async function VerProtocoloPage({
 
   // Datos auxiliares para el timeline (en paralelo con las URLs firmadas)
   const admin = createAdminClient();
-  const [docsConUrl, versionMaxPreInforme, ipUsuario] = await Promise.all([
-    Promise.all(
-      documentos.map(async (d) => ({
-        ...d,
-        url: await urlFirmadaDocumento(d.storage_path),
-      })),
-    ),
+  const [versionMaxPreInforme, ipUsuario] = await Promise.all([
     obtenerVersionMaxPreInforme(id),
     admin
       .from("usuarios")
@@ -46,6 +40,12 @@ export default async function VerProtocoloPage({
       .eq("id", protocolo.investigador_principal_id)
       .single(),
   ]);
+  // La firma de cada documento se genera al dar clic (ruta /api/documentos/[id]),
+  // no aquí, para que el enlace no caduque mientras se ve el expediente.
+  const docsConUrl = documentos.map((d) => ({
+    ...d,
+    url: `/api/documentos/${d.id}`,
+  }));
 
   const ipNombre = ipUsuario.data
     ? `${ipUsuario.data.nombre} ${ipUsuario.data.apellido_paterno}${ipUsuario.data.apellido_materno ? " " + ipUsuario.data.apellido_materno : ""}`

@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { obtenerProtocolo, urlFirmadaDocumento } from "@/lib/protocolos/queries";
+import { obtenerProtocolo } from "@/lib/protocolos/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { obtenerUsuarioActual } from "@/lib/auth/usuario-actual";
 import { Revisar } from "./revisar";
@@ -108,16 +108,14 @@ export default async function ComiteProtocoloPage({
     !!presidenteTitularId &&
     presidenteTitularId === datos.protocolo.investigador_principal_id;
 
-  // URLs firmadas + versión máxima de pre-informe (en paralelo)
-  const [documentosConUrl, versionMaxPreInforme] = await Promise.all([
-    Promise.all(
-      datos.documentos.map(async (d) => ({
-        ...d,
-        urlDescarga: await urlFirmadaDocumento(d.storage_path),
-      })),
-    ),
-    obtenerVersionMaxPreInforme(id),
-  ]);
+  // Enlaces de descarga + versión máxima de pre-informe.
+  // La firma de cada documento se genera al dar clic (ruta /api/documentos/[id]),
+  // no aquí, para que nunca caduque mientras el comité revisa el expediente.
+  const documentosConUrl = datos.documentos.map((d) => ({
+    ...d,
+    urlDescarga: `/api/documentos/${d.id}`,
+  }));
+  const versionMaxPreInforme = await obtenerVersionMaxPreInforme(id);
 
   const timeline = derivarTimeline({
     estado: datos.protocolo.estado,
