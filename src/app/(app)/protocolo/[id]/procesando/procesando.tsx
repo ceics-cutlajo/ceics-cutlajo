@@ -78,6 +78,9 @@ export function Procesando({ protocoloId, estadoInicial }: Props) {
 
   const ext = estado.extraccion;
   const faseActual = ext?.estado ?? "pendiente";
+  // Escape manual: si lleva mucho en "procesando" (más que el auto-rescate de
+  // 90s del servidor, por si el refresco fallara), ofrecer reintentar/saltar.
+  const mostrarTimeout = faseActual === "procesando" && segundos > 120;
 
   return (
     <div className="space-y-6">
@@ -159,6 +162,14 @@ export function Procesando({ protocoloId, estadoInicial }: Props) {
           </div>
         )}
 
+        {mostrarTimeout && (
+          <div className="mt-6 rounded-md border border-info/20 bg-info-soft px-4 py-3 text-sm text-info">
+            Esto está tardando más de lo normal. Puedes <strong>reintentar</strong>{" "}
+            el análisis o <strong>saltar</strong> y llenar el formulario
+            manualmente — tu documento y tu borrador no se pierden.
+          </div>
+        )}
+
         {mensaje && (
           <div className="mt-6 rounded-md border border-info/20 bg-info-soft px-4 py-3 text-sm text-info">
             {mensaje}
@@ -172,7 +183,7 @@ export function Procesando({ protocoloId, estadoInicial }: Props) {
           ← Volver al dashboard
         </Link>
         <div className="flex gap-3">
-          {faseActual === "error" && (
+          {(faseActual === "error" || mostrarTimeout) && (
             <button
               onClick={() => {
                 setMensaje(null);

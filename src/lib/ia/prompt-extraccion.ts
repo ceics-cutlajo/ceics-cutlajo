@@ -86,12 +86,29 @@ QUÉ ALERTAR EXPLÍCITAMENTE
 
 Devuelve SOLO el objeto JSON. Nada de texto adicional.`;
 
+// Tope de caracteres enviados a Sonnet. Un protocolo completo puede superar los
+// 70.000 caracteres (~20K tokens), lo que empuja la latencia más allá del muro
+// de 60s de Vercel y cuelga la extracción. 48.000 caracteres (~13-15K tokens)
+// dejan a Sonnet terminar holgado dentro del timeout, conservando muchísimo más
+// contexto clínico que el pre-dictamen (que trunca a 5.000). El investigador
+// revisa y completa lo que falte en el formulario, así que el riesgo es acotado.
+export const MAX_CHARS_EXTRACCION = 48_000;
+
 export function buildUserMessage(textoFuente: string): string {
+  const truncado = textoFuente.length > MAX_CHARS_EXTRACCION;
+  const texto = truncado
+    ? textoFuente.slice(0, MAX_CHARS_EXTRACCION)
+    : textoFuente;
+  const aviso = truncado
+    ? `\n\n[NOTA: el documento es muy extenso y se truncó a los primeros ${MAX_CHARS_EXTRACCION.toLocaleString(
+        "es-MX",
+      )} caracteres para el análisis. Si algún campo que suele ir al final (criterios de inclusión/exclusión, cronograma) no aparece en el texto, repórtalo en "alertas" para que el investigador lo capture manualmente.]`
+    : "";
   return `Analiza el siguiente texto extraído del documento del investigador y devuelve el JSON estructurado:
 
 ---INICIO DEL DOCUMENTO---
 
-${textoFuente}
+${texto}
 
----FIN DEL DOCUMENTO---`;
+---FIN DEL DOCUMENTO---${aviso}`;
 }

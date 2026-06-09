@@ -151,14 +151,22 @@ export async function POST(req: NextRequest) {
   // 5. Llamar a Sonnet, parsear, validar
   try {
     const anthropic = getAnthropicClient();
-    const response = await anthropic.messages.create({
-      model: MODELO_EXTRACCION,
-      max_tokens: MAX_TOKENS_EXTRACCION,
-      system: SYSTEM_PROMPT_EXTRACCION,
-      messages: [
-        { role: "user", content: buildUserMessage(ext.texto_fuente) },
-      ],
-    });
+    const response = await anthropic.messages.create(
+      {
+        model: MODELO_EXTRACCION,
+        max_tokens: MAX_TOKENS_EXTRACCION,
+        system: SYSTEM_PROMPT_EXTRACCION,
+        messages: [
+          { role: "user", content: buildUserMessage(ext.texto_fuente) },
+        ],
+      },
+      // Timeout < 60s de Vercel y SIN reintentos: si Sonnet tarda demasiado
+      // (protocolo largo), el SDK lanza APIConnectionTimeoutError y cae al catch
+      // de abajo (→ marcarError) DENTRO del presupuesto de la función.
+      // maxRetries:0 evita que un reintento interno empuje el total más allá de
+      // 60s y la función muera dejando la fila colgada en 'procesando'.
+      { timeout: 50_000, maxRetries: 0 },
+    );
 
     const textBlock = response.content.find((b) => b.type === "text");
     if (!textBlock || textBlock.type !== "text") {
@@ -194,7 +202,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 6. Guardar completado (el trigger SQL aplica los campos al protocolo)
-    await admin
+    const { error: errCompletado } = await admin
       .from("extracciones_ia")
       .update({
         estado: "completado",
@@ -202,6 +210,14 @@ export async function POST(req: NextRequest) {
         resultado_json: validated.data,
       })
       .eq("id", body.extraccionId);
+    if (errCompletado) {
+      // Si el guardado final falla (DB/RLS), NO dejar la fila en 'procesando':
+      // el throw cae al catch → marcarError, y la UI ofrece reintentar.
+      throw new Error(
+        "No se pudo guardar el resultado de la extracción: " +
+          errCompletado.message,
+      );
+    }
 
     return NextResponse.json({
       ok: true,
@@ -209,8 +225,14 @@ export async function POST(req: NextRequest) {
       tokens_output: response.usage.output_tokens,
     });
   } catch (e) {
-    const mensaje =
+    let mensaje =
       e instanceof Error ? e.message : "Error desconocido procesando con IA.";
+    // El timeout del SDK (documento demasiado largo/lento) llega aquí como
+    // "Request timed out" — traducirlo a un mensaje accionable para el usuario.
+    if (/tim(e|ed)\s*out/i.test(mensaje)) {
+      mensaje =
+        "El análisis tardó más del tiempo permitido. Reintenta; si el documento es muy extenso, también puedes saltar y llenar el formulario manualmente.";
+    }
     await marcarError(admin, body.extraccionId, mensaje);
     return NextResponse.json(
       { ok: false, error: "ia-error", message: mensaje },

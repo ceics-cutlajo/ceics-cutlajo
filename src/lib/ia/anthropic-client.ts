@@ -17,7 +17,14 @@ export function getAnthropicClient(): Anthropic {
       "ANTHROPIC_API_KEY no está configurada. Revisa Vercel env vars o app/.env.local.",
     );
   }
-  _client = new Anthropic({ apiKey });
+  // timeout < maxDuration (60s) de Vercel: si una llamada se pasa de tiempo, el
+  // SDK lanza una excepción ANTES de que Vercel mate el proceso, de modo que el
+  // catch del route handler corre y marca la fila como 'error' (en vez de
+  // dejarla colgada en 'procesando' para siempre → spinner infinito).
+  // maxRetries:1 evita que reintentos internos del SDK consuman el presupuesto
+  // de 60s. Las llamadas que necesiten un límite más estricto (extracción) lo
+  // pasan por-request en el 2º argumento de messages.create().
+  _client = new Anthropic({ apiKey, timeout: 55_000, maxRetries: 1 });
   return _client;
 }
 

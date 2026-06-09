@@ -493,10 +493,49 @@ export async function obtenerEstadoExtraccion(
     .limit(1)
     .maybeSingle();
 
+  let extraccion = ext;
+  let esperando = prot.esperando_extraccion;
+
+  // Auto-recuperación de extracciones colgadas. Si la función de IA murió (p.ej.
+  // Vercel mató el proceso al alcanzar su límite de 60s), la fila puede quedar
+  // atrapada en 'procesando' indefinidamente y el investigador vería un spinner
+  // sin fin. La llamada a la IA se aborta a los ~50s y el handler marca 'error';
+  // por tanto, una fila que SIGA en 'procesando' pasados 90s implica que la
+  // función entera murió. La marcamos como 'error' (visible, con botón
+  // Reintentar) y apagamos la espera para que la pantalla redirija al wizard.
+  // Esta query se ejecuta en cada refresco (cada 15s) de la pantalla
+  // `procesando`, así que la recuperación es casi inmediata sin depender de
+  // crons (el plan Hobby de Vercel limita los crons a 1/día y máximo 2).
+  const STALE_MS = 90_000;
+  if (
+    ext &&
+    ext.estado === "procesando" &&
+    ext.procesando_desde &&
+    Date.now() - new Date(ext.procesando_desde).getTime() > STALE_MS
+  ) {
+    const mensaje =
+      "El análisis se interrumpió por exceder el tiempo límite. Reintenta el análisis o salta y llena el formulario manualmente.";
+    await admin
+      .from("extracciones_ia")
+      .update({
+        estado: "error",
+        completed_at: new Date().toISOString(),
+        error_mensaje: mensaje,
+      })
+      .eq("id", ext.id)
+      .eq("estado", "procesando"); // idempotente: solo si sigue colgada
+    await admin
+      .from("protocolos")
+      .update({ esperando_extraccion: false })
+      .eq("id", protocoloId);
+    extraccion = { ...ext, estado: "error" as const, error_mensaje: mensaje };
+    esperando = false;
+  }
+
   return {
     protocolo_id: prot.id,
-    esperando_extraccion: prot.esperando_extraccion,
-    extraccion: ext,
+    esperando_extraccion: esperando,
+    extraccion,
   };
 }
 
