@@ -3,9 +3,26 @@ import { listarBandejaComite } from "@/lib/protocolos/queries";
 import { ETIQUETAS_ESTADO, type EstadoProtocolo } from "@/types/domain";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SemaforoSometimiento } from "@/components/protocolos/SemaforoSometimiento";
+import {
+  resumenVotacionProtocolo,
+  type VotoMiembro,
+} from "@/lib/evaluaciones/transparencia";
+import { listarMiembrosElegiblesComite } from "@/lib/evaluaciones/queries";
+import { ResumenVotosCompacto } from "@/components/evaluaciones/panel-votacion-comite";
 
 export default async function BandejaComitePage() {
   const protocolos = await listarBandejaComite();
+
+  // Avance de votación por protocolo (transparencia), reutilizando el padrón.
+  const miembros = await listarMiembrosElegiblesComite();
+  const votosPorProtocolo = new Map(
+    await Promise.all(
+      protocolos.map(
+        async (p) =>
+          [p.id, await resumenVotacionProtocolo(p.id, miembros)] as const,
+      ),
+    ),
+  );
 
   const pendientes = protocolos.filter((p) => !p.conflictoInteres);
   const conflicto = protocolos.filter((p) => p.conflictoInteres);
@@ -32,7 +49,11 @@ export default async function BandejaComitePage() {
         ) : (
           <ul className="divide-y divide-ink-100">
             {pendientes.map((p) => (
-              <ProtocoloRow key={p.id} p={p} />
+              <ProtocoloRow
+                key={p.id}
+                p={p}
+                votos={votosPorProtocolo.get(p.id) ?? []}
+              />
             ))}
           </ul>
         )}
@@ -48,7 +69,11 @@ export default async function BandejaComitePage() {
           </div>
           <ul className="divide-y divide-ink-100">
             {conflicto.map((p) => (
-              <ProtocoloRow key={p.id} p={p} />
+              <ProtocoloRow
+                key={p.id}
+                p={p}
+                votos={votosPorProtocolo.get(p.id) ?? []}
+              />
             ))}
           </ul>
         </section>
@@ -60,8 +85,10 @@ export default async function BandejaComitePage() {
 
 function ProtocoloRow({
   p,
+  votos,
 }: {
   p: Awaited<ReturnType<typeof listarBandejaComite>>[number];
+  votos: VotoMiembro[];
 }) {
   return (
     <li>
@@ -95,6 +122,11 @@ function ProtocoloRow({
               </>
             )}
           </p>
+          {votos.length > 0 && (
+            <div className="mt-2">
+              <ResumenVotosCompacto votos={votos} />
+            </div>
+          )}
         </div>
         <span className="shrink-0 text-xs font-medium text-[var(--accent)]">Abrir →</span>
       </Link>

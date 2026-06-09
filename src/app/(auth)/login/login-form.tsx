@@ -83,6 +83,12 @@ export function LoginForm() {
           Regístrate
         </Link>
       </div>
+
+      <div className="text-center text-xs text-ink-400">
+        <Link href="/transparencia" className="hover:underline">
+          Transparencia del comité
+        </Link>
+      </div>
     </div>
   );
 }

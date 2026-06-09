@@ -16,6 +16,8 @@ import { TimelineProtocolo } from "@/components/timeline/timeline-protocolo";
 import { obtenerActaPorProtocolo } from "@/lib/actas/queries";
 import { CardActa } from "@/components/actas/card-acta";
 import { BannerEmitirDictamen } from "@/components/actas/banner-emitir-dictamen";
+import { resumenVotacionProtocolo } from "@/lib/evaluaciones/transparencia";
+import { PanelVotacionComite } from "@/components/evaluaciones/panel-votacion-comite";
 
 export const dynamic = "force-dynamic";
 
@@ -129,6 +131,9 @@ export default async function ComiteProtocoloPage({
   // para que nunca caduquen mientras se revisa el expediente.
   const docxUrl = acta?.docx_storage_path ? `/api/actas/${acta.id}?f=docx` : null;
   const pdfUrl = acta?.pdf_storage_path ? `/api/actas/${acta.id}?f=pdf` : null;
+
+  // Votación del comité (transparencia): quién votó y en qué sentido.
+  const votosComite = await resumenVotacionProtocolo(id);
   // El banner se muestra cuando:
   //  - es Presidente y NO es IP del protocolo, o
   //  - es Secretario(a) y el Presidente titular SÍ es IP (delegación por COI).
@@ -186,6 +191,9 @@ export default async function ComiteProtocoloPage({
           enviadaAt={acta.enviada_a_investigador_at}
         />
       )}
+      <section className="card p-6">
+        <PanelVotacionComite votos={votosComite} />
+      </section>
       <Revisar
         protocoloId={id}
         protocolo={datos.protocolo}

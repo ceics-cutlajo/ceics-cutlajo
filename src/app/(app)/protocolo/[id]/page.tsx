@@ -15,6 +15,8 @@ import { TimelineProtocolo } from "@/components/timeline/timeline-protocolo";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { obtenerActaPorProtocolo } from "@/lib/actas/queries";
 import { CardActa } from "@/components/actas/card-acta";
+import { resumenVotacionProtocolo } from "@/lib/evaluaciones/transparencia";
+import { PanelVotacionComite } from "@/components/evaluaciones/panel-votacion-comite";
 
 export default async function VerProtocoloPage({
   params,
@@ -66,6 +68,9 @@ export default async function VerProtocoloPage({
   // para que nunca caduquen mientras se ve el expediente.
   const actaDocxUrl = acta?.docx_storage_path ? `/api/actas/${acta.id}?f=docx` : null;
   const actaPdfUrl = acta?.pdf_storage_path ? `/api/actas/${acta.id}?f=pdf` : null;
+
+  // Votación del comité sobre este protocolo (transparencia).
+  const votosComite = await resumenVotacionProtocolo(id);
 
   return (
     <div className="space-y-6">
@@ -289,6 +294,15 @@ export default async function VerProtocoloPage({
           </ul>
         )}
       </section>
+
+      {/* Votación del comité (solo cuando ya está en revisión o dictaminado) */}
+      {protocolo.estado !== "borrador" &&
+        protocolo.estado !== "en_evaluacion_ia" &&
+        protocolo.estado !== "retirado" && (
+          <section className="card p-6">
+            <PanelVotacionComite votos={votosComite} />
+          </section>
+        )}
 
       {/* Línea de tiempo */}
       <section className="card p-6">
