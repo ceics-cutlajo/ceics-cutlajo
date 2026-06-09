@@ -13,11 +13,22 @@ import { z } from "zod";
 
 const resultadoSchema = z.enum(["cumple", "no_cumple", "parcial", "no_aplica"]);
 
+/**
+ * Cadena tolerante a longitud: en vez de RECHAZAR (y reventar todo el grupo del
+ * pre-dictamen) cuando el modelo se pasa de largo, RECORTA a `max`. El modelo a
+ * veces excede el límite sugerido en el prompt; una observación larga no debe
+ * tumbar la generación completa del pre-dictamen.
+ */
+const textoRecortado = (max: number) =>
+  z
+    .string()
+    .transform((s) => (s.length > max ? s.slice(0, max - 1).trimEnd() + "…" : s));
+
 const itemEvaluadoSchema = z.object({
   id: z.string().regex(/^CHK-\d{3}$/),
   resultado: resultadoSchema,
-  observacion: z.string().min(3).max(300),
-  fuente_protocolo: z.string().max(300).optional(),
+  observacion: textoRecortado(500),
+  fuente_protocolo: textoRecortado(400).optional(),
 });
 
 const bloqueEvaluadoSchema = z.object({
@@ -25,7 +36,7 @@ const bloqueEvaluadoSchema = z.object({
   // 2000 chars cubre justificaciones más extensas; el prompt sugiere 40-150
   // palabras pero Haiku a veces se extiende cuando un bloque tiene mucha
   // matiz (consentimiento, metodología). No afecta latencia, son output text.
-  justificacion: z.string().min(15).max(2000),
+  justificacion: textoRecortado(2000),
   // items_evaluados: detalle por ítem (reactivado en modo "a fondo" con Sonnet).
   // Cap a 80 por bloque (era 40): un bloque con muchos CHK aplicables podría
   // superar 40 y reventar el safeParse → el grupo entero fallaría.
@@ -63,8 +74,8 @@ export const preDictamenParcialSchema = z.object({
     transparencia_publicacion: bloqueEvaluadoSchema.optional(),
     aspectos_economicos: bloqueEvaluadoSchema.optional(),
   }),
-  observaciones_criticas: z.array(z.string().min(10).max(500)).max(20).optional(),
-  sugerencias: z.array(z.string().min(10).max(500)).max(20).optional(),
+  observaciones_criticas: z.array(textoRecortado(600)).max(20).optional(),
+  sugerencias: z.array(textoRecortado(600)).max(20).optional(),
   tokens_input: z.number().int().nonnegative().optional(),
   tokens_output: z.number().int().nonnegative().optional(),
 });
@@ -74,7 +85,7 @@ export type PreDictamenParcial = z.infer<typeof preDictamenParcialSchema>;
 // El route handler combina N PreDictamenParcial + construye resumen_ejecutivo
 // y produce este objeto antes de validar y escribir.
 export const preDictamenSchema = z.object({
-  resumen_ejecutivo: z.string().min(50).max(2000),
+  resumen_ejecutivo: textoRecortado(2000),
   bloques: z.object({
     identificacion: bloqueEvaluadoSchema.optional(),
     estructura_cientifica: bloqueEvaluadoSchema.optional(),
@@ -88,8 +99,8 @@ export const preDictamenSchema = z.object({
     transparencia_publicacion: bloqueEvaluadoSchema.optional(),
     aspectos_economicos: bloqueEvaluadoSchema.optional(),
   }),
-  observaciones_criticas: z.array(z.string().min(10).max(500)).max(20).optional(),
-  sugerencias: z.array(z.string().min(10).max(500)).max(20).optional(),
+  observaciones_criticas: z.array(textoRecortado(600)).max(20).optional(),
+  sugerencias: z.array(textoRecortado(600)).max(20).optional(),
   tokens_input: z.number().int().nonnegative().optional(),
   tokens_output: z.number().int().nonnegative().optional(),
 });
