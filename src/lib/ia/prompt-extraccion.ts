@@ -51,6 +51,8 @@ CAMPOS CLÍNICOS (6)
 14. metodologia — string, mínimo 50 caracteres. Describe diseño y técnica.
 15. cronograma — array de objetos con forma { "etapa": "string", "inicio": "YYYY-MM" opcional, "fin": "YYYY-MM" opcional }.
 
+EQUIPO DE INVESTIGACIÓN — Además de los campos, extrae a los CO-INVESTIGADORES (las personas colaboradoras DISTINTAS del Investigador Principal). Para cada uno: nombre, apellido_paterno, apellido_materno (si aparece), adscripcion (institución) y email (si aparece). NUNCA incluyas al Investigador Principal. Si el documento no lista co-investigadores, omite el campo co_investigadores.
+
 FORMATO EXACTO DE RESPUESTA
 
 {
@@ -73,6 +75,9 @@ FORMATO EXACTO DE RESPUESTA
   },
   "alertas": [
     "Si detectaste algo que requiera atención del investigador o del comité, ponlo aquí como string. Ejemplos: 'No se detectó cronograma explícito', 'El nivel de riesgo declarado parece subestimado dado el uso de fármaco experimental', 'Posible conflicto de interés: la investigadora principal es miembro del CEICS', 'El documento usa nomenclatura antigua del comité (\\\"Comité de Ética e Investigación\\\" en lugar de CEICS)', 'El documento subido es solo la carta de sometimiento, no el protocolo completo'"
+  ],
+  "co_investigadores": [
+    { "nombre": "Patricia Noemí", "apellido_paterno": "Vargas", "apellido_materno": "Becerra", "adscripcion": "Universidad de Guadalajara" }
   ]
 }
 

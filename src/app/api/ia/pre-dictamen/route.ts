@@ -37,13 +37,17 @@ import {
   ETIQUETAS_CATEGORIA,
   type Categoria,
 } from "@/lib/checklist";
+import { extraerTextoDeBuffer } from "@/lib/protocolos/extraccion";
+import { ETIQUETAS_DOCUMENTO, type TipoDocumento } from "@/lib/protocolos/schemas";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
   protocoloId: z.string().uuid(),
 });
+
+const BUCKET_PROTOCOLOS = "protocolos";
 
 const ROLES_COMITE = new Set([
   "comite_vocal",
@@ -184,10 +188,11 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // 8. Llamar a Haiku 3 veces en paralelo, una por grupo de bloques
+  // 8. Llamar a Sonnet 3 veces en paralelo, una por grupo de bloques
   const inicio = Date.now();
   try {
     const anthropic = getAnthropicClient();
+    const documentosPaquete = await cargarDocumentosPaquete(admin, body.protocoloId);
     const datosPrompt = {
       titulo: prot.titulo,
       resumen: prot.resumen,
@@ -207,21 +212,27 @@ export async function POST(req: NextRequest) {
         (prot.cronograma as { etapa: string; inicio?: string; fin?: string }[] | null) ?? [],
       ip_nombre: ipNombre,
       texto_fuente: extraccion?.texto_fuente ?? null,
+      documentos: documentosPaquete,
     };
 
     const parciales = await Promise.all(
       GRUPOS_BLOQUES.map(async (grupo) => {
-        const response = await anthropic.messages.create({
-          model: MODELO_PRE_DICTAMEN,
-          max_tokens: MAX_TOKENS_PRE_DICTAMEN,
-          system: SYSTEM_PROMPT_PRE_DICTAMEN,
-          messages: [
-            {
-              role: "user",
-              content: buildUserMessagePreDictamen(datosPrompt, filtradoPorCategoria, grupo),
-            },
-          ],
-        });
+        const response = await anthropic.messages.create(
+          {
+            model: MODELO_PRE_DICTAMEN,
+            max_tokens: MAX_TOKENS_PRE_DICTAMEN,
+            system: SYSTEM_PROMPT_PRE_DICTAMEN,
+            messages: [
+              {
+                role: "user",
+                content: buildUserMessagePreDictamen(datosPrompt, filtradoPorCategoria, grupo),
+              },
+            ],
+          },
+          // El cliente compartido tiene timeout default de 55s, insuficiente para
+          // Sonnet sobre documentos largos. Subimos a 290s (bajo maxDuration=300).
+          { timeout: 290_000, maxRetries: 1 },
+        );
         const textBlock = response.content.find((b) => b.type === "text");
         if (!textBlock || textBlock.type !== "text") {
           throw new Error(`Respuesta IA sin texto para grupo ${grupo.join(",")}.`);
@@ -385,6 +396,58 @@ export async function POST(req: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+const TIPOS_DOC_PAQUETE: TipoDocumento[] = [
+  "carta_presidente", "delegacion", "cv_ip", "bpc", "consentimiento", "asentimiento",
+]; // excluye formato_protocolo: ya es el texto_fuente
+const MAX_CHARS_DOC_PAQUETE = 12_000;
+
+async function cargarDocumentosPaquete(
+  admin: ReturnType<typeof createAdminClient>,
+  protocoloId: string,
+): Promise<{ etiqueta: string; texto: string }[]> {
+  const { data: rows } = await admin
+    .from("protocolo_documentos")
+    .select("tipo_documento_id, storage_path, mime_type, ronda, uploaded_at")
+    .eq("protocolo_id", protocoloId)
+    .order("ronda", { ascending: false })
+    .order("uploaded_at", { ascending: false });
+  if (!rows || rows.length === 0) return [];
+  const vistos = new Set<string>();
+  const seleccion = rows.filter((r) => {
+    const tipo = r.tipo_documento_id as string;
+    if (!TIPOS_DOC_PAQUETE.includes(tipo as TipoDocumento)) return false;
+    if (vistos.has(tipo)) return false;
+    vistos.add(tipo);
+    return true;
+  });
+  const extraidos = await Promise.all(
+    seleccion.map(async (r) => {
+      try {
+        const { data: fileData } = await admin.storage
+          .from(BUCKET_PROTOCOLOS)
+          .download(r.storage_path);
+        if (!fileData) return null;
+        const buffer = Buffer.from(await fileData.arrayBuffer());
+        const { texto } = await extraerTextoDeBuffer(buffer, r.mime_type);
+        if (!texto || texto.trim().length === 0) return null;
+        const recortado =
+          texto.length > MAX_CHARS_DOC_PAQUETE
+            ? texto.slice(0, MAX_CHARS_DOC_PAQUETE) + "\n[...documento truncado...]"
+            : texto;
+        const etiqueta =
+          ETIQUETAS_DOCUMENTO[r.tipo_documento_id as TipoDocumento] ??
+          (r.tipo_documento_id as string);
+        return { etiqueta, texto: recortado.trim() };
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return extraidos.filter(
+    (d): d is { etiqueta: string; texto: string } => d !== null,
+  );
 }
 
 /**

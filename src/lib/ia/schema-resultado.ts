@@ -29,6 +29,14 @@ const cronogramaItemSchema = z.object({
   fin: z.string().optional(),
 });
 
+const coInvestigadorExtraidoSchema = z.object({
+  nombre: z.string().min(1),
+  apellido_paterno: z.string().min(1),
+  apellido_materno: z.string().optional(),
+  adscripcion: z.string().optional(),
+  email: z.string().optional(),
+});
+
 export const TIPOS_INVESTIGACION = [
   "basica",
   "aplicada",
@@ -63,6 +71,7 @@ export const resultadoIASchema = z.object({
     cronograma: campoOpcional(z.array(cronogramaItemSchema)),
   }),
   alertas: z.array(z.string()).optional(),
+  co_investigadores: z.array(coInvestigadorExtraidoSchema).max(20).optional(),
   tokens_input: z.number().int().nonnegative().optional(),
   tokens_output: z.number().int().nonnegative().optional(),
 });

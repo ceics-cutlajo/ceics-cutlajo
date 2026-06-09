@@ -239,6 +239,39 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Pre-llenado best-effort del Equipo: si la extracción detectó
+    // co-investigadores y el protocolo aún no tiene ninguno capturado, los
+    // insertamos. Va en su propio try/catch: si falla, NO rompe la extracción
+    // (ya quedó 'completado'); solo se loguea.
+    try {
+      const coInv = (resultado as { co_investigadores?: Array<{ nombre?: string; apellido_paterno?: string; apellido_materno?: string; adscripcion?: string; email?: string }> }).co_investigadores;
+      if (Array.isArray(coInv) && coInv.length > 0) {
+        const { count } = await admin
+          .from("protocolo_co_investigadores")
+          .select("id", { count: "exact", head: true })
+          .eq("protocolo_id", ext.protocolo_id);
+        if (!count) {
+          const filas = coInv
+            .filter((c) => c.nombre && c.apellido_paterno)
+            .slice(0, 20)
+            .map((c, i) => ({
+              protocolo_id: ext.protocolo_id,
+              nombre: String(c.nombre),
+              apellido_paterno: String(c.apellido_paterno),
+              apellido_materno: c.apellido_materno ? String(c.apellido_materno) : null,
+              adscripcion: c.adscripcion ? String(c.adscripcion) : null,
+              email: c.email ? String(c.email) : null,
+              orden: i + 1,
+            }));
+          if (filas.length > 0) {
+            await admin.from("protocolo_co_investigadores").insert(filas);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[procesar-extraccion] co-investigadores no insertados:", e);
+    }
+
     return NextResponse.json({
       ok: true,
       tokens_input: response.usage.input_tokens,

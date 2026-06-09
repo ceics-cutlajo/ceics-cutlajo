@@ -52,6 +52,8 @@ R11. **Umbrales bibliográficos son orientativos, no requisitos.** Los porcentaj
 
 R12. **La dispensa de consentimiento propaga "no_aplica" (refuerza R1).** Cuando proceda la dispensa de consentimiento informado (CHK-043 — típico en estudios retrospectivos con expedientes, registros administrativos o datos secundarios anonimizados), marca CHK-035 a CHK-041 (documento de CCI, sus 11 elementos, requisitos de firma, datos de contacto, proceso de obtención) como **"no_aplica"**, NO como faltas. Evalúa entonces solo la solidez de la justificación de la dispensa (CHK-043), no la ausencia del documento de consentimiento individual.
 
+R13. **Recibes los DOCUMENTOS DEL PAQUETE entregado** (carta al Presidente, carta de delegación de responsabilidades, CV del Investigador Principal, constancia de BPC, consentimiento/asentimiento si aplican) en una sección aparte al final, además del texto del protocolo. VERIFICA contra esos documentos los ítems que dependen de ellos: roles y responsabilidades del equipo (carta de delegación), credenciales/cédula profesional del IP (CV), vigencia de la constancia de BPC, oficios o cartas de autorización de sede(s), y el documento de consentimiento o su dispensa. Si un ítem se satisface en alguno de esos documentos, márcalo **"cumple"** y NO afirmes que falta. **NUNCA escribas "no se adjunta CV/BPC", "no se detalla el rol de los co-investigadores", ni "no se identifica oficio de sede" si esa información está presente en los documentos del paquete.** Solo señala un documento como faltante si REALMENTE no aparece en la sección DOCUMENTOS DEL PAQUETE. Si un documento esperado no está en esa sección, entonces sí puedes observarlo.
+
 REGLAS DE EVALUACIÓN
 
 1. Evalúas POR BLOQUE TEMÁTICO (11 categorías). Internamente consideras todos los ítems aplicables del checklist, pero solo reportas el veredicto del BLOQUE.
@@ -63,7 +65,7 @@ REGLAS DE EVALUACIÓN
 3. Sé conservador. Si tienes duda entre "cumple" y "parcial", elige "parcial". Si entre "parcial" y "no_cumple", elige "no_cumple" cuando los ítems afectados sean de severidad "critica" o "alta".
 4. **Justifica cada veredicto en 40-150 palabras** mencionando los ítems CHK-NNN más relevantes que sustentan el veredicto. Sé conciso — los miembros del comité leerán esto.
 5. NO inventes evidencia. Si el protocolo no menciona algo, considéralo "no cumple" o "parcial" según el peso del ítem faltante.
-6. **NO incluyas el campo "items_evaluados" en tu respuesta.** Reporta solo veredicto + justificación por bloque. La granularidad por ítem se solicita bajo demanda en otra llamada.
+6. **Para CADA bloque incluye "items_evaluados"**: la lista de ítems CHK-NNN APLICABLES que evaluaste (omite los no aplicables). Cada ítem: { "id": "CHK-NNN", "resultado": "cumple|no_cumple|parcial|no_aplica", "observacion": "<3-300 chars, concisa>", "fuente_protocolo": "<de qué documento/sección del paquete o del protocolo sale la evidencia, opcional>" }. BUSCA cada ítem específicamente en el protocolo Y en los DOCUMENTOS DEL PAQUETE antes de decidir su veredicto. El veredicto del bloque debe ser coherente con sus items_evaluados.
 
 OBSERVACIONES CRÍTICAS Y SUGERENCIAS
 
@@ -75,7 +77,7 @@ FORMATO DE RESPUESTA — OBJETO JSON ÚNICO Y CONCISO
 {
   "resumen_ejecutivo": "<200-600 chars>",
   "bloques": {
-    "identificacion": { "resultado": "cumple|no_cumple|parcial|no_aplica", "justificacion": "<40-150 palabras>" },
+    "identificacion": { "resultado": "cumple|no_cumple|parcial|no_aplica", "justificacion": "<40-150 palabras>", "items_evaluados": [ { "id": "CHK-001", "resultado": "cumple", "observacion": "...", "fuente_protocolo": "Carta de delegación de responsabilidades" } ] },
     "estructura_cientifica": { ... },
     "metodologia": { ... },
     "riesgo_beneficio": { ... },
@@ -111,6 +113,7 @@ type DatosProtocolo = {
   cronograma: { etapa: string; inicio?: string; fin?: string }[];
   ip_nombre: string;
   texto_fuente: string | null;
+  documentos: { etiqueta: string; texto: string }[];
 };
 
 export function buildUserMessagePreDictamen(
@@ -157,13 +160,13 @@ export function buildUserMessagePreDictamen(
   }
 
   if (datos.texto_fuente && datos.texto_fuente.length > 0) {
-    // Truncar a 5K chars (~1.3K tokens) — necesario para caber en 60s de Vercel
-    // Hobby con tiempos de Haiku. Lo importante (intro, objetivos, métodos
-    // iniciales, mención de consentimiento) suele estar en los primeros 5K
-    // chars. Los datos estructurados arriba complementan.
+    // Truncar a 40K chars (~10K tokens) — modo "a fondo" en Vercel Pro con budget
+    // de 300s permite alimentar mucho más texto del protocolo a Sonnet, no solo el
+    // fragmento inicial. Lo importante (intro, objetivos, métodos, consentimiento,
+    // bibliografía) cabe holgado. Los datos estructurados arriba complementan.
     const recortado =
-      datos.texto_fuente.length > 5000
-        ? datos.texto_fuente.slice(0, 5000) +
+      datos.texto_fuente.length > 40000
+        ? datos.texto_fuente.slice(0, 40000) +
           "\n\n[...texto del documento truncado por límite de tiempo de inferencia. Usa los datos estructurados de arriba para complementar...]"
         : datos.texto_fuente;
     partes.push(`\n=== FRAGMENTO INICIAL DEL DOCUMENTO ===\n${recortado}`);
@@ -171,6 +174,16 @@ export function buildUserMessagePreDictamen(
     partes.push(
       "\n[Nota: no hay texto fuente del documento original — evalúa con los datos estructurados anteriores.]",
     );
+  }
+
+  if (datos.documentos.length > 0) {
+    partes.push("\n=== DOCUMENTOS DEL PAQUETE ENTREGADO ===");
+    partes.push(
+      "Estos son los documentos que el investigador adjuntó, además del protocolo. VERIFICA contra ellos los ítems que dependen de documentos (roles del equipo en la carta de delegación, CV/cédula del IP, vigencia de BPC, oficios de autorización de sede, consentimiento). Si un ítem se satisface aquí, márcalo cumple y NO afirmes que falta.",
+    );
+    for (const doc of datos.documentos) {
+      partes.push(`\n--- ${doc.etiqueta} ---\n${doc.texto}`);
+    }
   }
 
   partes.push("\n=== CHECKLIST MAESTRO (SOLO LOS BLOQUES DE ESTA LLAMADA) ===");

@@ -43,16 +43,19 @@ export const MODELO_EXTRACCION = "claude-haiku-4-5-20251001";
 // holgura; el modelo solo genera lo que necesita, así que no encarece ni alenta.
 export const MAX_TOKENS_EXTRACCION = 8192;
 
-// Pre-dictamen del comité (sesión 8a): Haiku 4.5 — evaluación guiada por
-// `ai_prompt_hint` muy específicos por ítem. Tarea mecánica, no razonamiento
-// abierto. Haiku genera 3-5× más rápido que Sonnet y cumple el budget de 60s
-// del límite Hobby. Si en producción se ven veredictos mediocres en bloques
-// críticos (consentimiento, riesgo-beneficio), considerar híbrido Haiku+Sonnet.
-export const MODELO_PRE_DICTAMEN = "claude-haiku-4-5-20251001";
-// 8000 deja margen amplio para evitar truncación. El prompt instruye al modelo
-// a reportar solo items relevantes (no_cumple/parcial/severidad alta), no los
-// 100, así que en la práctica usa 2-3K tokens.
-export const MAX_TOKENS_PRE_DICTAMEN = 8000;
+// Pre-dictamen del comité (modo "a fondo"): Sonnet — mejor que Haiku para
+// buscar ítem por ítem en documentos largos y razonar sobre evidencia dispersa.
+// Ahora recibe TODOS los documentos del paquete (carta, delegación, CV, BPC,
+// consentimiento) además de más texto del protocolo, y REACTIVA la evaluación
+// por ítem (cada CHK-NNN con veredicto + observación + fuente). Es una tarea de
+// razonamiento, no mecánica: Sonnet justifica mejor por qué un ítem se satisface
+// (o no) citando el documento que lo sustenta. Corre en Vercel Pro con budget de
+// 300s, suficiente para Sonnet sobre documentos largos.
+export const MODELO_PRE_DICTAMEN = "claude-sonnet-4-6";
+// 16000 (era 8000): el detalle por ítem (items_evaluados con observación y
+// fuente por cada CHK-NNN aplicable) genera bastante más salida que el veredicto
+// por bloque solo. 16K da holgura para evitar truncación del JSON.
+export const MAX_TOKENS_PRE_DICTAMEN = 16000;
 
 // Resumen de observaciones (sesión 10, Job 3): Haiku 4.5 — síntesis de los
 // comentarios del comité en observaciones formales para el acta. Tarea de

@@ -26,10 +26,10 @@ const bloqueEvaluadoSchema = z.object({
   // palabras pero Haiku a veces se extiende cuando un bloque tiene mucha
   // matiz (consentimiento, metodología). No afecta latencia, son output text.
   justificacion: z.string().min(15).max(2000),
-  // items_evaluados opcional: en sesión 8a no lo pedimos al modelo (ahorra
-  // tokens y tiempo). Si en 8b queremos detalle por ítem para un bloque
-  // específico, lo solicitamos bajo demanda con una llamada acotada.
-  items_evaluados: z.array(itemEvaluadoSchema).max(40).optional(),
+  // items_evaluados: detalle por ítem (reactivado en modo "a fondo" con Sonnet).
+  // Cap a 80 por bloque (era 40): un bloque con muchos CHK aplicables podría
+  // superar 40 y reventar el safeParse → el grupo entero fallaría.
+  items_evaluados: z.array(itemEvaluadoSchema).max(80).optional(),
 });
 
 export const CATEGORIAS_BLOQUE = [
