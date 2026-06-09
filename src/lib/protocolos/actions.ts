@@ -18,6 +18,7 @@ import {
   datosBasicosSchema,
   datosClinicosSchema,
   coInvestigadorSchema,
+  documentosObligatorios,
   TIPOS_DOCUMENTO,
   ETIQUETAS_AREA,
   ETIQUETAS_TIPO_INV,
@@ -426,7 +427,7 @@ export async function enviarProtocoloAction(
   const { data: prot } = await admin
     .from("protocolos")
     .select(
-      "titulo, resumen, area_conocimiento_id, tipo_investigacion_id, clasificacion_riesgo, involucra_humanos, involucra_menores, estado, ronda_actual",
+      "titulo, resumen, area_conocimiento_id, tipo_investigacion_id, clasificacion_riesgo, involucra_humanos, involucra_menores, solicita_dispensa_consentimiento, estado, ronda_actual",
     )
     .eq("id", protocoloId)
     .single();
@@ -454,16 +455,15 @@ export async function enviarProtocoloAction(
     };
   }
 
-  // Validar documentos obligatorios
-  const obligatorios: TipoDocumento[] = [
-    "carta_presidente",
-    "formato_protocolo",
-    "delegacion",
-    "cv_ip",
-  ];
-  if (prot.tipo_investigacion_id === "clinica") obligatorios.push("bpc");
-  if (prot.involucra_humanos) obligatorios.push("consentimiento");
-  if (prot.involucra_menores) obligatorios.push("asentimiento");
+  // Validar documentos obligatorios (misma fuente de verdad que el wizard, para
+  // que cliente y servidor nunca difieran — incluye la dispensa de
+  // consentimiento si se solicitó).
+  const obligatorios = documentosObligatorios({
+    tipo_investigacion_id: prot.tipo_investigacion_id ?? "clinica",
+    involucra_humanos: prot.involucra_humanos,
+    involucra_menores: prot.involucra_menores,
+    solicita_dispensa_consentimiento: prot.solicita_dispensa_consentimiento,
+  });
 
   const { data: docs } = await admin
     .from("protocolo_documentos")
