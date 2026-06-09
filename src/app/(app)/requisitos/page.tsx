@@ -24,6 +24,16 @@ const SEVERIDAD_LABEL: Record<Severidad, string> = {
   baja: "Baja",
 };
 
+// Aclaraciones de POLÍTICA del CEICS para ítems cuya norma cruda (criterio) es
+// más estricta que lo que el Comité exige en la práctica. No reescribimos el
+// criterio normativo; lo matizamos para no confundir al investigador.
+const NOTAS_POLITICA_CEICS: Record<string, string> = {
+  "CHK-002":
+    "Política del CEICS: basta tu resumen curricular y tu adscripción institucional. NO se exige cédula profesional ni firma en el CV. La constancia de BPC solo aplica a investigación clínica con intervención.",
+  "CHK-005":
+    "Política del CEICS: la autorización de sede solo aplica si el estudio tiene una sede física (hospital/clínica). Los estudios con bases de datos abiertas/públicas o datos secundarios no requieren autorización de sede.",
+};
+
 // ---------------------------------------------------------------------------
 // Principios
 // ---------------------------------------------------------------------------
@@ -290,6 +300,11 @@ function ItemChecklist({ item }: { item: ChecklistItem }) {
       </div>
       <p className="mt-2 text-ink-800">{item.criterio}</p>
       <p className="mt-1 text-sm text-ink-600">{item.evidencia_esperada}</p>
+      {NOTAS_POLITICA_CEICS[item.id] && (
+        <p className="mt-2 rounded-md border border-info/30 bg-info-soft px-3 py-2 text-sm text-info">
+          {NOTAS_POLITICA_CEICS[item.id]}
+        </p>
+      )}
       {item.fuentes && item.fuentes.length > 0 && (
         <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <span className="text-xs font-medium uppercase tracking-wide text-ink-500">
