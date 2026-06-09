@@ -78,11 +78,16 @@ export type ResultadoIA = z.infer<typeof resultadoIASchema>;
 // son opcionales (la IA omite lo que no encuentra). Mantener en sync con el
 // schema Zod y con el trigger `aplicar_extraccion_ia` (migración 015).
 // ---------------------------------------------------------------------------
+// `fuente` va en required (no opcional): las salidas estructuradas limitan a 24
+// los parámetros OPCIONALES del schema, y con `fuente` opcional en los 15 campos
+// se llegaba a 33 (error 400 "too many optional parameters"). El modelo siempre
+// puede citar de dónde sacó/infirió el dato, así que requerirla no estorba. En
+// el schema Zod de arriba `fuente` sigue opcional (validación tolerante).
 function campoJson(valor: Record<string, unknown>): Record<string, unknown> {
   return {
     type: "object",
     additionalProperties: false,
-    required: ["valor", "confianza"],
+    required: ["valor", "confianza", "fuente"],
     properties: {
       valor,
       confianza: { type: "string", enum: ["alta", "media", "baja"] },
