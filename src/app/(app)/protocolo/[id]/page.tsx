@@ -62,16 +62,10 @@ export default async function VerProtocoloPage({
 
   // Acta (si ya fue emitida)
   const acta = await obtenerActaPorProtocolo(id);
-  let actaDocxUrl: string | null = null;
-  let actaPdfUrl: string | null = null;
-  if (acta?.docx_storage_path && acta?.pdf_storage_path) {
-    const [d, p] = await Promise.all([
-      admin.storage.from("actas").createSignedUrl(acta.docx_storage_path, 600),
-      admin.storage.from("actas").createSignedUrl(acta.pdf_storage_path, 600),
-    ]);
-    actaDocxUrl = d.data?.signedUrl ?? null;
-    actaPdfUrl = p.data?.signedUrl ?? null;
-  }
+  // Enlaces del acta: se firman al dar clic (ruta /api/actas/[id]), no aquí,
+  // para que nunca caduquen mientras se ve el expediente.
+  const actaDocxUrl = acta?.docx_storage_path ? `/api/actas/${acta.id}?f=docx` : null;
+  const actaPdfUrl = acta?.pdf_storage_path ? `/api/actas/${acta.id}?f=pdf` : null;
 
   return (
     <div className="space-y-6">

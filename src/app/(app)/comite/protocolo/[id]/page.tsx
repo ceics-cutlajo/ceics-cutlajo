@@ -125,16 +125,10 @@ export default async function ComiteProtocoloPage({
 
   // Acta del protocolo (si ya fue emitida)
   const acta = await obtenerActaPorProtocolo(id);
-  let docxUrl: string | null = null;
-  let pdfUrl: string | null = null;
-  if (acta?.docx_storage_path && acta?.pdf_storage_path) {
-    const [docxResp, pdfResp] = await Promise.all([
-      admin.storage.from("actas").createSignedUrl(acta.docx_storage_path, 600),
-      admin.storage.from("actas").createSignedUrl(acta.pdf_storage_path, 600),
-    ]);
-    docxUrl = docxResp.data?.signedUrl ?? null;
-    pdfUrl = pdfResp.data?.signedUrl ?? null;
-  }
+  // Enlaces del acta: se firman al dar clic (ruta /api/actas/[id]), no aquí,
+  // para que nunca caduquen mientras se revisa el expediente.
+  const docxUrl = acta?.docx_storage_path ? `/api/actas/${acta.id}?f=docx` : null;
+  const pdfUrl = acta?.pdf_storage_path ? `/api/actas/${acta.id}?f=pdf` : null;
   // El banner se muestra cuando:
   //  - es Presidente y NO es IP del protocolo, o
   //  - es Secretario(a) y el Presidente titular SÍ es IP (delegación por COI).
