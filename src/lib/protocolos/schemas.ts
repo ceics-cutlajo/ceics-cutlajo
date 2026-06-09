@@ -43,6 +43,11 @@ export const datosBasicosSchema = z.object({
   involucra_menores: z.boolean(),
   involucra_datos_geneticos: z.boolean(),
   involucra_medicamento: z.boolean(),
+  // Estudios retrospectivos / con datos secundarios anonimizados: el comité
+  // puede dispensar el consentimiento informado. Si se solicita, deja de ser
+  // documento obligatorio. `.optional().default(false)` por si un cliente viejo
+  // no envía el campo.
+  solicita_dispensa_consentimiento: z.boolean().optional().default(false),
 });
 
 export type DatosBasicosInput = z.infer<typeof datosBasicosSchema>;
@@ -198,6 +203,7 @@ export function documentosObligatorios(flags: {
   tipo_investigacion_id: string;
   involucra_humanos: boolean;
   involucra_menores: boolean;
+  solicita_dispensa_consentimiento?: boolean;
 }): TipoDocumento[] {
   const obligatorios: TipoDocumento[] = [
     "carta_presidente",
@@ -206,7 +212,11 @@ export function documentosObligatorios(flags: {
     "cv_ip",
   ];
   if (flags.tipo_investigacion_id === "clinica") obligatorios.push("bpc");
-  if (flags.involucra_humanos) obligatorios.push("consentimiento");
+  // El consentimiento NO es obligatorio si se solicita su dispensa (estudio
+  // retrospectivo / datos secundarios anonimizados); la justificación va en la
+  // Carta al Presidente y el comité decide.
+  if (flags.involucra_humanos && !flags.solicita_dispensa_consentimiento)
+    obligatorios.push("consentimiento");
   if (flags.involucra_menores) obligatorios.push("asentimiento");
   return obligatorios;
 }

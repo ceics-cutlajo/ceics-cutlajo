@@ -36,6 +36,7 @@ export type ProtocoloCompleto = {
   involucra_menores: boolean;
   involucra_datos_geneticos: boolean;
   involucra_medicamento: boolean;
+  solicita_dispensa_consentimiento: boolean;
   // Campos clínicos (pueden venir de IA o capturarse a mano)
   objetivo_general: string | null;
   objetivos_especificos: string[];

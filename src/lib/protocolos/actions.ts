@@ -157,6 +157,8 @@ export async function guardarDatosBasicosAction(
       involucra_menores: parsed.data.involucra_menores,
       involucra_datos_geneticos: parsed.data.involucra_datos_geneticos,
       involucra_medicamento: parsed.data.involucra_medicamento,
+      solicita_dispensa_consentimiento:
+        parsed.data.solicita_dispensa_consentimiento,
     })
     .eq("id", protocoloId);
 

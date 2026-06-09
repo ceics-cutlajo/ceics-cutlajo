@@ -442,6 +442,7 @@ function PasoDatosBasicos({
     involucra_menores: protocolo.involucra_menores,
     involucra_datos_geneticos: protocolo.involucra_datos_geneticos,
     involucra_medicamento: protocolo.involucra_medicamento,
+    solicita_dispensa_consentimiento: protocolo.solicita_dispensa_consentimiento,
   });
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
@@ -592,6 +593,16 @@ function PasoDatosBasicos({
             hint="Activa la obligatoriedad del consentimiento informado."
             badge={<BadgeIA campo={camposIA.involucra_humanos} />}
           />
+          {form.involucra_humanos && (
+            <div className="ml-6 border-l-2 border-ink-200 pl-3">
+              <Checkbox
+                label="Solicito dispensa del consentimiento informado"
+                checked={form.solicita_dispensa_consentimiento}
+                onChange={(v) => update("solicita_dispensa_consentimiento", v)}
+                hint="Para estudios retrospectivos o con datos secundarios/anonimizados. El consentimiento deja de ser obligatorio; explica la justificación de la dispensa en la Carta dirigida al Presidente. El comité decidirá si la concede."
+              />
+            </div>
+          )}
           <Checkbox
             label="Involucra menores de edad (población pediátrica)"
             checked={form.involucra_menores}
@@ -1070,6 +1081,7 @@ function PasoDocumentos({
     tipo_investigacion_id: protocolo.tipo_investigacion_id ?? "clinica",
     involucra_humanos: protocolo.involucra_humanos,
     involucra_menores: protocolo.involucra_menores,
+    solicita_dispensa_consentimiento: protocolo.solicita_dispensa_consentimiento,
   });
 
   return (
@@ -1086,12 +1098,19 @@ function PasoDocumentos({
         {TIPOS_DOCUMENTO.map((tipo) => {
           const subido = subidosPorTipo.get(tipo);
           const esObligatorio = obligatorios.includes(tipo);
+          const notaNoObligatorio =
+            tipo === "consentimiento" &&
+            protocolo.involucra_humanos &&
+            protocolo.solicita_dispensa_consentimiento
+              ? "(dispensa solicitada)"
+              : undefined;
           return (
             <DocumentoRowComp
               key={tipo}
               tipo={tipo}
               subido={subido}
               esObligatorio={esObligatorio}
+              notaNoObligatorio={notaNoObligatorio}
               pending={pending}
               onSubir={onSubir}
               onEliminar={onEliminar}
@@ -1107,6 +1126,7 @@ function DocumentoRowComp({
   tipo,
   subido,
   esObligatorio,
+  notaNoObligatorio,
   pending,
   onSubir,
   onEliminar,
@@ -1114,6 +1134,7 @@ function DocumentoRowComp({
   tipo: TipoDocumento;
   subido: DocumentoRow | undefined;
   esObligatorio: boolean;
+  notaNoObligatorio?: string;
   pending: boolean;
   onSubir: (tipo: TipoDocumento, file: File) => void;
   onEliminar: (id: string) => void;
@@ -1146,7 +1167,9 @@ function DocumentoRowComp({
               {ETIQUETAS_DOCUMENTO[tipo]}
               {esObligatorio && <span className="ml-1 text-bad">*</span>}
               {!esObligatorio && (
-                <span className="ml-2 text-xs font-normal text-ink-400">(no aplica)</span>
+                <span className="ml-2 text-xs font-normal text-ink-400">
+                  {notaNoObligatorio ?? "(no aplica)"}
+                </span>
               )}
             </div>
           </div>
@@ -1215,6 +1238,7 @@ function PasoRevisarEnviar({
     tipo_investigacion_id: protocolo.tipo_investigacion_id ?? "clinica",
     involucra_humanos: protocolo.involucra_humanos,
     involucra_menores: protocolo.involucra_menores,
+    solicita_dispensa_consentimiento: protocolo.solicita_dispensa_consentimiento,
   });
   const subidos = new Set(documentos.map((d) => d.tipo_documento_id));
   const faltantes = obligatorios.filter((t) => !subidos.has(t));
@@ -1359,6 +1383,14 @@ function PasoRevisarEnviar({
             );
           })}
         </ul>
+        {protocolo.involucra_humanos &&
+          protocolo.solicita_dispensa_consentimiento && (
+            <p className="text-xs text-ink-500">
+              Solicitaste <strong>dispensa del consentimiento informado</strong>;
+              por eso no es obligatorio. Recuerda justificarla en la Carta dirigida
+              al Presidente — el comité decidirá si la concede.
+            </p>
+          )}
       </section>
 
       {!todoListo && (
