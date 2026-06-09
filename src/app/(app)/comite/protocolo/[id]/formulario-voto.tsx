@@ -56,6 +56,14 @@ const TONO_RESULTADO: Record<ResultadoCumplimiento, string> = {
 
 const RESULTADO_DEFAULT: ResultadoCumplimiento = "no_aplica";
 
+// Baraja de opciones de dictamen final que puede elegir el evaluador.
+const VOTOS_FINALES: TipoVoto[] = [
+  "aprobar",
+  "aprobar_con_observaciones",
+  "no_aprobar",
+  "abstener",
+];
+
 export function FormularioVoto(props: Props) {
   if (props.evaluacionPrevia) {
     return (
@@ -152,6 +160,11 @@ function FormularioVotoCompleto({
 
   const votoGlobal = useMemo(() => derivarVotoGlobal(bloquesArray), [bloquesArray]);
 
+  // El evaluador puede sobrescribir el dictamen sugerido. Mientras no elija nada,
+  // se usa la sugerencia (que sigue actualizándose con los bloques).
+  const [votoFinalManual, setVotoFinalManual] = useState<TipoVoto | null>(null);
+  const votoEfectivo: TipoVoto = votoFinalManual ?? votoGlobal;
+
   const erroresValidacion = useMemo(() => {
     const errs: string[] = [];
     for (const cat of CATEGORIAS) {
@@ -202,6 +215,7 @@ function FormularioVotoCompleto({
         protocoloId,
         comentarioGlobal: comentarioGlobal.trim() || null,
         bloques: bloquesArray,
+        votoFinal: votoEfectivo,
       });
       if (!res.ok) {
         setError(res.error);
@@ -221,25 +235,55 @@ function FormularioVotoCompleto({
         </span>
       </div>
       <p className="mt-2 text-sm text-ink-700">
-        Por cada uno de los 11 bloques temáticos del checklist: confirma que estás
-        de acuerdo con el veredicto de la IA o discrepa indicando tu propio
-        veredicto y la razón. Tu voto global se derivará automáticamente del peor
-        bloque que evalúes.
+        Por cada uno de los 11 bloques temáticos del checklist puedes confirmar el
+        veredicto de la IA o discrepar indicando tu propio veredicto y la razón.
+        Con base en eso el sistema <strong>sugiere</strong> un dictamen, pero el
+        dictamen final lo decides tú: puedes ajustarlo libremente antes de emitir.
       </p>
 
-      <div className="mt-5 rounded-md border border-ink-150 bg-ink-50 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <span className="text-eyebrow text-ink-500">Tu voto global (en vivo)</span>
-          <span
-            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${TONO_VOTO[votoGlobal]}`}
-          >
-            {ETIQUETA_VOTO[votoGlobal]}
+      <div className="mt-5 rounded-md border border-ink-150 bg-ink-50 px-4 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-eyebrow text-ink-500">
+            Dictamen final — tu decisión
+          </span>
+          <span className="text-xs text-ink-500">
+            Sugerencia:{" "}
+            <span
+              className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${TONO_VOTO[votoGlobal]}`}
+            >
+              {ETIQUETA_VOTO[votoGlobal]}
+            </span>
           </span>
         </div>
-        <p className="mt-1 text-xs text-ink-500">
-          Regla: si algún bloque es "no cumple" → no aprobar; si alguno es
-          "cumple parcialmente" → aprobar con observaciones; si todos cumplen o
-          no aplican → aprobar.
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {VOTOS_FINALES.map((opt) => {
+            const activo = votoEfectivo === opt;
+            return (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => setVotoFinalManual(opt)}
+                className={`rounded-md border px-3 py-2 text-xs font-medium transition ${
+                  activo
+                    ? `${TONO_VOTO[opt]} border-transparent ring-2 ring-[var(--accent)]`
+                    : "border-ink-200 bg-white text-ink-600 hover:border-ink-300"
+                }`}
+              >
+                {ETIQUETA_VOTO[opt]}
+              </button>
+            );
+          })}
+        </div>
+        {votoEfectivo !== votoGlobal && (
+          <p className="mt-2 text-xs text-warn">
+            Estás emitiendo un dictamen distinto al sugerido por la evaluación. Tu
+            criterio como evaluador prevalece.
+          </p>
+        )}
+        <p className="mt-2 text-xs text-ink-500">
+          La sugerencia se calcula del peor bloque evaluado (no cumple → no
+          aprobar; cumple parcialmente → con observaciones). Puedes cambiarla con
+          tu criterio.
         </p>
       </div>
 
@@ -308,7 +352,7 @@ function FormularioVotoCompleto({
         ) : (
           <div className="flex items-center gap-2">
             <span className="text-sm text-ink-700">
-              ¿Confirmas emitir como <strong>{ETIQUETA_VOTO[votoGlobal]}</strong>?
+              ¿Confirmas emitir como <strong>{ETIQUETA_VOTO[votoEfectivo]}</strong>?
             </span>
             <button
               type="button"

@@ -151,7 +151,12 @@ export async function registrarEvaluacionAction(
     };
   }
 
-  const votoGlobal = derivarVotoGlobal(bloques);
+  // La evaluación por bloque sugiere un voto, pero el evaluador puede emitir el
+  // dictamen final con su propio criterio (libertad del evaluador).
+  const votoSugerido = derivarVotoGlobal(bloques);
+  const votoGlobal = parsed.data.votoFinal ?? votoSugerido;
+  const ajustadoPorEvaluador =
+    parsed.data.votoFinal != null && parsed.data.votoFinal !== votoSugerido;
 
   const { data: cabecera, error: errCab } = await admin
     .from("evaluaciones")
@@ -191,9 +196,15 @@ export async function registrarEvaluacionAction(
   await admin.from("protocolo_eventos").insert({
     protocolo_id: protocoloId,
     tipo: "voto_emitido",
-    descripcion: `Voto emitido por miembro del comité: ${votoGlobal}`,
+    descripcion: ajustadoPorEvaluador
+      ? `Voto emitido por miembro del comité: ${votoGlobal} (ajustado por el evaluador; sugerencia: ${votoSugerido})`
+      : `Voto emitido por miembro del comité: ${votoGlobal}`,
     actor_id: user.usuarioId,
-    datos: { voto_global: votoGlobal },
+    datos: {
+      voto_global: votoGlobal,
+      voto_sugerido: votoSugerido,
+      ajustado_por_evaluador: ajustadoPorEvaluador,
+    },
   });
 
   await cerrarYNotificarSiCorresponde(protocoloId, admin, false);

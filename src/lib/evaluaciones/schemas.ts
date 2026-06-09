@@ -25,6 +25,12 @@ export const evaluacionInputSchema = z.object({
   bloques: z.array(bloqueVotoInputSchema).length(11, {
     message: "Debes emitir veredicto sobre los 11 bloques temáticos.",
   }),
+  // Dictamen final elegido por el evaluador. La evaluación por bloque solo
+  // SUGIERE un voto; el evaluador tiene la última palabra. Si se omite, el
+  // servidor usa la sugerencia derivada de los bloques.
+  votoFinal: z
+    .enum(["aprobar", "aprobar_con_observaciones", "no_aprobar", "abstener"])
+    .optional(),
 });
 
 export type EvaluacionInput = z.infer<typeof evaluacionInputSchema>;
