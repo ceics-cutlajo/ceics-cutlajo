@@ -16,6 +16,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -150,10 +151,14 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // 5. Llamar a Sonnet, parsear, validar
+  // 5. Llamar a la IA con SALIDAS ESTRUCTURADAS y validar
   try {
     const anthropic = getAnthropicClient();
-    const response = await anthropic.messages.create(
+    // output_config.format obliga a la API a devolver JSON que cumple el schema
+    // (sin comillas sin escapar ni JSON truncado a medias → elimina los errores
+    // de "JSON inválido"). messages.parse valida la respuesta contra el schema
+    // Zod y entrega response.parsed_output ya tipado.
+    const response = await anthropic.messages.parse(
       {
         model: MODELO_EXTRACCION,
         max_tokens: MAX_TOKENS_EXTRACCION,
@@ -161,6 +166,7 @@ export async function POST(req: NextRequest) {
         messages: [
           { role: "user", content: buildUserMessage(ext.texto_fuente) },
         ],
+        output_config: { format: zodOutputFormat(resultadoIASchema) },
       },
       // Timeout < maxDuration (120s) y SIN reintentos: si la IA tarda demasiado,
       // el SDK lanza APIConnectionTimeoutError y cae al catch de abajo
@@ -170,38 +176,26 @@ export async function POST(req: NextRequest) {
       { timeout: 110_000, maxRetries: 0 },
     );
 
-    const textBlock = response.content.find((b) => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") {
-      throw new Error("Respuesta de IA sin contenido de texto.");
-    }
-
-    const rawJson = extractJsonObject(textBlock.text);
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(rawJson);
-    } catch (e) {
+    // Si se agotó el presupuesto de tokens, el JSON vendría incompleto.
+    if (response.stop_reason === "max_tokens") {
       throw new Error(
-        "La IA no devolvió JSON válido. " +
-          (e instanceof Error ? e.message : String(e)),
+        "La IA generó una respuesta demasiado larga y se cortó. Reintenta; si persiste, llena el formulario manualmente.",
       );
     }
 
-    // Inyectar metadata de tokens antes de validar
-    if (typeof parsed === "object" && parsed !== null) {
-      (parsed as Record<string, unknown>).tokens_input =
-        response.usage.input_tokens;
-      (parsed as Record<string, unknown>).tokens_output =
-        response.usage.output_tokens;
+    const parsed = response.parsed_output;
+    if (!parsed) {
+      throw new Error(
+        "La IA no devolvió una respuesta con el formato esperado. Reintenta o llena el formulario manualmente.",
+      );
     }
 
-    const validated = resultadoIASchema.safeParse(parsed);
-    if (!validated.success) {
-      const issues = validated.error.errors
-        .slice(0, 5)
-        .map((e) => `${e.path.join(".") || "(root)"}: ${e.message}`)
-        .join("; ");
-      throw new Error(`JSON no cumple schema: ${issues}`);
-    }
+    // El schema lleva tokens_* opcionales; los rellenamos con el uso real.
+    const resultado = {
+      ...parsed,
+      tokens_input: response.usage.input_tokens,
+      tokens_output: response.usage.output_tokens,
+    };
 
     // 6. Guardar completado (el trigger SQL aplica los campos al protocolo)
     const { error: errCompletado } = await admin
@@ -209,7 +203,7 @@ export async function POST(req: NextRequest) {
       .update({
         estado: "completado",
         completed_at: new Date().toISOString(),
-        resultado_json: validated.data,
+        resultado_json: resultado,
       })
       .eq("id", body.extraccionId);
     if (errCompletado) {
@@ -256,23 +250,4 @@ async function marcarError(
       error_mensaje: mensaje.slice(0, 1000),
     })
     .eq("id", extraccionId);
-}
-
-/**
- * Sonnet a veces envuelve el JSON en bloques markdown (```json ... ```) o añade
- * preámbulo pese al system prompt. Esta función extrae el primer objeto JSON
- * balanceado de la respuesta. Si no encuentra estructura clara, devuelve el
- * texto original (que fallará en JSON.parse y dará error informativo).
- */
-function extractJsonObject(text: string): string {
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fenced) {
-    return fenced[1].trim();
-  }
-  const first = text.indexOf("{");
-  const last = text.lastIndexOf("}");
-  if (first !== -1 && last !== -1 && last > first) {
-    return text.slice(first, last + 1);
-  }
-  return text;
 }

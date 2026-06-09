@@ -318,7 +318,10 @@ export default async function VerProtocoloPage({
       </section>
 
       <div className="flex justify-start">
-        <Link href="/dashboard" className="text-sm text-ink-500 hover:underline">
+        <Link
+          href="/dashboard"
+          className="text-sm font-medium text-ink-700 hover:text-ink-900 hover:underline"
+        >
           ← Volver al dashboard
         </Link>
       </div>

@@ -38,7 +38,10 @@ export function getAnthropicClient(): Anthropic {
 // volver a Sonnet (ahora cabe con maxDuration=120 en Vercel Pro para documentos
 // de tamaño típico).
 export const MODELO_EXTRACCION = "claude-haiku-4-5-20251001";
-export const MAX_TOKENS_EXTRACCION = 4096;
+// 8192 (era 4096): el JSON de 15 campos con valores largos (resumen hasta 3000
+// chars) + citas podía superar 4096 tokens y TRUNCARSE → JSON inválido. 8192 da
+// holgura; el modelo solo genera lo que necesita, así que no encarece ni alenta.
+export const MAX_TOKENS_EXTRACCION = 8192;
 
 // Pre-dictamen del comité (sesión 8a): Haiku 4.5 — evaluación guiada por
 // `ai_prompt_hint` muy específicos por ítem. Tarea mecánica, no razonamiento

@@ -86,9 +86,11 @@ export function Procesando({ protocoloId, estadoInicial }: Props) {
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-eyebrow text-ink-500">Sometimiento · Análisis IA</p>
-        <h1 className="text-display-1 mt-1">Analizando tu protocolo</h1>
-        <p className="mt-2 text-ink-600">
+        <p className="text-eyebrow uppercase tracking-widest text-brand-magenta">
+          Sometimiento · Análisis IA
+        </p>
+        <h1 className="text-display-1 mt-1 text-ink-900">Analizando tu protocolo</h1>
+        <p className="mt-2 text-ink-700">
           La IA está leyendo tu documento y extrayendo los campos del formulario. Puedes esperar en
           esta pantalla o cerrar y volver más tarde — te aparecerá listo en tu dashboard.
         </p>
@@ -180,7 +182,10 @@ export function Procesando({ protocoloId, estadoInicial }: Props) {
 
       {/* Acciones */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/dashboard" className="text-sm text-ink-500 hover:underline">
+        <Link
+          href="/dashboard"
+          className="text-sm font-medium text-ink-700 hover:text-ink-900 hover:underline"
+        >
           ← Volver al dashboard
         </Link>
         <div className="flex gap-3">

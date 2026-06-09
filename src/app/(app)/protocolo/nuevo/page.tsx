@@ -9,9 +9,11 @@ export default function NuevoProtocoloPage() {
   return (
     <div className="space-y-8">
       <header>
-        <p className="text-eyebrow text-ink-500">Sometimiento</p>
-        <h1 className="text-display-1 mt-1">Nuevo protocolo</h1>
-        <p className="mt-2 text-ink-600">
+        <p className="text-eyebrow uppercase tracking-widest text-brand-magenta">
+          Sometimiento
+        </p>
+        <h1 className="text-display-1 mt-1 text-ink-900">Nuevo protocolo</h1>
+        <p className="mt-2 text-ink-700">
           Elige cómo quieres empezar. Si ya tienes el protocolo redactado en Word o PDF, la IA lee
           el documento y rellena el formulario por ti.
         </p>
@@ -19,8 +21,8 @@ export default function NuevoProtocoloPage() {
 
       <NuevoProtocoloForm />
 
-      <details className="text-sm text-ink-500">
-        <summary className="cursor-pointer hover:text-ink-700">
+      <details className="text-sm text-ink-700">
+        <summary className="cursor-pointer font-medium hover:text-ink-900">
           ¿Qué documentos necesito tener listos?
         </summary>
         <ol className="mt-3 list-decimal space-y-1 pl-6">
@@ -32,7 +34,7 @@ export default function NuevoProtocoloPage() {
           <li>Consentimiento informado (si involucra humanos)</li>
           <li>Asentimiento pediátrico (si involucra menores de edad)</li>
         </ol>
-        <p className="mt-2 text-ink-400">
+        <p className="mt-2 text-ink-600">
           Solo el formato de protocolo se necesita para arrancar; los demás se suben en el wizard.
         </p>
       </details>
