@@ -189,11 +189,20 @@ export async function registrarEvaluacionAction(
     .from("evaluaciones_bloques")
     .insert(filasBloques);
   if (errBloques) {
-    await admin.from("evaluaciones").delete().eq("id", cabecera.id);
+    const { error: errRollback } = await admin
+      .from("evaluaciones")
+      .delete()
+      .eq("id", cabecera.id);
+    if (errRollback) {
+      console.error(
+        "[registrarEvaluacionAction] rollback de cabecera falló (fila huérfana):",
+        errRollback.message,
+      );
+    }
     return { ok: false, error: errBloques.message };
   }
 
-  await admin.from("protocolo_eventos").insert({
+  const { error: errEvtVoto } = await admin.from("protocolo_eventos").insert({
     protocolo_id: protocoloId,
     tipo: "voto_emitido",
     descripcion: ajustadoPorEvaluador
@@ -206,6 +215,9 @@ export async function registrarEvaluacionAction(
       ajustado_por_evaluador: ajustadoPorEvaluador,
     },
   });
+  if (errEvtVoto) {
+    console.error("[bitácora] voto_emitido:", errEvtVoto.message);
+  }
 
   await cerrarYNotificarSiCorresponde(protocoloId, admin, false);
 
@@ -281,12 +293,15 @@ export async function registrarAbstencionCoiAction(
     };
   }
 
-  await admin.from("protocolo_eventos").insert({
+  const { error: errEvtAbst } = await admin.from("protocolo_eventos").insert({
     protocolo_id: protocoloId,
     tipo: "voto_abstencion_coi",
     descripcion: "Abstención obligatoria por conflicto de interés (IP del protocolo).",
     actor_id: user.usuarioId,
   });
+  if (errEvtAbst) {
+    console.error("[bitácora] voto_abstencion_coi:", errEvtAbst.message);
+  }
 
   await cerrarYNotificarSiCorresponde(protocoloId, admin, false);
 
@@ -409,7 +424,7 @@ async function cerrarYNotificarSiCorresponde(
     return { ok: true, data: { ganador: resultado.ganador, estadoNuevo } };
   }
 
-  await admin.from("protocolo_eventos").insert({
+  const { error: errEvtCierre } = await admin.from("protocolo_eventos").insert({
     protocolo_id: protocoloId,
     tipo: forzado ? "comite_cierre_forzado" : "comite_cierre_automatico",
     descripcion: `Comité cerró votación. Recomendación: ${recomendacion}. Listo para dictamen del Presidente.`,
@@ -422,6 +437,9 @@ async function cerrarYNotificarSiCorresponde(
       forzado,
     },
   });
+  if (errEvtCierre) {
+    console.error("[bitácora] cierre de votación:", errEvtCierre.message);
+  }
 
   if (!prot.notificacion_presidente_at) {
     const { data: marcado } = await admin
@@ -456,7 +474,7 @@ async function cerrarYNotificarSiCorresponde(
           }`
         : "(IP no encontrado)";
 
-      await notificarPresidente({
+      const rNotif = await notificarPresidente({
         protocoloId,
         claveProtocolo: prot.clave ?? "(sin clave)",
         tituloProtocolo: prot.titulo,
@@ -465,8 +483,28 @@ async function cerrarYNotificarSiCorresponde(
         ganador: resultado.ganador,
         emailPresidente: presidente.email,
       }).catch((e) => {
-        console.error("[notificarPresidente] error:", e);
+        console.error("[notificarPresidente] excepción:", e);
+        return { ok: false as const, error: "Excepción al notificar al Presidente." };
       });
+      if (!rNotif.ok) {
+        console.error("[cerrarYNotificar] notificarPresidente falló:", rNotif.error);
+        // Revertir el flag: el sistema NO debe creer que el Presidente fue
+        // notificado, y un reintento posterior podrá volver a enviar.
+        await admin
+          .from("protocolos")
+          .update({ notificacion_presidente_at: null })
+          .eq("id", protocoloId);
+        const { error: errEvtNotif } = await admin.from("protocolo_eventos").insert({
+          protocolo_id: protocoloId,
+          tipo: "notificacion_fallida",
+          descripcion:
+            "No se pudo enviar por correo el aviso al Presidente de que el protocolo está listo para dictamen.",
+          datos: { destino: "presidente", error: rNotif.error },
+        });
+        if (errEvtNotif) {
+          console.error("[bitácora] notificacion_fallida:", errEvtNotif.message);
+        }
+      }
     }
   }
 

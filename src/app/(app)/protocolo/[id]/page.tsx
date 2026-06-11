@@ -139,6 +139,7 @@ export default async function VerProtocoloPage({
 
       {acta && (
         <CardActa
+          actaId={acta.id}
           numeroOficio={acta.numero_oficio}
           resolucion={
             acta.resolucion as

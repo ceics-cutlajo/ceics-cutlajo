@@ -544,6 +544,13 @@ export async function enviarProtocoloAction(
       });
       if (!r.ok) {
         console.error("[enviarProtocoloAction] notificarSometimiento error:", r.error);
+        const { error: errEvt } = await admin.from("protocolo_eventos").insert({
+          protocolo_id: protocoloId,
+          tipo: "notificacion_fallida",
+          descripcion: "No se pudo enviar el acuse de recibo por correo al investigador.",
+          datos: { destino: "investigador_acuse", error: r.error },
+        });
+        if (errEvt) console.error("[bitácora] notificacion_fallida acuse:", errEvt.message);
       }
     }
   } catch (e) {
@@ -622,6 +629,7 @@ export async function enviarProtocoloAction(
       // En fila con pausa y reintento: Resend limita a 2 envíos/s; en ráfaga
       // (Promise.all) la mayoría rebotaba con 429 y esos avisos al comité se
       // perdían en silencio.
+      const fallidos: { email: string; error: string }[] = [];
       for (const [idx, m] of miembros.entries()) {
         if (idx > 0) await pausa(PAUSA_ENTRE_CORREOS_MS);
         const r = await enviarConReintento(() =>
@@ -640,7 +648,19 @@ export async function enviarProtocoloAction(
         );
         if (!r.ok) {
           console.error("[enviarProtocoloAction] notificarComiteSometimiento error:", r.error);
+          fallidos.push({ email: m.email, error: r.error });
         }
+      }
+      // Los fallos quedan en la bitácora (descripción sin correos: el
+      // historial es visible para el investigador; el detalle va en `datos`).
+      if (fallidos.length > 0) {
+        const { error: errEvt } = await admin.from("protocolo_eventos").insert({
+          protocolo_id: protocoloId,
+          tipo: "notificacion_fallida",
+          descripcion: `No se pudo enviar el aviso de nuevo protocolo por correo a ${fallidos.length} miembro(s) del comité.`,
+          datos: { destino: "comite", fallidos },
+        });
+        if (errEvt) console.error("[bitácora] notificacion_fallida comité:", errEvt.message);
       }
     }
   } catch (e) {

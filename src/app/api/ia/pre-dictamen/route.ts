@@ -136,6 +136,19 @@ export async function POST(req: NextRequest) {
     .eq("version", rondaActual)
     .maybeSingle();
   if (preInformeRonda) {
+    // Autocorrección: si el pre-informe existe pero el protocolo se quedó en
+    // en_evaluacion_ia (falló el UPDATE de estado en una corrida previa),
+    // repararlo aquí para que el comité pueda votar.
+    if (prot.estado === "en_evaluacion_ia") {
+      const { error: errReparar } = await admin
+        .from("protocolos")
+        .update({ estado: "en_revision_comite" })
+        .eq("id", body.protocoloId)
+        .eq("estado", "en_evaluacion_ia");
+      if (errReparar) {
+        console.error("[pre-dictamen] autocorrección de estado falló:", errReparar.message);
+      }
+    }
     return NextResponse.json({
       ok: true,
       skipped: true,
@@ -355,10 +368,17 @@ export async function POST(req: NextRequest) {
 
     // 11. Cambiar estado del protocolo a 'en_revision_comite' (si seguía en evaluacion_ia)
     if (prot.estado === "en_evaluacion_ia") {
-      await admin
+      const { error: errEstado } = await admin
         .from("protocolos")
         .update({ estado: "en_revision_comite" })
         .eq("id", body.protocoloId);
+      if (errEstado) {
+        // El pre-informe ya quedó guardado; el catch registra el evento de
+        // error y la rama idempotente reparará el estado en el reintento.
+        throw new Error(
+          `Pre-informe guardado pero falló el cambio de estado: ${errEstado.message}`,
+        );
+      }
     }
 
     // 12. Evento

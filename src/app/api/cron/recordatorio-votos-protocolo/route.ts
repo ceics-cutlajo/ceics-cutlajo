@@ -101,14 +101,18 @@ export async function GET(request: Request): Promise<Response> {
     const ronda = p.ronda_actual ?? (await obtenerRondaActual(p.id));
     const eventoTipo = `recordatorio_${tipo}_ronda${ronda}`;
 
-    // Idempotencia: ¿ya se mandó este recordatorio para esta ronda?
-    const { data: yaEnviado } = await admin
+    // Idempotencia POR MIEMBRO: si el recordatorio ya se mandó pero algunos
+    // envíos individuales fallaron (quedaron en datos.fallidos), el siguiente
+    // tick reintenta SOLO a esos; si no hay fallidos pendientes, se salta.
+    const { data: evtPrevio } = await admin
       .from("protocolo_eventos")
-      .select("id")
+      .select("id, datos")
       .eq("protocolo_id", p.id)
       .eq("tipo", eventoTipo)
       .maybeSingle();
-    if (yaEnviado) continue;
+    const fallidosPrevios: string[] =
+      ((evtPrevio?.datos as { fallidos?: string[] } | null)?.fallidos ?? []);
+    if (evtPrevio && fallidosPrevios.length === 0) continue;
 
     // Miembros del comité, sus votos en la ronda y los emails en conflicto.
     const [miembros, evaluaciones] = await Promise.all([
@@ -128,10 +132,26 @@ export async function GET(request: Request): Promise<Response> {
         !emailsConflicto.has(m.email.trim().toLowerCase()),
     );
 
+    // Destinatarios: en el primer envío, todos los no-votantes; en un
+    // reintento, solo los que fallaron antes y siguen sin votar.
+    const destinatarios = evtPrevio
+      ? noVotantes.filter((m) => fallidosPrevios.includes(m.email))
+      : noVotantes;
+    if (evtPrevio && destinatarios.length === 0) {
+      // Los fallidos previos ya votaron: limpiar la lista para no revisitar.
+      await admin
+        .from("protocolo_eventos")
+        .update({ datos: { ...(evtPrevio.datos as object), fallidos: [] } })
+        .eq("id", evtPrevio.id);
+      continue;
+    }
+
     const claveProtocolo = p.clave ?? p.id;
     // En fila con pausa y reintento: Resend limita a 2 envíos/s; en ráfaga
     // (Promise.all) varios recordatorios rebotaban con 429 en silencio.
-    for (const [idx, m] of noVotantes.entries()) {
+    const exitosos: string[] = [];
+    const fallidos: string[] = [];
+    for (const [idx, m] of destinatarios.entries()) {
       if (idx > 0) await pausa(PAUSA_ENTRE_CORREOS_MS);
       const res = await enviarConReintento(() =>
         notificarVotoPendiente({
@@ -143,21 +163,43 @@ export async function GET(request: Request): Promise<Response> {
           destinatarioNombre: `${m.nombre} ${m.apellidoPaterno}`.trim(),
         }),
       );
-      if (!res.ok) errores.push(`${p.id}/${m.email}: ${res.error}`);
+      if (res.ok) {
+        exitosos.push(m.email);
+      } else {
+        fallidos.push(m.email);
+        errores.push(`${p.id}/${m.email}: ${res.error}`);
+      }
     }
 
-    // Marca el recordatorio como enviado aunque algún email individual fallara,
-    // para no reenviar a todos en el siguiente tick. Los fallos quedan en log.
-    await admin.from("protocolo_eventos").insert({
-      protocolo_id: p.id,
-      tipo: eventoTipo,
-      descripcion: `Recordatorio de voto pendiente (día ${diaActual}, ronda ${ronda}) a ${noVotantes.length} miembro(s) sin votar.`,
-      datos: {
-        notificados: noVotantes.map((m) => m.email),
-        ronda,
-        diaActual,
-      },
-    });
+    // Bitácora honesta: `notificados` solo lleva envíos exitosos; los
+    // fallidos quedan en `datos.fallidos` para reintentarlos al día siguiente.
+    if (!evtPrevio) {
+      const { error: errEvt } = await admin.from("protocolo_eventos").insert({
+        protocolo_id: p.id,
+        tipo: eventoTipo,
+        descripcion: `Recordatorio de voto pendiente (día ${diaActual}, ronda ${ronda}) enviado a ${exitosos.length} de ${destinatarios.length} miembro(s) sin votar.`,
+        datos: {
+          notificados: exitosos,
+          fallidos,
+          ronda,
+          diaActual,
+        },
+      });
+      if (errEvt) errores.push(`${p.id}: no se pudo registrar el evento: ${errEvt.message}`);
+    } else {
+      const datosPrevios = (evtPrevio.datos as { notificados?: string[] } | null) ?? {};
+      const { error: errEvt } = await admin
+        .from("protocolo_eventos")
+        .update({
+          datos: {
+            ...datosPrevios,
+            notificados: [...(datosPrevios.notificados ?? []), ...exitosos],
+            fallidos,
+          },
+        })
+        .eq("id", evtPrevio.id);
+      if (errEvt) errores.push(`${p.id}: no se pudo actualizar el evento: ${errEvt.message}`);
+    }
 
     if (tipo === "dia10") dia10 += 1;
     else dia14 += 1;

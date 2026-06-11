@@ -1,6 +1,8 @@
 import { fechaLargaDesdeIsoOFallback } from "@/lib/actas/formatos";
+import { BotonReenviarActa } from "./boton-reenviar-acta";
 
 export type CardActaProps = {
+  actaId: string;
   numeroOficio: string;
   resolucion:
     | "aprobado"
@@ -14,6 +16,9 @@ export type CardActaProps = {
   docxUrl: string | null;
   pdfUrl: string | null;
   enviadaAt: string | null;
+  /** Muestra el aviso de "correo no enviado" + botón de reenvío
+   * (solo para Presidencia/Secretaría). */
+  puedeReenviar?: boolean;
 };
 
 const ETIQUETA_RES: Record<CardActaProps["resolucion"], string> = {
@@ -98,6 +103,15 @@ export function CardActa(props: CardActaProps) {
           Acta enviada por correo al investigador el{" "}
           {fechaLargaDesdeIsoOFallback(props.enviadaAt)}.
         </p>
+      )}
+
+      {!props.enviadaAt && props.puedeReenviar && (
+        <div className="mt-4 space-y-2 rounded-md border border-warn/30 bg-warn-soft/40 p-3">
+          <p className="text-xs font-medium text-ink-800">
+            ⚠ El correo con el acta al investigador no se ha enviado.
+          </p>
+          <BotonReenviarActa actaId={props.actaId} />
+        </div>
       )}
     </section>
   );

@@ -96,6 +96,7 @@ export async function GET(request: Request): Promise<Response> {
     };
 
     // Pausa entre envíos + reintento en 429: respeta el límite de 2/s de Resend.
+    let fallosSesion = 0;
     for (const [idx, m] of miembros.entries()) {
       if (idx > 0) await pausa(PAUSA_ENTRE_CORREOS_MS);
       const res = await enviarConReintento(() =>
@@ -106,13 +107,27 @@ export async function GET(request: Request): Promise<Response> {
           sesion: datosSesion,
         }),
       );
-      if (!res.ok) errores.push(`${s.id}/${m.email}: ${res.error}`);
+      if (!res.ok) {
+        errores.push(`${s.id}/${m.email}: ${res.error}`);
+        fallosSesion += 1;
+      }
     }
 
-    // Marca la sesión como recordada aunque algún email individual fallara,
-    // para no reenviar a todos en el siguiente tick. Los fallos quedan en log.
+    // Si TODOS los envíos fallaron (p. ej. Resend caído), NO se marca la
+    // sesión: el siguiente tick diario reintenta el lote completo. Con fallos
+    // parciales sí se marca (evita duplicar a quienes ya recibieron); esos
+    // fallos quedan registrados en `errores`.
+    if (miembros.length > 0 && fallosSesion === miembros.length) {
+      errores.push(`${s.id}: todos los envíos fallaron; se reintentará en el siguiente tick`);
+      continue;
+    }
     const campo = es7d ? "recordatorio_7d_at" : "recordatorio_1d_at";
-    await tabla.update({ [campo]: new Date().toISOString() }).eq("id", s.id);
+    const { error: errMarca } = await tabla
+      .update({ [campo]: new Date().toISOString() })
+      .eq("id", s.id);
+    if (errMarca) {
+      errores.push(`${s.id}: no se pudo marcar ${campo}: ${errMarca.message}`);
+    }
 
     if (es7d) enviados7d += 1;
     else enviados1d += 1;

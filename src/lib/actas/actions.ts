@@ -43,6 +43,29 @@ export type ActionResult<T = void> =
 const BUCKET = "actas";
 const URL_BASE_VALIDACION = "https://ceics-cutlajo.com/v/";
 
+/** Resolución guardada en BD → estado final del protocolo (espejo de
+ * estadoProtocoloDesdeResolucion, que trabaja con las etiquetas de UI). */
+const ESTADO_DESDE_RESOLUCION_DB: Record<
+  "aprobado" | "aprobado_con_observaciones" | "condicionado" | "no_aprobado",
+  "aprobado" | "aprobado_con_observaciones" | "observaciones" | "rechazado"
+> = {
+  aprobado: "aprobado",
+  aprobado_con_observaciones: "aprobado_con_observaciones",
+  condicionado: "observaciones",
+  no_aprobado: "rechazado",
+};
+
+/** Resolución guardada en BD → etiqueta de UI (para reenvíos de correo). */
+const RESOLUCION_UI_DESDE_DB: Record<
+  "aprobado" | "aprobado_con_observaciones" | "condicionado" | "no_aprobado",
+  "APROBADO" | "APROBADO CON OBSERVACIONES MENORES" | "CONDICIONADO A MODIFICACIONES MAYORES" | "NO APROBADO"
+> = {
+  aprobado: "APROBADO",
+  aprobado_con_observaciones: "APROBADO CON OBSERVACIONES MENORES",
+  condicionado: "CONDICIONADO A MODIFICACIONES MAYORES",
+  no_aprobado: "NO APROBADO",
+};
+
 type FirmanteResuelto = {
   usuarioId: string;
   rol: "presidente" | "comite_secretario";
@@ -143,6 +166,8 @@ export async function emitirDictamenAction(
     numeroOficio: string;
     docxPath: string;
     pdfPath: string;
+    /** Mensaje no bloqueante para el firmante (p. ej. PDF o correo fallidos). */
+    advertencia?: string;
   }>
 > {
   // 1. Validación
@@ -169,11 +194,44 @@ export async function emitirDictamenAction(
   // ronda actual (ciclo de re-evaluación).
   const { data: actaExistente } = await admin
     .from("actas")
-    .select("id, numero_oficio, docx_storage_path, pdf_storage_path")
+    .select(
+      "id, numero_oficio, docx_storage_path, pdf_storage_path, resolucion, vigencia_meses, fecha_emision, fecha_vencimiento",
+    )
     .eq("protocolo_id", datos.protocoloId)
     .eq("ronda", rondaActual)
     .maybeSingle();
   if (actaExistente) {
+    // Auto-rescate: si el acta existe pero el protocolo sigue en
+    // listo_dictamen, una emisión previa falló justo en el UPDATE final y el
+    // expediente quedó inconsistente (acta oficial sin estado final). Se
+    // re-aplica aquí el cambio de estado con los datos del acta existente.
+    let advertencia: string | undefined;
+    if (base.protocolo.estado === "listo_dictamen") {
+      const resDb = actaExistente.resolucion as keyof typeof ESTADO_DESDE_RESOLUCION_DB;
+      const { error: errRescate } = await admin
+        .from("protocolos")
+        .update({
+          estado: ESTADO_DESDE_RESOLUCION_DB[resDb],
+          numero_oficio: actaExistente.numero_oficio,
+          vigencia_dictamen_meses: actaExistente.vigencia_meses,
+          fecha_aprobacion: actaExistente.fecha_emision,
+          fecha_vencimiento: actaExistente.fecha_vencimiento,
+          dictaminado_at: new Date().toISOString(),
+        })
+        .eq("id", datos.protocoloId)
+        .eq("estado", "listo_dictamen");
+      if (errRescate) {
+        advertencia = `El acta ya existía, pero el protocolo sigue sin estado final y no se pudo reparar: ${errRescate.message}`;
+        console.error("[emitirDictamenAction] auto-rescate falló:", errRescate.message);
+      } else {
+        advertencia =
+          "El acta ya existía de un intento previo; el estado del protocolo había quedado inconsistente y se reparó automáticamente.";
+        revalidatePath(`/comite/protocolo/${datos.protocoloId}`);
+        revalidatePath(`/protocolo/${datos.protocoloId}`);
+        revalidatePath("/presidencia");
+        revalidatePath("/comite/bandeja");
+      }
+    }
     return {
       ok: true,
       data: {
@@ -181,6 +239,7 @@ export async function emitirDictamenAction(
         numeroOficio: actaExistente.numero_oficio,
         docxPath: actaExistente.docx_storage_path ?? "",
         pdfPath: actaExistente.pdf_storage_path ?? "",
+        advertencia,
       },
     };
   }
@@ -392,7 +451,7 @@ export async function emitirDictamenAction(
 
   // 9. Subir a Storage
   const docxPath = pathActa(datos.protocoloId, numeroOficioStr, "docx");
-  const pdfPath = pdfBuffer ? pathActa(datos.protocoloId, numeroOficioStr, "pdf") : null;
+  let pdfPath = pdfBuffer ? pathActa(datos.protocoloId, numeroOficioStr, "pdf") : null;
   const upDocx = await admin.storage.from(BUCKET).upload(docxPath, docxBuffer, {
     contentType:
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -409,6 +468,8 @@ export async function emitirDictamenAction(
     if (upPdf.error) {
       console.error("[emitirDictamenAction] subida PDF fallo (fail-soft):", upPdf.error.message);
       pdfBuffer = null;
+      // También la ruta: si quedara, el acta apuntaría a un PDF inexistente.
+      pdfPath = null;
     }
   }
 
@@ -491,7 +552,7 @@ export async function emitirDictamenAction(
   }
 
   // 12. Registrar evento
-  await admin.from("protocolo_eventos").insert({
+  const { error: errEvtActa } = await admin.from("protocolo_eventos").insert({
     protocolo_id: datos.protocoloId,
     tipo: "acta_emitida",
     descripcion: firmante.porDelegacion
@@ -507,8 +568,13 @@ export async function emitirDictamenAction(
       por_delegacion: firmante.porDelegacion,
     },
   });
+  if (errEvtActa) {
+    console.error("[emitirDictamenAction] bitácora acta_emitida:", errEvtActa.message);
+  }
 
-  // 13. Email al IP (fail-soft)
+  // 13. Email al IP (fail-soft, pero el fallo se hace visible al firmante
+  // vía `advertencia` y queda en la bitácora para poder reenviar).
+  let correoFallo: string | null = null;
   if (base.ip.correo) {
     const docxBase64 = docxBuffer.toString("base64");
     const pdfBase64 = pdfBuffer ? pdfBuffer.toString("base64") : null;
@@ -539,6 +605,17 @@ export async function emitirDictamenAction(
         .from("actas")
         .update({ enviada_a_investigador_at: new Date().toISOString() })
         .eq("id", insertActa.id);
+    } else {
+      correoFallo = r.error;
+      const { error: errEvtCorreo } = await admin.from("protocolo_eventos").insert({
+        protocolo_id: datos.protocoloId,
+        tipo: "notificacion_fallida",
+        descripcion: "No se pudo enviar por correo el acta al investigador.",
+        datos: { destino: "investigador", error: r.error, acta_id: insertActa.id },
+      });
+      if (errEvtCorreo) {
+        console.error("[emitirDictamenAction] bitácora notificacion_fallida:", errEvtCorreo.message);
+      }
     }
   }
 
@@ -551,6 +628,18 @@ export async function emitirDictamenAction(
   revalidatePath("/comite/bandeja");
   revalidatePath("/dashboard");
 
+  const advertencias: string[] = [];
+  if (!pdfPath) {
+    advertencias.push(
+      "El acta quedó emitida solo con DOCX: la versión PDF falló al generarse o subirse.",
+    );
+  }
+  if (correoFallo) {
+    advertencias.push(
+      "El correo con el acta al investigador NO se envió; puedes reenviarlo desde la tarjeta del acta en la página del protocolo.",
+    );
+  }
+
   return {
     ok: true,
     data: {
@@ -558,6 +647,130 @@ export async function emitirDictamenAction(
       numeroOficio: numeroOficioStr,
       docxPath,
       pdfPath: pdfPath ?? "",
+      advertencia: advertencias.length > 0 ? advertencias.join(" ") : undefined,
     },
   };
+}
+
+// ============================================================
+// reenviarActaInvestigadorAction
+// ============================================================
+
+/**
+ * Reenvía por correo al IP un acta ya emitida cuyo envío original falló
+ * (enviada_a_investigador_at en null). Descarga los adjuntos de Storage y
+ * reutiliza la plantilla de notificación; al lograrlo marca el timestamp.
+ * Solo Presidente o Secretario(a).
+ */
+export async function reenviarActaInvestigadorAction(
+  actaId: string,
+): Promise<ActionResult> {
+  const usuario = await obtenerUsuarioActual();
+  const autorizado =
+    usuario.roles.includes("presidente") ||
+    usuario.roles.includes("comite_secretario");
+  if (!autorizado) {
+    return {
+      ok: false,
+      error: "Solo el Presidente o el(la) Secretario(a) pueden reenviar el acta.",
+    };
+  }
+
+  const admin = createAdminClient();
+  const { data: acta } = await admin
+    .from("actas")
+    .select(
+      "id, protocolo_id, numero_oficio, resolucion, vigencia_meses, fecha_vencimiento, observaciones, docx_storage_path, pdf_storage_path",
+    )
+    .eq("id", actaId)
+    .maybeSingle();
+  if (!acta) return { ok: false, error: "No se encontró el acta." };
+
+  const { data: prot } = await admin
+    .from("protocolos")
+    .select("id, clave, titulo, investigador_principal_id")
+    .eq("id", acta.protocolo_id)
+    .maybeSingle();
+  if (!prot) return { ok: false, error: "No se encontró el protocolo del acta." };
+
+  const { data: ip } = await admin
+    .from("usuarios")
+    .select("nombre, apellido_paterno, apellido_materno, email")
+    .eq("id", prot.investigador_principal_id)
+    .maybeSingle();
+  if (!ip?.email) {
+    return { ok: false, error: "El investigador no tiene correo registrado." };
+  }
+  const ipNombre = `${ip.nombre} ${ip.apellido_paterno}${
+    ip.apellido_materno ? " " + ip.apellido_materno : ""
+  }`.trim();
+
+  // Adjuntos desde Storage (el DOCX es obligatorio; el PDF puede no existir).
+  if (!acta.docx_storage_path) {
+    return { ok: false, error: "El acta no tiene DOCX en el almacén; no se puede reenviar." };
+  }
+  const docxDl = await admin.storage.from(BUCKET).download(acta.docx_storage_path);
+  if (docxDl.error || !docxDl.data) {
+    return {
+      ok: false,
+      error: `No se pudo descargar el DOCX del acta: ${docxDl.error?.message ?? "vacío"}`,
+    };
+  }
+  const docxBase64 = Buffer.from(await docxDl.data.arrayBuffer()).toString("base64");
+  let pdfBase64: string | null = null;
+  if (acta.pdf_storage_path) {
+    const pdfDl = await admin.storage.from(BUCKET).download(acta.pdf_storage_path);
+    if (!pdfDl.error && pdfDl.data) {
+      pdfBase64 = Buffer.from(await pdfDl.data.arrayBuffer()).toString("base64");
+    }
+  }
+
+  const resDb = acta.resolucion as keyof typeof RESOLUCION_UI_DESDE_DB;
+  const observaciones = (acta.observaciones ?? "")
+    .split("\n")
+    .map((o: string) => o.replace(/^\d+\.\s*/, "").trim())
+    .filter((o: string) => o.length > 0);
+  const consecutivoSlug = acta.numero_oficio.replace(/\//g, "-");
+
+  const r = await notificarInvestigador({
+    protocoloId: prot.id,
+    claveProtocolo: prot.clave,
+    tituloProtocolo: prot.titulo,
+    ipNombre,
+    ipEmail: ip.email,
+    resolucion: RESOLUCION_UI_DESDE_DB[resDb],
+    numeroOficio: acta.numero_oficio,
+    vigenciaMeses: acta.vigencia_meses,
+    fechaVencimientoLarga: acta.fecha_vencimiento ? fechaLarga(acta.fecha_vencimiento) : "",
+    observaciones,
+    docxBase64,
+    pdfBase64,
+    docxNombreArchivo: `Acta-${consecutivoSlug}.docx`,
+    pdfNombreArchivo: `Acta-${consecutivoSlug}.pdf`,
+  }).catch((e) => {
+    console.error("[reenviarActaInvestigadorAction] excepción:", e);
+    return { ok: false as const, error: "Excepción al reenviar el correo." };
+  });
+
+  if (!r.ok) {
+    return { ok: false, error: `El reenvío falló: ${r.error}` };
+  }
+
+  await admin
+    .from("actas")
+    .update({ enviada_a_investigador_at: new Date().toISOString() })
+    .eq("id", acta.id);
+  const { error: errEvt } = await admin.from("protocolo_eventos").insert({
+    protocolo_id: prot.id,
+    tipo: "acta_reenviada",
+    descripcion: `Acta ${acta.numero_oficio} reenviada por correo al investigador.`,
+    datos: { acta_id: acta.id },
+  });
+  if (errEvt) {
+    console.error("[reenviarActaInvestigadorAction] bitácora:", errEvt.message);
+  }
+
+  revalidatePath(`/comite/protocolo/${prot.id}`);
+  revalidatePath(`/protocolo/${prot.id}`);
+  return { ok: true };
 }

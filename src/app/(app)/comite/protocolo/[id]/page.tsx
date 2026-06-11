@@ -23,10 +23,13 @@ export const dynamic = "force-dynamic";
 
 export default async function ComiteProtocoloPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ advertencia?: string }>;
 }) {
   const { id } = await params;
+  const { advertencia } = await searchParams;
 
   const usuario = await obtenerUsuarioActual();
   const esComite = usuario.roles.some((r) =>
@@ -157,6 +160,11 @@ export default async function ComiteProtocoloPage({
       <Link href="/comite/bandeja" className="block text-sm text-ink-500 hover:underline">
         ← Volver a la bandeja
       </Link>
+      {advertencia && (
+        <div className="rounded-md border border-warn/30 bg-warn-soft/40 px-4 py-3 text-sm text-ink-800">
+          ⚠ {advertencia}
+        </div>
+      )}
       <TimelineProtocolo
         protocolo={datos.protocolo}
         ipNombre={ipNombre}
@@ -174,6 +182,8 @@ export default async function ComiteProtocoloPage({
       )}
       {acta && (
         <CardActa
+          actaId={acta.id}
+          puedeReenviar={esPresidente || esSecretario}
           numeroOficio={acta.numero_oficio}
           resolucion={
             acta.resolucion as

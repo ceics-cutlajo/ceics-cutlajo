@@ -110,7 +110,12 @@ export function FormularioDictamen({
         observaciones,
       });
       if (r.ok && r.data) {
-        router.push(`/comite/protocolo/${protocoloId}?emitida=${r.data.numeroOficio}`);
+        const adv = r.data.advertencia
+          ? `&advertencia=${encodeURIComponent(r.data.advertencia)}`
+          : "";
+        router.push(
+          `/comite/protocolo/${protocoloId}?emitida=${r.data.numeroOficio}${adv}`,
+        );
         router.refresh();
       } else if (!r.ok) {
         setError(r.error);
