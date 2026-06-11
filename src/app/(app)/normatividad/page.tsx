@@ -23,6 +23,10 @@ const MEXICANA: Norma[] = [
     href: "https://www.gob.mx/salud/conbioetica",
   },
   {
+    label: "Código de Bioética para el Personal de Salud (CONBIOÉTICA)",
+    href: "https://www.gob.mx/salud/conbioetica/es/articulos/codigo-de-bioetica-para-el-personal-de-salud?idiom=es",
+  },
+  {
     label: "COFEPRIS — protocolos con medicamentos",
     href: "https://www.gob.mx/cofepris",
   },
