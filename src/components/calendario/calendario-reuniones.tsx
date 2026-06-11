@@ -329,7 +329,7 @@ function DetalleSesion({
                   href={sesion.meet_link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-md bg-brand-teal px-3 py-2 text-sm font-medium text-white hover:opacity-90"
+                  className="inline-flex items-center gap-2 rounded-md bg-navy-700 px-3 py-2 text-sm font-medium text-white hover:opacity-90"
                 >
                   <Video size={16} /> Unirse con Google Meet
                 </a>

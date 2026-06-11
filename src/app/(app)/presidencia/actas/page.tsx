@@ -29,7 +29,7 @@ export default async function PresidenciaActasPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        variant="teal"
+        variant="navy"
         eyebrow="Presidencia"
         title="Actas"
         description="Histórico de actas de dictamen emitidas por el CEICS. Incluye semáforo de vigencia y acceso al folio público de verificación."

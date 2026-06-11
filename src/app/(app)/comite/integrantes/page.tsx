@@ -38,8 +38,8 @@ function TarjetaIntegrante({ integrante }: { integrante: IntegranteComite }) {
           <span
             className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest ${
               esPresidente
-                ? "bg-brand-teal/10 text-brand-teal"
-                : "bg-brand-magenta/10 text-brand-magenta-deep"
+                ? "bg-navy-500/10 text-navy-700"
+                : "bg-brand-wine/10 text-brand-red"
             }`}
           >
             {ETIQUETA_ROL_COMITE[integrante.rolComite]}
@@ -71,7 +71,7 @@ function TarjetaIntegrante({ integrante }: { integrante: IntegranteComite }) {
 function Avatar({ integrante }: { integrante: IntegranteComite }) {
   if (integrante.foto) {
     return (
-      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full ring-2 ring-brand-magenta/20">
+      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full ring-2 ring-ink-200">
         <Image
           src={integrante.foto}
           alt={`Fotografía de ${integrante.nombre}`}
@@ -84,7 +84,7 @@ function Avatar({ integrante }: { integrante: IntegranteComite }) {
   }
 
   return (
-    <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-brand-magenta-deep text-xl font-semibold text-white ring-2 ring-brand-magenta/20">
+    <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-navy-700 text-xl font-semibold text-white ring-2 ring-ink-200">
       {inicialesIntegrante(integrante.nombre)}
     </div>
   );

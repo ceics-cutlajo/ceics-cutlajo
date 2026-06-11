@@ -28,7 +28,7 @@ export function Logo({
   const src = "/logo-cutlajo.png";
   const colorSub = variant === "dark" ? "text-side-muted" : "text-ink-500";
   const colorRule = variant === "dark" ? "bg-white/15" : "bg-ink-200";
-  const colorEyebrow = variant === "dark" ? "text-white" : "text-brand-magenta-deep";
+  const colorEyebrow = variant === "dark" ? "text-white" : "text-brand-red";
   const logoW = size === "lg" ? 220 : 160;
   const logoH = size === "lg" ? 64 : 46;
 

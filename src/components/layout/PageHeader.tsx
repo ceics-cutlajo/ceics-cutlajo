@@ -1,47 +1,36 @@
 /**
- * PageHeader institucional CUTLAJO.
+ * PageHeader institucional — estilo barra de título de Transparencia UDG.
  *
- * Banda principal burdeos (#680538) + franja magenta (#ed1e77) inferior +
- * acento de chevrons decorativos en la esquina derecha. Reemplaza el patrón
- * antiguo de `<header>` con eyebrow + título suelto, aplicando la identidad
- * visual del manual CUTLAJO de manera consistente a través de la plataforma.
+ * Bloque sólido de color con texto blanco + franja de acento inferior
+ * (ver docs/design.md §5.1). Variantes: "red" (vino, default) para áreas
+ * generales y "navy" para presidencia/dictamen. Se aceptan los nombres
+ * antiguos "magenta" y "teal" como alias para no romper call sites.
  */
-import { ChevronStrip } from "@/components/visual/Chevron";
-
 export function PageHeader({
   eyebrow,
   title,
   description,
   actions,
-  variant = "magenta",
+  variant = "red",
 }: {
   eyebrow?: string;
   title: string;
   description?: string;
   actions?: React.ReactNode;
-  /**
-   * Tono de la banda. "magenta" (default) usa el burdeos institucional;
-   * "teal" usa el teal oscuro CUTLAJO como acento alternativo para áreas
-   * de presidencia / dictamen.
-   */
-  variant?: "magenta" | "teal";
+  /** Tono de la banda. "magenta" y "teal" son alias legados de red/navy. */
+  variant?: "red" | "navy" | "magenta" | "teal";
 }) {
-  const bg = variant === "teal" ? "bg-brand-teal" : "bg-brand-magenta-deep";
-  const accent =
-    variant === "teal" ? "bg-brand-blue" : "bg-brand-magenta";
-  const eyebrowColor =
-    variant === "teal" ? "text-brand-blue" : "text-brand-magenta";
-  const chevronTone = variant === "teal" ? "blue" : "magenta";
+  const tone = variant === "teal" ? "navy" : variant === "magenta" ? "red" : variant;
+  const bg = tone === "navy" ? "bg-navy-700" : "bg-brand-wine";
+  const accent = tone === "navy" ? "bg-navy-500" : "bg-brand-red";
 
   return (
-    <header className="relative overflow-hidden rounded-lg shadow-md">
-      <div className={`relative ${bg} px-6 py-6 sm:px-8 sm:py-7`}>
-        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <header className="overflow-hidden rounded-md">
+      <div className={`${bg} px-6 py-5 sm:px-8 sm:py-6`}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             {eyebrow && (
-              <p
-                className={`text-eyebrow uppercase tracking-widest ${eyebrowColor}`}
-              >
+              <p className="text-eyebrow uppercase tracking-widest text-white/80">
                 {eyebrow}
               </p>
             )}
@@ -56,15 +45,8 @@ export function PageHeader({
           </div>
           {actions && <div className="shrink-0">{actions}</div>}
         </div>
-        {/* Chevrons decorativos en la esquina derecha, sutiles */}
-        <div
-          className="pointer-events-none absolute -right-2 -top-2 hidden opacity-20 sm:block"
-          aria-hidden="true"
-        >
-          <ChevronStrip tone={chevronTone} variant="hex" count={4} size={36} />
-        </div>
       </div>
-      <div className={`h-1.5 w-full ${accent}`} />
+      <div className={`h-1 w-full ${accent}`} />
     </header>
   );
 }

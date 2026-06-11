@@ -10,7 +10,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const usuario = await obtenerUsuarioActual();
 
   return (
-    <div className="grid min-h-screen grid-cols-[260px_1fr] bg-animated-cutlajo">
+    <div className="grid min-h-screen grid-cols-[260px_1fr] bg-ink-50">
       <Sidebar
         rol={usuario.rolPrincipal}
         usuario={{

@@ -34,7 +34,7 @@ export default async function DashboardPage() {
         actions={
           <Link
             href="/protocolo/nuevo"
-            className="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-medium text-brand-magenta-deep shadow-sm transition hover:bg-white/90"
+            className="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-medium text-brand-red shadow-sm transition hover:bg-white/90"
           >
             + Nuevo protocolo
           </Link>

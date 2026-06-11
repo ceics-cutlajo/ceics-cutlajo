@@ -14,8 +14,8 @@ export const metadata: Metadata = {
 // 16 chars: generarHashFolio en lib/actas/formatos.ts trunca el SHA-256 a 16 hex.
 const HASH_REGEX = /^[a-f0-9]{16}$/i;
 
-const UDG_NAVY = "#202945";
-const UDG_RED = "#B12028";
+const UDG_NAVY = "#27334F";
+const UDG_RED = "#90303a";
 
 type Resolucion =
   | "aprobado"

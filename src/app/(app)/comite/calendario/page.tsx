@@ -30,7 +30,7 @@ export default async function CalendarioPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        variant="teal"
+        variant="navy"
         eyebrow="CEICS · CUTLAJO"
         title="Calendario de Reuniones"
         description={

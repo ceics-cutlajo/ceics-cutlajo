@@ -1,23 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Barlow, Roboto_Slab } from "next/font/google";
+import { Barlow } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
+// Barlow para todo el sistema (titulares en pesos fuertes, cuerpo en
+// regulares); ver docs/design.md §4.
 const barlow = Barlow({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
   display: "swap",
   variable: "--font-barlow",
-});
-
-// Serif slab para titulares display, eco de la tipografía institucional del
-// manual CUTLAJO. Pesos limitados a los que realmente usamos (700, 800) para
-// minimizar el bundle de fuentes.
-const robotoSlab = Roboto_Slab({
-  subsets: ["latin"],
-  weight: ["700", "800"],
-  display: "swap",
-  variable: "--font-roboto-slab",
 });
 
 export const metadata: Metadata = {
@@ -29,7 +21,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ed1e77",
+  themeColor: "#27334F",
   width: "device-width",
   initialScale: 1,
 };
@@ -38,11 +30,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="es"
-      data-theme="light"
-      className={`${barlow.variable} ${robotoSlab.variable}`}
-    >
+    <html lang="es" data-theme="light" className={barlow.variable}>
       <body>
         {children}
         <Analytics />

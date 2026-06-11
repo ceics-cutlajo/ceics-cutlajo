@@ -131,7 +131,7 @@ export default async function EmitirDictamenPage({
     <div className="flex gap-5">
       <SideStrip
         label={firmaPorDelegacion ? "Dictamen · Secretaría" : "Dictamen presidencial"}
-        tone="teal"
+        tone="navy"
       />
       <div className="flex-1 space-y-8">
       <header className="flex items-start justify-between">
@@ -160,8 +160,8 @@ export default async function EmitirDictamenPage({
       </header>
 
       {firmaPorDelegacion && (
-        <div className="card border border-brand-magenta/30 bg-brand-magenta/5 p-5">
-          <p className="text-eyebrow text-brand-magenta-deep">
+        <div className="card border border-brand-wine/30 bg-brand-wine/5 p-5">
+          <p className="text-eyebrow text-brand-red">
             Delegación a Secretaría
           </p>
           <p className="mt-1 text-sm leading-relaxed text-ink-800">

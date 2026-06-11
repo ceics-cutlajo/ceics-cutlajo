@@ -9,6 +9,8 @@
  * Mismo patrón fail-soft que los otros notificadores: si Resend falla, se
  * loggea pero NO se revierte el cambio de estado del protocolo.
  */
+import { EMAIL_COLORES } from "./colores";
+
 const RESEND_API_URL = "https://api.resend.com/emails";
 const RESEND_FROM_DEFAULT = "CEICS CUTLAJO <dictamenes@ceics-cutlajo.com>";
 const BASE_URL_PUBLICO = "https://ceics-cutlajo.com";
@@ -107,23 +109,23 @@ function construirHtml(i: NotificacionSometimientoInput): string {
 <head>
 <meta charset="utf-8">
 <style>
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #2e2d2b; background: #fafaf9; margin: 0; padding: 24px; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: ${EMAIL_COLORES.texto}; background: ${EMAIL_COLORES.fondo}; margin: 0; padding: 24px; }
   .wrap { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-  .header { background: #680538; padding: 24px; }
-  .header .eyebrow { color: #ed1e77; text-transform: uppercase; letter-spacing: 0.16em; font-size: 11px; font-weight: 600; margin: 0 0 4px 0; }
+  .header { background: ${EMAIL_COLORES.encabezado}; padding: 24px; }
+  .header .eyebrow { color: ${EMAIL_COLORES.eyebrow}; text-transform: uppercase; letter-spacing: 0.16em; font-size: 11px; font-weight: 600; margin: 0 0 4px 0; }
   .header h1 { color: white; font-size: 22px; font-weight: 700; margin: 0; line-height: 1.3; }
-  .accent { height: 4px; background: #ed1e77; }
+  .accent { height: 4px; background: ${EMAIL_COLORES.franja}; }
   .body { padding: 28px 24px; line-height: 1.6; }
   .body p { margin: 0 0 14px 0; }
-  .data { background: #fafaf9; border-left: 3px solid #ed1e77; padding: 14px 16px; margin: 18px 0; font-size: 14px; }
-  .data .label { color: #6b6a66; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px; }
-  .data .value { color: #1c1b1a; font-weight: 600; margin-bottom: 10px; }
+  .data { background: ${EMAIL_COLORES.fondo}; border-left: 3px solid ${EMAIL_COLORES.franja}; padding: 14px 16px; margin: 18px 0; font-size: 14px; }
+  .data .label { color: ${EMAIL_COLORES.textoSuave}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px; }
+  .data .value { color: ${EMAIL_COLORES.texto}; font-weight: 600; margin-bottom: 10px; }
   .data .value:last-child { margin-bottom: 0; }
   .pasos { padding-left: 22px; margin: 16px 0; }
   .pasos li { margin-bottom: 8px; }
-  .cta { display: inline-block; background: #ed1e77; color: white; text-decoration: none; padding: 12px 22px; border-radius: 6px; font-weight: 600; margin: 8px 0 18px 0; }
-  .footer { background: #f4f4f2; padding: 16px 24px; font-size: 12px; color: #6b6a66; text-align: center; border-top: 1px solid #ecebe8; }
-  .nota { font-size: 13px; color: #6b6a66; font-style: italic; margin-top: 18px; }
+  .cta { display: inline-block; background: ${EMAIL_COLORES.cta}; color: white; text-decoration: none; padding: 12px 22px; border-radius: 6px; font-weight: 600; margin: 8px 0 18px 0; }
+  .footer { background: ${EMAIL_COLORES.footerFondo}; padding: 16px 24px; font-size: 12px; color: ${EMAIL_COLORES.textoSuave}; text-align: center; border-top: 1px solid ${EMAIL_COLORES.bordeSuave}; }
+  .nota { font-size: 13px; color: ${EMAIL_COLORES.textoSuave}; font-style: italic; margin-top: 18px; }
 </style>
 </head>
 <body>
@@ -150,7 +152,7 @@ function construirHtml(i: NotificacionSometimientoInput): string {
       <li>Recibirás un correo con el acta de aprobación en formato PDF y DOCX cuando el dictamen esté listo.</li>
     </ol>
     <p>Puedes consultar el estado de tu protocolo en cualquier momento:</p>
-    <p><a href="${link}" style="display:inline-block;background:#ed1e77;color:#ffffff !important;text-decoration:none;padding:12px 22px;border-radius:6px;font-weight:600;margin:8px 0 18px 0;"><span style="color:#ffffff !important;text-decoration:none;">Ver mi protocolo →</span></a></p>
+    <p><a href="${link}" style="display:inline-block;background:${EMAIL_COLORES.cta};color:#ffffff !important;text-decoration:none;padding:12px 22px;border-radius:6px;font-weight:600;margin:8px 0 18px 0;"><span style="color:#ffffff !important;text-decoration:none;">Ver mi protocolo →</span></a></p>
     <p class="nota">Este acuse de recibo no implica resolución del CEICS. El dictamen oficial se emitirá conforme a la Ley General de Salud, NOM-012-SSA3-2012 y la Declaración de Helsinki.</p>
   </div>
   <div class="footer">

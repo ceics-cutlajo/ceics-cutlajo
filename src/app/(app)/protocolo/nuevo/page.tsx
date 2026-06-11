@@ -9,7 +9,7 @@ export default function NuevoProtocoloPage() {
   return (
     <div className="space-y-8">
       <header>
-        <p className="text-sm font-bold uppercase tracking-widest text-[#46728B]">
+        <p className="text-sm font-bold uppercase tracking-widest text-navy-500">
           Sometimiento
         </p>
         <h1 className="text-display-1 mt-1 text-ink-900">Nuevo protocolo</h1>

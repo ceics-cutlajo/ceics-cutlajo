@@ -5,10 +5,11 @@
 /* ============================================================
    Variables CSS (sincronizadas con tailwind.config.ts)
    Las fuentes se cargan vía next/font/google en src/app/layout.tsx
+   Paleta: minimalismo institucional UDG — ver docs/design.md
    ============================================================ */
 :root {
-  --accent: #ed1e77;
-  --accent-deep: #680538;
+  --accent: #90303a;
+  --accent-deep: #701d14;
   color-scheme: light;
 }
 
@@ -40,115 +41,11 @@ h1,
 h2,
 h3,
 h4 {
-  font-family: var(--font-roboto-slab), Georgia, serif;
+  font-family: var(--font-barlow), "Inter", system-ui, sans-serif;
   font-weight: 700;
   letter-spacing: -0.01em;
   margin: 0;
   color: theme("colors.ink.900");
-}
-
-/* ============================================================
-   Fondo animado institucional CUTLAJO
-   Gradiente lento de colores brand a baja opacidad sobre ink-50.
-   Loop 35s ease-in-out: movimiento perceptible pero no agresivo,
-   apto para uso prolongado de la plataforma.
-   ============================================================ */
-/**
- * Animaciones:
- *  - cutlajoGradient: aurora suave que desplaza los gradientes radiales.
- *  - hexDrift: deriva lenta del tile hexagonal en diagonal, dando la
- *    sensación de panales flotando.
- */
-@keyframes cutlajoGradient {
-  0%,
-  100% {
-    background-position: 0% 0%, 0% 0%;
-  }
-  50% {
-    background-position: 100% 100%, 0% 0%;
-  }
-}
-
-@keyframes hexDrift {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(-56px, -100px, 0);
-  }
-}
-
-.bg-animated-cutlajo {
-  position: relative;
-  background-color: theme("colors.ink.50");
-  /* Luces de fondo del entramado hexagonal — paleta CUTLAJO apagada
-     (Jaime, 30 may 2026). Poca transparencia (alpha 0.85) para que los
-     tonos muted se perciban; se alternan en las 5 esquinas/centro. */
-  background-image:
-    radial-gradient(
-      /* rojo #662C21 */
-      circle at 18% 28%,
-      rgba(102, 44, 33, 0.85) 0px,
-      transparent 45%
-    ),
-    radial-gradient(
-      /* azul #314E61 */
-      circle at 78% 18%,
-      rgba(49, 78, 97, 0.85) 0px,
-      transparent 45%
-    ),
-    radial-gradient(
-      /* verde #2E473C */
-      circle at 82% 78%,
-      rgba(46, 71, 60, 0.85) 0px,
-      transparent 45%
-    ),
-    radial-gradient(
-      /* morado #8D8CA1 */
-      circle at 22% 78%,
-      rgba(141, 140, 161, 0.85) 0px,
-      transparent 45%
-    ),
-    radial-gradient(
-      /* rosa #726873 */
-      circle at 50% 50%,
-      rgba(114, 104, 115, 0.85) 0px,
-      transparent 45%
-    );
-  background-size: 200% 200%;
-  animation: cutlajoGradient 25s ease-in-out infinite;
-}
-
-/* Capa superior con teselado hexagonal "honeycomb" en líneas blancas a
-   opacidad media. El tile mide 56×100 que es la unidad natural del
-   teselado regular. La capa se mueve diagonalmente con hexDrift, dando
-   la sensación de panales flotando lentamente sobre el aurora. */
-.bg-animated-cutlajo::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100' viewBox='0 0 56 100'%3E%3Cpath d='M28 0L56 16L56 50L28 66L0 50L0 16L28 0M28 66L28 100' fill='none' stroke='%23ffffff' stroke-opacity='0.55' stroke-width='1.1'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 56px 100px;
-  animation: hexDrift 40s linear infinite;
-  /* La capa hexagonal queda 'pegada' al fondo pero permite ver el
-     contenido encima. Width/Height del tile hace tessellation continua. */
-  z-index: 0;
-}
-
-/* Asegurarse de que el contenido del layout se renderice sobre la capa
-   hexagonal (que está en ::before z-index 0). */
-.bg-animated-cutlajo > * {
-  position: relative;
-  z-index: 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bg-animated-cutlajo,
-  .bg-animated-cutlajo::before {
-    animation: none;
-  }
 }
 
 /* ============================================================
@@ -172,7 +69,8 @@ h4 {
     @apply w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm placeholder:text-ink-400 focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)];
   }
 
+  /* Tarjeta plana: borde 1px, sin sombra (design.md §5.2) */
   .card {
-    @apply rounded-lg bg-white shadow-sm border border-ink-150;
+    @apply rounded-md bg-white border border-ink-150;
   }
 }

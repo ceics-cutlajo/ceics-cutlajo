@@ -11,6 +11,8 @@
  * Honra `RESEND_OVERRIDE_TO` (redirige todos los correos a una bandeja de
  * pruebas) igual que el resto de los notificadores.
  */
+import { EMAIL_COLORES } from "./colores";
+
 const RESEND_API_URL = "https://api.resend.com/emails";
 const RESEND_FROM_DEFAULT = "CEICS CUTLAJO <dictamenes@ceics-cutlajo.com>";
 const BASE_URL_PUBLICO = "https://ceics-cutlajo.com";
@@ -109,9 +111,9 @@ function construirHtml(i: VotoPendienteInput): string {
   const url = urlVotar(i.protocoloId);
   return `<!doctype html>
 <html lang="es">
-<body style="margin:0;padding:0;background:#f5f3f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#2a2a2a;">
+<body style="margin:0;padding:0;background:${EMAIL_COLORES.fondo};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:${EMAIL_COLORES.texto};">
   <div style="max-width:560px;margin:32px auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-    <div style="background:#c8266c;padding:24px 32px;color:#ffffff;">
+    <div style="background:${EMAIL_COLORES.encabezado};padding:24px 32px;color:#ffffff;">
       <div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;opacity:0.85;">CEICS CUTLAJO · Recordatorio</div>
       <div style="font-size:20px;font-weight:600;margin-top:4px;">Tu voto está pendiente</div>
     </div>
@@ -119,22 +121,22 @@ function construirHtml(i: VotoPendienteInput): string {
       <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;">
         Estimado/a ${escapeHtml(i.destinatarioNombre)}, le recordamos que el CEICS tiene como meta <strong>resolver cada protocolo en un máximo de 14 días naturales</strong> desde su sometimiento.
       </p>
-      <div style="margin:20px 0;padding:14px 16px;background:#eef4f3;border-left:4px solid #2E473C;border-radius:6px;">
-        <div style="font-size:11px;color:#7a7a7a;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Protocolo · día ${i.diaActual}</div>
-        <div style="font-size:14px;font-weight:600;color:#2a2a2a;">${escapeHtml(i.claveProtocolo)}</div>
-        <div style="font-size:14px;color:#5a5a5a;margin-top:4px;">${escapeHtml(i.tituloProtocolo)}</div>
+      <div style="margin:20px 0;padding:14px 16px;background:${EMAIL_COLORES.panelFondo};border-left:4px solid ${EMAIL_COLORES.panelBorde};border-radius:6px;">
+        <div style="font-size:11px;color:${EMAIL_COLORES.textoSuave};text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Protocolo · día ${i.diaActual}</div>
+        <div style="font-size:14px;font-weight:600;color:${EMAIL_COLORES.texto};">${escapeHtml(i.claveProtocolo)}</div>
+        <div style="font-size:14px;color:${EMAIL_COLORES.textoSuave};margin-top:4px;">${escapeHtml(i.tituloProtocolo)}</div>
       </div>
       <p style="margin:16px 0;font-size:15px;line-height:1.6;">
         Aún no registra su voto sobre este protocolo. Le pedimos hacerlo a la brevedad para no demorar el dictamen.
       </p>
       <div style="margin:24px 0;text-align:center;">
-        <a href="${escapeHtml(url)}" style="display:inline-block;background:#2E473C;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:500;">Registrar mi voto</a>
+        <a href="${escapeHtml(url)}" style="display:inline-block;background:${EMAIL_COLORES.cta};color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:500;">Registrar mi voto</a>
       </div>
-      <p style="margin:16px 0 0 0;font-size:13px;color:#5a5a5a;line-height:1.6;word-break:break-all;">
-        O abra este enlace: <a href="${escapeHtml(url)}" style="color:#c8266c;">${escapeHtml(url)}</a>
+      <p style="margin:16px 0 0 0;font-size:13px;color:${EMAIL_COLORES.textoSuave};line-height:1.6;word-break:break-all;">
+        O abra este enlace: <a href="${escapeHtml(url)}" style="color:${EMAIL_COLORES.enlace};">${escapeHtml(url)}</a>
       </p>
     </div>
-    <div style="padding:18px 32px;background:#fafafa;border-top:1px solid #ececec;font-size:11px;color:#7a7a7a;line-height:1.5;">
+    <div style="padding:18px 32px;background:${EMAIL_COLORES.footerFondo};border-top:1px solid ${EMAIL_COLORES.bordeSuave};font-size:11px;color:${EMAIL_COLORES.textoSuave};line-height:1.5;">
       Sistema CEICS CUTLAJO — Comité de Ética en Investigación en Ciencias de la Salud<br>
       División de Salud · CUTLAJOMULCO · Universidad de Guadalajara
     </div>

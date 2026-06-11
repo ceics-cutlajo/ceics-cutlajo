@@ -1,16 +1,15 @@
 import Image from "next/image";
-import { ChevronStrip } from "@/components/visual/Chevron";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-animated-cutlajo">
+    <div className="min-h-screen bg-ink-50">
       <div className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-4 py-10">
         <div className="grid w-full grid-cols-1 overflow-hidden rounded-xl bg-white shadow-lg lg:grid-cols-2">
           {/* Panel izquierdo: branding institucional UDG → CUTLAJO → CEICS */}
           <div className="relative hidden flex-col justify-between bg-side-bg p-10 text-white lg:flex">
-            {/* Banda magenta superior — eco del manual institucional */}
+            {/* Banda vino superior — firma institucional UDG */}
             <div
-              className="absolute inset-x-0 top-0 h-1.5 bg-brand-magenta"
+              className="absolute inset-x-0 top-0 h-1.5 bg-brand-wine"
               aria-hidden="true"
             />
 
@@ -57,19 +56,13 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
             {/* Jerarquía 3: CEICS (subordinada institucionalmente) */}
             <div className="space-y-4">
-              <ChevronStrip
-                tone="magenta"
-                variant="hex"
-                count={3}
-                size={28}
-                className="opacity-100"
-              />
+              <div className="h-1 w-12 bg-brand-wine" aria-hidden="true" />
               <h2 className="font-display text-2xl font-bold leading-tight text-white">
                 Comité de Ética
                 <br />
                 en Investigación
                 <br />
-                <span className="text-brand-magenta">en Ciencias de la Salud</span>
+                <span className="text-navy-100">en Ciencias de la Salud</span>
               </h2>
               <p className="text-sm leading-relaxed text-side-muted">
                 Sesiones, dictámenes y seguimiento normativo del CEICS
@@ -79,7 +72,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             </div>
 
             <div className="flex items-center gap-3 text-xs text-side-muted">
-              <div className="h-1 w-10 rounded-full bg-brand-magenta" />
+              <div className="h-1 w-10 bg-brand-wine" />
               <span className="uppercase tracking-widest">
                 Acceso institucional protegido
               </span>
@@ -88,9 +81,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
           {/* Panel derecho: formulario */}
           <div className="relative p-8 sm:p-10 lg:p-12">
-            {/* Banda magenta superior visible solo en móvil */}
+            {/* Banda vino superior visible solo en móvil */}
             <div
-              className="absolute inset-x-0 top-0 h-1.5 bg-brand-magenta lg:hidden"
+              className="absolute inset-x-0 top-0 h-1.5 bg-brand-wine lg:hidden"
               aria-hidden="true"
             />
             {children}

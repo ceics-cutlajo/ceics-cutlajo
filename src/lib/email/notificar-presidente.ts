@@ -11,6 +11,8 @@
  * Remitente: dominio propio `ceics-cutlajo.com` verificado en Resend
  * (DKIM/SPF/MX/DMARC en Cloudflare DNS desde 2026-05-12).
  */
+import { EMAIL_COLORES } from "./colores";
+
 const RESEND_API_URL = "https://api.resend.com/emails";
 const RESEND_FROM_DEFAULT = "CEICS CUTLAJO <dictamenes@ceics-cutlajo.com>";
 const BASE_URL_PUBLICO = "https://ceics-cutlajo.com";
@@ -118,18 +120,18 @@ function construirHtml(i: NotificacionPresidenteInput): string {
   const etiquetaGanador = ETIQUETA_GANADOR[i.ganador] ?? i.ganador;
   const colorGanador =
     i.ganador === "aprobar"
-      ? "#1f9d55"
+      ? EMAIL_COLORES.exito
       : i.ganador === "aprobar_con_observaciones"
-        ? "#c4884a"
+        ? EMAIL_COLORES.advertencia
         : i.ganador === "no_aprobar"
-          ? "#c44a4a"
-          : "#5a5a5a";
+          ? EMAIL_COLORES.error
+          : EMAIL_COLORES.textoSuave;
 
   return `<!doctype html>
 <html lang="es">
-<body style="margin:0;padding:0;background:#f5f3f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#2a2a2a;">
+<body style="margin:0;padding:0;background:${EMAIL_COLORES.fondo};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:${EMAIL_COLORES.texto};">
   <div style="max-width:560px;margin:32px auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-    <div style="background:#c8266c;padding:24px 32px;color:#ffffff;">
+    <div style="background:${EMAIL_COLORES.encabezado};padding:24px 32px;color:#ffffff;">
       <div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;opacity:0.85;">CEICS CUTLAJO</div>
       <div style="font-size:20px;font-weight:600;margin-top:4px;">Protocolo listo para tu dictamen</div>
     </div>
@@ -139,37 +141,37 @@ function construirHtml(i: NotificacionPresidenteInput): string {
       </p>
       <table style="width:100%;border-collapse:collapse;margin:16px 0;">
         <tr>
-          <td style="padding:6px 0;font-size:12px;color:#7a7a7a;text-transform:uppercase;letter-spacing:0.08em;width:40%;">Clave</td>
+          <td style="padding:6px 0;font-size:12px;color:${EMAIL_COLORES.textoSuave};text-transform:uppercase;letter-spacing:0.08em;width:40%;">Clave</td>
           <td style="padding:6px 0;font-size:14px;font-weight:500;">${escapeHtml(i.claveProtocolo)}</td>
         </tr>
         <tr>
-          <td style="padding:6px 0;font-size:12px;color:#7a7a7a;text-transform:uppercase;letter-spacing:0.08em;">Título</td>
+          <td style="padding:6px 0;font-size:12px;color:${EMAIL_COLORES.textoSuave};text-transform:uppercase;letter-spacing:0.08em;">Título</td>
           <td style="padding:6px 0;font-size:14px;">${escapeHtml(i.tituloProtocolo)}</td>
         </tr>
         <tr>
-          <td style="padding:6px 0;font-size:12px;color:#7a7a7a;text-transform:uppercase;letter-spacing:0.08em;">Investigador Principal</td>
+          <td style="padding:6px 0;font-size:12px;color:${EMAIL_COLORES.textoSuave};text-transform:uppercase;letter-spacing:0.08em;">Investigador Principal</td>
           <td style="padding:6px 0;font-size:14px;">${escapeHtml(i.ipNombre)}</td>
         </tr>
       </table>
-      <div style="margin:20px 0;padding:14px 16px;background:#f5f3f0;border-left:4px solid ${colorGanador};border-radius:6px;">
-        <div style="font-size:11px;color:#7a7a7a;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Resultado del comité</div>
+      <div style="margin:20px 0;padding:14px 16px;background:${EMAIL_COLORES.fondo};border-left:4px solid ${colorGanador};border-radius:6px;">
+        <div style="font-size:11px;color:${EMAIL_COLORES.textoSuave};text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Resultado del comité</div>
         <div style="font-size:16px;font-weight:600;color:${colorGanador};">${escapeHtml(etiquetaGanador)}</div>
-        <div style="font-size:13px;color:#5a5a5a;margin-top:6px;line-height:1.5;">${escapeHtml(i.resumenVoto)}</div>
+        <div style="font-size:13px;color:${EMAIL_COLORES.textoSuave};margin-top:6px;line-height:1.5;">${escapeHtml(i.resumenVoto)}</div>
       </div>
       <p style="margin:24px 0 16px 0;font-size:14px;line-height:1.6;">
         Por favor revisa el protocolo en la plataforma y emite tu dictamen final.
       </p>
       <div style="text-align:center;margin:24px 0 8px 0;">
-        <a href="${linkProtocolo}" style="display:inline-block;background:#c8266c;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:500;">
+        <a href="${linkProtocolo}" style="display:inline-block;background:${EMAIL_COLORES.cta};color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:500;">
           Abrir protocolo
         </a>
       </div>
-      <p style="margin:16px 0 0 0;font-size:12px;color:#7a7a7a;text-align:center;">
+      <p style="margin:16px 0 0 0;font-size:12px;color:${EMAIL_COLORES.textoSuave};text-align:center;">
         O abre este enlace en tu navegador:<br>
-        <a href="${linkProtocolo}" style="color:#c8266c;word-break:break-all;">${linkProtocolo}</a>
+        <a href="${linkProtocolo}" style="color:${EMAIL_COLORES.enlace};word-break:break-all;">${linkProtocolo}</a>
       </p>
     </div>
-    <div style="padding:18px 32px;background:#fafafa;border-top:1px solid #ececec;font-size:11px;color:#7a7a7a;line-height:1.5;">
+    <div style="padding:18px 32px;background:${EMAIL_COLORES.footerFondo};border-top:1px solid ${EMAIL_COLORES.bordeSuave};font-size:11px;color:${EMAIL_COLORES.textoSuave};line-height:1.5;">
       Sistema CEICS CUTLAJO — Comité de Ética en Investigación en Ciencias de la Salud<br>
       División de Salud · CUTLAJOMULCO · Universidad de Guadalajara
     </div>

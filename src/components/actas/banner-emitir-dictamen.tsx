@@ -16,7 +16,7 @@ export function BannerEmitirDictamen({
     <section
       className={
         esDelegacion
-          ? "card border border-brand-magenta/40 bg-brand-magenta/5 p-6"
+          ? "card border border-brand-wine/40 bg-brand-wine/5 p-6"
           : "card border border-[var(--accent)]/40 bg-[var(--accent)]/5 p-6"
       }
     >
@@ -25,7 +25,7 @@ export function BannerEmitirDictamen({
           <p
             className={
               esDelegacion
-                ? "text-eyebrow text-brand-magenta-deep"
+                ? "text-eyebrow text-brand-red"
                 : "text-eyebrow text-[var(--accent)]"
             }
           >

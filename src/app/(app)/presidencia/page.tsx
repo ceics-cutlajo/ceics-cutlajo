@@ -36,13 +36,13 @@ export default async function PresidenciaPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        variant="teal"
+        variant="navy"
         eyebrow={esPresidente ? "Presidencia · CEICS" : "Comité · CEICS"}
         title={`Tablero ${ANIO_ACTUAL}`}
         actions={
           <Link
             href="/protocolo/nuevo"
-            className="inline-flex items-center rounded-md bg-white px-3 py-1.5 text-xs font-medium text-brand-teal shadow-sm transition hover:bg-white/90"
+            className="inline-flex items-center rounded-md bg-white px-3 py-1.5 text-xs font-medium text-navy-700 shadow-sm transition hover:bg-white/90"
           >
             Someter protocolo propio
           </Link>

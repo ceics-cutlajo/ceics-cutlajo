@@ -12,30 +12,30 @@
  */
 export function SideStrip({
   label,
-  tone = "magenta-deep",
+  tone = "red",
 }: {
   label: string;
-  tone?: "magenta-deep" | "teal" | "ink";
+  tone?: "red" | "navy" | "ink";
 }) {
   const bg =
-    tone === "teal"
-      ? "bg-brand-teal"
+    tone === "navy"
+      ? "bg-navy-700"
       : tone === "ink"
         ? "bg-ink-900"
-        : "bg-brand-magenta-deep";
+        : "bg-brand-red";
   const accent =
-    tone === "teal"
-      ? "bg-brand-blue"
+    tone === "navy"
+      ? "bg-navy-500"
       : tone === "ink"
-        ? "bg-brand-magenta"
-        : "bg-brand-magenta";
+        ? "bg-brand-wine"
+        : "bg-brand-wine";
 
   return (
     <aside
       className={`relative hidden w-10 shrink-0 overflow-hidden rounded-md lg:flex lg:flex-col ${bg}`}
       aria-hidden="true"
     >
-      <span className={`block h-1.5 w-full ${accent}`} />
+      <span className={`block h-1 w-full ${accent}`} />
       <div className="flex flex-1 items-center justify-center py-6">
         <span
           className="font-display text-[11px] font-bold uppercase tracking-[0.32em] text-white"
@@ -48,7 +48,7 @@ export function SideStrip({
           {label}
         </span>
       </div>
-      <span className={`block h-1.5 w-full ${accent}`} />
+      <span className={`block h-1 w-full ${accent}`} />
     </aside>
   );
 }
