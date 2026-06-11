@@ -614,10 +614,17 @@ export async function enviarProtocoloAction(
       const { notificarComiteSometimiento } = await import(
         "@/lib/email/notificar-comite-sometimiento"
       );
+      const { enviarConReintento, pausa, PAUSA_ENTRE_CORREOS_MS } = await import(
+        "@/lib/email/throttle"
+      );
       const miembros = await listarMiembrosElegiblesComite();
 
-      const resultados = await Promise.all(
-        miembros.map((m) =>
+      // En fila con pausa y reintento: Resend limita a 2 envíos/s; en ráfaga
+      // (Promise.all) la mayoría rebotaba con 429 y esos avisos al comité se
+      // perdían en silencio.
+      for (const [idx, m] of miembros.entries()) {
+        if (idx > 0) await pausa(PAUSA_ENTRE_CORREOS_MS);
+        const r = await enviarConReintento(() =>
           notificarComiteSometimiento({
             protocoloId,
             claveProtocolo: p.clave,
@@ -630,9 +637,7 @@ export async function enviarProtocoloAction(
             destinatarioEmail: m.email,
             destinatarioNombre: `${m.nombre} ${m.apellidoPaterno}`.trim(),
           }),
-        ),
-      );
-      for (const r of resultados) {
+        );
         if (!r.ok) {
           console.error("[enviarProtocoloAction] notificarComiteSometimiento error:", r.error);
         }

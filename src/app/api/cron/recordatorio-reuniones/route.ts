@@ -15,6 +15,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { listarMiembrosElegiblesComite } from "@/lib/evaluaciones/queries";
 import { notificarReunion } from "@/lib/email/notificar-reunion";
 import {
+  enviarConReintento,
+  pausa,
+  PAUSA_ENTRE_CORREOS_MS,
+} from "@/lib/email/throttle";
+import {
   hoyEnJalisco,
   sumarDiasIso,
   fechaLargaEs,
@@ -23,7 +28,9 @@ import {
 import { ETIQUETA_MODALIDAD, type SesionComite } from "@/lib/calendario/types";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// Envío en fila (throttle de Resend): sesiones × miembros con pausa de 600 ms
+// pueden acercarse al minuto; margen amplio en Vercel Pro.
+export const maxDuration = 120;
 
 type Resultado = {
   ok: boolean;
@@ -88,13 +95,17 @@ export async function GET(request: Request): Promise<Response> {
       ordenDelDia: s.orden_del_dia,
     };
 
-    for (const m of miembros) {
-      const res = await notificarReunion({
-        destinatarioEmail: m.email,
-        destinatarioNombre: `${m.nombre} ${m.apellidoPaterno}`.trim(),
-        tipo,
-        sesion: datosSesion,
-      });
+    // Pausa entre envíos + reintento en 429: respeta el límite de 2/s de Resend.
+    for (const [idx, m] of miembros.entries()) {
+      if (idx > 0) await pausa(PAUSA_ENTRE_CORREOS_MS);
+      const res = await enviarConReintento(() =>
+        notificarReunion({
+          destinatarioEmail: m.email,
+          destinatarioNombre: `${m.nombre} ${m.apellidoPaterno}`.trim(),
+          tipo,
+          sesion: datosSesion,
+        }),
+      );
       if (!res.ok) errores.push(`${s.id}/${m.email}: ${res.error}`);
     }
 

@@ -26,11 +26,18 @@ import {
   obtenerRondaActual,
 } from "@/lib/evaluaciones/queries";
 import { notificarVotoPendiente } from "@/lib/email/notificar-voto-pendiente";
+import {
+  enviarConReintento,
+  pausa,
+  PAUSA_ENTRE_CORREOS_MS,
+} from "@/lib/email/throttle";
 import { diaDesdeSometimiento } from "@/lib/protocolos/semaforo";
 import { hoyEnJalisco } from "@/lib/calendario/formato";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// Envío en fila (throttle de Resend): varios protocolos × varios miembros
+// pueden acercarse al minuto; margen amplio en Vercel Pro.
+export const maxDuration = 120;
 
 type Resultado = {
   ok: boolean;
@@ -122,8 +129,11 @@ export async function GET(request: Request): Promise<Response> {
     );
 
     const claveProtocolo = p.clave ?? p.id;
-    const resultados = await Promise.all(
-      noVotantes.map((m) =>
+    // En fila con pausa y reintento: Resend limita a 2 envíos/s; en ráfaga
+    // (Promise.all) varios recordatorios rebotaban con 429 en silencio.
+    for (const [idx, m] of noVotantes.entries()) {
+      if (idx > 0) await pausa(PAUSA_ENTRE_CORREOS_MS);
+      const res = await enviarConReintento(() =>
         notificarVotoPendiente({
           protocoloId: p.id,
           claveProtocolo,
@@ -132,11 +142,9 @@ export async function GET(request: Request): Promise<Response> {
           destinatarioEmail: m.email,
           destinatarioNombre: `${m.nombre} ${m.apellidoPaterno}`.trim(),
         }),
-      ),
-    );
-    resultados.forEach((res, idx) => {
-      if (!res.ok) errores.push(`${p.id}/${noVotantes[idx].email}: ${res.error}`);
-    });
+      );
+      if (!res.ok) errores.push(`${p.id}/${m.email}: ${res.error}`);
+    }
 
     // Marca el recordatorio como enviado aunque algún email individual fallara,
     // para no reenviar a todos en el siguiente tick. Los fallos quedan en log.
