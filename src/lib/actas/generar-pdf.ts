@@ -343,8 +343,9 @@ function dibujarCuadroResolucion(
   fonts: Fonts,
 ): void {
   const cuadroH = mm(14);
-  const cuadroW = CONTENT_W * 0.7;
-  const cuadroX = MARGIN_L + (CONTENT_W - cuadroW) / 2;
+  const cuadroW = CONTENT_W; // recuadro a todo el ancho (margen a margen), como el DOCX
+  const cuadroX = MARGIN_L;
+  const padding = mm(4);
   ensureSpace(s, cuadroH + 12);
   s.page.drawRectangle({
     x: cuadroX,
@@ -355,12 +356,18 @@ function dibujarCuadroResolucion(
     borderWidth: 1.5,
   });
   const t = safe(`PROTOCOLO ${texto}`);
-  const tw = fonts.bold.widthOfTextAtSize(t, 16);
+  // Seguro: si el dictamen fuera más largo que la caja, reducir el tamaño
+  // para que el texto nunca corte el borde.
+  let size = 16;
+  while (size > 9 && fonts.bold.widthOfTextAtSize(t, size) > cuadroW - 2 * padding) {
+    size -= 0.5;
+  }
+  const tw = fonts.bold.widthOfTextAtSize(t, size);
   s.page.drawText(t, {
     x: cuadroX + (cuadroW - tw) / 2,
-    y: s.cursorY - cuadroH + (cuadroH - 16) / 2 + 2,
+    y: s.cursorY - cuadroH + (cuadroH - size) / 2 + 2,
     font: fonts.bold,
-    size: 16,
+    size,
     color: COLOR_VERDE,
   });
   s.cursorY -= cuadroH + 8;
