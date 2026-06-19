@@ -23,12 +23,17 @@ import {
   getAnthropicClient,
   MAX_TOKENS_EXTRACCION,
   MODELO_EXTRACCION,
+  MAX_BYTES_PDF_OCR,
+  MAX_PAGINAS_PDF_OCR,
 } from "@/lib/ia/anthropic-client";
 import {
   SYSTEM_PROMPT_EXTRACCION,
   buildUserMessage,
+  buildUserMessageConDocumento,
 } from "@/lib/ia/prompt-extraccion";
 import { resultadoIASchema } from "@/lib/ia/schema-resultado";
+
+const BUCKET_PROTOCOLOS = "protocolos";
 
 // La extracción usa Haiku 4.5 (rápido) sobre el documento completo. En Vercel
 // Pro elevamos el límite a 120s como margen de seguridad para documentos muy
@@ -82,7 +87,7 @@ export async function POST(req: NextRequest) {
   // 3. Cargar extracción y verificar ownership
   const { data: ext } = await admin
     .from("extracciones_ia")
-    .select("id, protocolo_id, texto_fuente, estado, intentos")
+    .select("id, protocolo_id, documento_id, texto_fuente, estado, intentos")
     .eq("id", body.extraccionId)
     .single();
   if (!ext) {
@@ -119,16 +124,22 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // Si no hay texto extraíble, puede tratarse de un PDF ESCANEADO (sin capa de
+  // texto). En ese caso intentamos leerlo por VISIÓN: descargamos el PDF de
+  // Storage y lo mandamos a Claude como bloque `document` (base64). Solo si NO
+  // es un PDF (o no se puede recuperar) damos el error de texto insuficiente.
+  let pdfBase64: string | null = null;
   if (!ext.texto_fuente || ext.texto_fuente.trim().length < 50) {
-    await marcarError(
-      admin,
-      body.extraccionId,
-      "Texto fuente vacío o demasiado corto (<50 caracteres) para extraer información.",
-    );
-    return NextResponse.json(
-      { ok: false, error: "texto-insuficiente" },
-      { status: 422 },
-    );
+    const ocr = await intentarPrepararPdfEscaneado(admin, ext.documento_id);
+    if (ocr.ok) {
+      pdfBase64 = ocr.base64;
+    } else {
+      await marcarError(admin, body.extraccionId, ocr.mensaje);
+      return NextResponse.json(
+        { ok: false, error: "texto-insuficiente", message: ocr.mensaje },
+        { status: 422 },
+      );
+    }
   }
 
   const { data: claimed, error: claimErr } = await admin
@@ -159,14 +170,18 @@ export async function POST(req: NextRequest) {
     // rebasa el límite de tiempo. En su lugar, Haiku genera rápido y reparamos
     // el JSON con jsonrepair (corrige comillas internas sin escapar, comas
     // finales, fences y truncados) — el defecto típico de Haiku.
+    // Dos rutas: PDF escaneado (visión, bloque `document`) o texto plano.
+    // Haiku 4.5 soporta visión/PDF, así que el modelo NO cambia.
+    const content = pdfBase64
+      ? buildUserMessageConDocumento(pdfBase64)
+      : buildUserMessage(ext.texto_fuente as string);
+
     const response = await anthropic.messages.create(
       {
         model: MODELO_EXTRACCION,
         max_tokens: MAX_TOKENS_EXTRACCION,
         system: SYSTEM_PROMPT_EXTRACCION,
-        messages: [
-          { role: "user", content: buildUserMessage(ext.texto_fuente) },
-        ],
+        messages: [{ role: "user", content }],
       },
       // Timeout < maxDuration (120s) y SIN reintentos: si la IA tarda demasiado,
       // el SDK lanza APIConnectionTimeoutError y cae al catch de abajo
@@ -292,6 +307,86 @@ export async function POST(req: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+/**
+ * Recupera el PDF escaneado del documento vinculado a la extracción y lo prepara
+ * como base64 (sin saltos de línea) para enviarlo a Claude por visión. Devuelve
+ * un mensaje accionable si NO procede (no es PDF, no se recupera, o excede los
+ * límites de la API: 32 MB / 100 páginas).
+ */
+async function intentarPrepararPdfEscaneado(
+  admin: ReturnType<typeof createAdminClient>,
+  documentoId: string | null,
+): Promise<{ ok: true; base64: string } | { ok: false; mensaje: string }> {
+  const MENSAJE_GENERICO =
+    "El documento no tiene texto seleccionable. Sube una versión con texto (PDF con capa de texto o Word) o llena el formulario manualmente.";
+
+  if (!documentoId) {
+    return { ok: false, mensaje: MENSAJE_GENERICO };
+  }
+
+  const { data: doc } = await admin
+    .from("protocolo_documentos")
+    .select("storage_path, mime_type, tamano_bytes")
+    .eq("id", documentoId)
+    .single();
+  if (!doc || doc.mime_type !== "application/pdf") {
+    // No es PDF (p.ej. DOCX sin texto, raro) → no aplica visión por PDF.
+    return { ok: false, mensaje: MENSAJE_GENERICO };
+  }
+
+  // Guarda por tamaño antes de descargar (el subidor ya limita a 25 MB, pero el
+  // tope de la API es 32 MB; re-verificamos por defensa).
+  if (
+    typeof doc.tamano_bytes === "number" &&
+    doc.tamano_bytes > MAX_BYTES_PDF_OCR
+  ) {
+    return {
+      ok: false,
+      mensaje:
+        "El PDF parece escaneado y excede el límite para lectura automática. Sube una versión con texto seleccionable.",
+    };
+  }
+
+  const { data: fileData, error: errDl } = await admin.storage
+    .from(BUCKET_PROTOCOLOS)
+    .download(doc.storage_path);
+  if (errDl || !fileData) {
+    return { ok: false, mensaje: MENSAJE_GENERICO };
+  }
+  const buffer = Buffer.from(await fileData.arrayBuffer());
+
+  if (buffer.byteLength > MAX_BYTES_PDF_OCR) {
+    return {
+      ok: false,
+      mensaje:
+        "El PDF parece escaneado y excede el límite para lectura automática. Sube una versión con texto seleccionable.",
+    };
+  }
+
+  // Verificación best-effort de número de páginas (≤100 para modelos de 200K).
+  // pdf-parse ya es dependencia y devuelve numpages aun cuando no hay texto.
+  try {
+    // @ts-ignore — pdf-parse importa por subpath sin types modernos
+    const pdfParseModule = await import("pdf-parse/lib/pdf-parse.js");
+    const pdfParse = pdfParseModule.default ?? pdfParseModule;
+    const info = await pdfParse(buffer);
+    if (
+      typeof info?.numpages === "number" &&
+      info.numpages > MAX_PAGINAS_PDF_OCR
+    ) {
+      return {
+        ok: false,
+        mensaje: `El PDF parece escaneado y tiene ${info.numpages} páginas (máximo ${MAX_PAGINAS_PDF_OCR} para lectura automática). Sube una versión con texto seleccionable.`,
+      };
+    }
+  } catch {
+    // Si no se puede contar páginas, seguimos: el tope de tamaño ya acota el
+    // request y, en el peor caso, la API rechazará el PDF y caerá al catch.
+  }
+
+  return { ok: true, base64: buffer.toString("base64") };
 }
 
 async function marcarError(

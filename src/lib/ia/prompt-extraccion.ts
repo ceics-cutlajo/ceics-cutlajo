@@ -6,6 +6,8 @@
  * Las llamadas a Supabase las hace el route handler.
  */
 
+import type Anthropic from "@anthropic-ai/sdk";
+
 export const SYSTEM_PROMPT_EXTRACCION = `Eres un asistente especializado del Comité de Ética en Investigación en Ciencias de la Salud (CEICS) del CUTlajomulco, Universidad de Guadalajara.
 
 Tu trabajo es leer protocolos de investigación clínica/científica subidos por investigadores y extraer 14 campos estructurados que pre-llenarán un formulario de sometimiento. El investigador podrá revisar y modificar lo que extraigas antes de enviar.
@@ -116,4 +118,34 @@ export function buildUserMessage(textoFuente: string): string {
 ${texto}
 
 ---FIN DEL DOCUMENTO---${aviso}`;
+}
+
+/**
+ * Variante para PDFs ESCANEADOS (sin capa de texto extraíble): construye el
+ * `content` del mensaje user con el PDF como bloque `document` (base64) seguido
+ * del bloque de texto con las instrucciones. Claude lee el PDF por VISIÓN nativa.
+ *
+ * El bloque `document` debe ir ANTES del bloque de texto (la imagen/documento se
+ * sitúa antes de la instrucción que opera sobre él). `pdfBase64` debe venir SIN
+ * saltos de línea. El system prompt de extracción NO cambia: se sigue pidiendo
+ * el mismo JSON de 14/15 campos. Misma estructura de respuesta que la ruta de
+ * texto, así que el parseo y el trigger SQL no se enteran de la diferencia.
+ */
+export function buildUserMessageConDocumento(
+  pdfBase64: string,
+): Anthropic.MessageParam["content"] {
+  return [
+    {
+      type: "document",
+      source: {
+        type: "base64",
+        media_type: "application/pdf",
+        data: pdfBase64,
+      },
+    },
+    {
+      type: "text",
+      text: `El documento del investigador adjunto es un PDF ESCANEADO (sin texto seleccionable). Léelo por completo —incluyendo cualquier texto manuscrito o sellado que reconozcas— y devuelve el JSON estructurado con los campos extraídos. Si alguna sección no es legible, omite el campo correspondiente y repórtalo en "alertas" para que el investigador lo capture manualmente.`,
+    },
+  ];
 }

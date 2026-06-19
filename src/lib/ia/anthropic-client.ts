@@ -43,6 +43,16 @@ export const MODELO_EXTRACCION = "claude-haiku-4-5-20251001";
 // holgura; el modelo solo genera lo que necesita, así que no encarece ni alenta.
 export const MAX_TOKENS_EXTRACCION = 8192;
 
+// Límites de la API de Anthropic para PDFs enviados como bloque `document`
+// (visión nativa) — usados en la ruta de OCR para PDFs escaneados. Si el PDF
+// los excede, NO se manda: la extracción se marca como error con un mensaje
+// accionable y el investigador sube una versión con texto seleccionable.
+//   - 32 MB por request (tope duro de la API).
+//   - 100 páginas en modelos de 200K de contexto (Haiku 4.5 es 200K).
+// El subidor ya limita a 25 MB, pero re-verificamos en la ruta por defensa.
+export const MAX_BYTES_PDF_OCR = 32 * 1024 * 1024;
+export const MAX_PAGINAS_PDF_OCR = 100;
+
 // Pre-dictamen del comité (modo "a fondo"): Sonnet — mejor que Haiku para
 // buscar ítem por ítem en documentos largos y razonar sobre evidencia dispersa.
 // Ahora recibe TODOS los documentos del paquete (carta, delegación, CV, BPC,

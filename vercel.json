@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/recordatorio-votos-protocolo",
       "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/limpieza-huerfanos",
+      "schedule": "0 6 * * 1"
     }
   ]
 }

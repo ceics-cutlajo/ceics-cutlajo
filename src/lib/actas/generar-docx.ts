@@ -333,6 +333,29 @@ function buildAntecedente(datos: DatosActa): Paragraph[] {
   ];
 }
 
+function buildNotaReevaluacion(datos: DatosActa): Paragraph[] {
+  const re = datos.reevaluacion;
+  if (!re) return [];
+  return [
+    p({
+      before: 0,
+      after: 160,
+      children: [
+        new TextRun({
+          text:
+            `Este protocolo fue previamente dictaminado como «${re.resolucion_previa}» mediante el oficio ${re.oficio_previo} de fecha ${re.fecha_previa_larga}. ` +
+            `El Investigador Principal incorporó las correcciones solicitadas, las cuales fueron revisadas por este Comité y consideradas satisfactorias. ` +
+            `El presente dictamen conserva la misma clave de protocolo (${datos.protocolo.clave}).`,
+          italics: true,
+          font: FUENTE_CUERPO,
+          size: 22,
+          color: COLOR_NEGRO,
+        }),
+      ],
+    }),
+  ];
+}
+
 function buildIdentificacion(datos: DatosActa): Paragraph[] {
   const prot = datos.protocolo;
   const ip = datos.ip;
@@ -782,6 +805,7 @@ export async function generarActaDocx(datos: DatosActa): Promise<Buffer> {
           ...buildDestinatario(datos),
           ...buildAsunto(datos),
           ...buildAntecedente(datos),
+          ...buildNotaReevaluacion(datos),
           ...buildIdentificacion(datos),
           ...buildMarcoNormativo(datos),
           ...buildResolucion(datos),

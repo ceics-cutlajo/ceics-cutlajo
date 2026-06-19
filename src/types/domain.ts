@@ -17,6 +17,7 @@ export type EstadoProtocolo =
   | "listo_dictamen"
   | "aprobado"
   | "aprobado_con_observaciones"
+  | "correcciones_menores"
   | "observaciones"
   | "rechazado"
   | "retirado";
@@ -32,6 +33,7 @@ export const ETIQUETAS_ESTADO: Record<EstadoProtocolo, string> = {
   listo_dictamen: "Listo para dictamen",
   aprobado: "Aprobado",
   aprobado_con_observaciones: "Aprobado con observaciones",
+  correcciones_menores: "Correcciones menores en revisión",
   observaciones: "Requiere correcciones",
   rechazado: "Rechazado",
   retirado: "Retirado",

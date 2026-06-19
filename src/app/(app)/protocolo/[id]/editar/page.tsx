@@ -15,7 +15,11 @@ export default async function EditarProtocoloPage({
   if (!datos) notFound();
 
   if (!datos.esPropietario) redirect(`/protocolo/${id}`);
-  if (datos.protocolo.estado !== "borrador" && datos.protocolo.estado !== "observaciones") {
+  if (
+    datos.protocolo.estado !== "borrador" &&
+    datos.protocolo.estado !== "observaciones" &&
+    datos.protocolo.estado !== "aprobado_con_observaciones"
+  ) {
     redirect(`/protocolo/${id}`);
   }
 

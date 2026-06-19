@@ -82,6 +82,7 @@ function calcularEtapaActual(
       return hubieronCiclos ? 5 : 3;
     case "observaciones":
       return 4;
+    case "correcciones_menores":
     case "listo_dictamen":
       return 6;
     case "aprobado":

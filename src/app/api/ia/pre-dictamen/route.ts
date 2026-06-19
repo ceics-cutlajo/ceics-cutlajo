@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
   const { data: prot } = await admin
     .from("protocolos")
     .select(
-      "id, titulo, resumen, area_conocimiento_id, tipo_investigacion_id, clasificacion_riesgo, involucra_humanos, involucra_menores, involucra_datos_geneticos, involucra_medicamento, objetivo_general, objetivos_especificos, criterios_inclusion, criterios_exclusion, metodologia, cronograma, investigador_principal_id, estado, ronda_actual",
+      "id, titulo, resumen, area_conocimiento_id, tipo_investigacion_id, clasificacion_riesgo, involucra_humanos, involucra_menores, involucra_datos_geneticos, involucra_medicamento, solicita_dispensa_consentimiento, objetivo_general, objetivos_especificos, criterios_inclusion, criterios_exclusion, metodologia, cronograma, investigador_principal_id, estado, ronda_actual",
     )
     .eq("id", body.protocoloId)
     .single();
@@ -216,6 +216,7 @@ export async function POST(req: NextRequest) {
       involucra_menores: prot.involucra_menores,
       involucra_datos_geneticos: prot.involucra_datos_geneticos,
       involucra_medicamento: prot.involucra_medicamento,
+      solicita_dispensa_consentimiento: prot.solicita_dispensa_consentimiento,
       objetivo_general: prot.objetivo_general,
       objetivos_especificos: (prot.objetivos_especificos as string[] | null) ?? [],
       criterios_inclusion: (prot.criterios_inclusion as string[] | null) ?? [],

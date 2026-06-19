@@ -135,6 +135,13 @@ export function Revisar(props: Props) {
           />
         </dl>
 
+        {props.protocolo.solicita_dispensa_consentimiento && (
+          <div className="mt-4 rounded-md border border-info/30 bg-info-soft px-4 py-3 text-sm text-info">
+            El investigador solicita dispensa de consentimiento informado (estudio
+            retrospectivo / datos secundarios).
+          </div>
+        )}
+
         {props.protocolo.resumen && (
           <div className="mt-6">
             <div className="text-eyebrow mb-1 text-ink-500">Resumen</div>

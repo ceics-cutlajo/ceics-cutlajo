@@ -26,13 +26,21 @@ import {
   type TipoDocumento,
 } from "./schemas";
 import { formatearErrorZodClinico } from "./errores";
+import { notificarPresidente } from "@/lib/email/notificar-presidente";
+import { obtenerPresidente } from "@/lib/evaluaciones/queries";
 
 export type ActionResult<T = void> =
   | { ok: true; data?: T }
   | { ok: false; error: string };
 
 const BUCKET = "protocolos";
-const ESTADOS_EDITABLES = ["borrador", "observaciones"] as const;
+const ESTADOS_EDITABLES = [
+  "borrador",
+  "observaciones",
+  // El IP también puede actualizar documentos mientras atiende observaciones
+  // menores, antes de enviar sus correcciones para ratificación.
+  "aprobado_con_observaciones",
+] as const;
 
 async function obtenerUsuarioId(): Promise<string | null> {
   const usuario = await obtenerUsuarioActual();
@@ -311,7 +319,9 @@ export async function subirDocumentoAction(
   // previa, que se conserva como historial. Alinea con `nuevaRonda` de
   // enviarProtocoloAction (que incrementa ronda_actual al reenviar).
   const rondaDoc =
-    check.estado === "observaciones" ? check.rondaActual + 1 : check.rondaActual;
+    check.estado === "observaciones" || check.estado === "aprobado_con_observaciones"
+      ? check.rondaActual + 1
+      : check.rondaActual;
 
   // Si ya existe un documento de este tipo EN ESTA MISMA RONDA, lo reemplazamos
   // (las versiones de rondas anteriores se conservan intactas).
@@ -414,6 +424,91 @@ export async function eliminarDocumentoAction(
 }
 
 // ============================================================
+// Enviar correcciones menores (carril ligero, sin nueva votación)
+// ============================================================
+
+/**
+ * El IP, tras un dictamen "APROBADO CON OBSERVACIONES MENORES", atiende las
+ * observaciones (puede actualizar documentos via el editor) y envía sus
+ * correcciones para ratificación. Incrementa ronda_actual y pasa el protocolo a
+ * 'correcciones_menores'; notifica a Presidencia. NO reabre la votación del
+ * comité — la Presidencia ratifica y emite el acta final.
+ */
+export async function enviarCorreccionesMenoresAction(
+  protocoloId: string,
+): Promise<ActionResult> {
+  const check = await verificarPropiedadEditable(protocoloId);
+  if (!check.ok) return check;
+  if (check.estado !== "aprobado_con_observaciones") {
+    return {
+      ok: false,
+      error:
+        "Esta acción solo aplica a protocolos aprobados con observaciones menores.",
+    };
+  }
+
+  const admin = createAdminClient();
+  const nuevaRonda = check.rondaActual + 1;
+
+  const { data: actualizado, error } = await admin
+    .from("protocolos")
+    .update({ estado: "correcciones_menores", ronda_actual: nuevaRonda })
+    .eq("id", protocoloId)
+    .eq("estado", "aprobado_con_observaciones")
+    .select("id, clave, titulo")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!actualizado) {
+    return {
+      ok: false,
+      error: "El protocolo cambió de estado; recarga el expediente e inténtalo de nuevo.",
+    };
+  }
+
+  await admin.from("protocolo_eventos").insert({
+    protocolo_id: protocoloId,
+    tipo: "correcciones_menores_enviadas",
+    descripcion: `Correcciones de observaciones menores enviadas para ratificación de Presidencia (ronda ${nuevaRonda}).`,
+    actor_id: check.usuarioId,
+    datos: { ronda: nuevaRonda },
+  });
+
+  // Avisar a Presidencia (fail-soft: no revertimos el envío si el correo falla).
+  try {
+    const presidente = await obtenerPresidente();
+    if (presidente?.email) {
+      const { data: ip } = await admin
+        .from("usuarios")
+        .select("nombre, apellido_paterno, apellido_materno")
+        .eq("id", check.usuarioId)
+        .maybeSingle();
+      const ipNombre = ip
+        ? `${ip.nombre} ${ip.apellido_paterno}${ip.apellido_materno ? " " + ip.apellido_materno : ""}`.trim()
+        : "Investigador";
+      await notificarPresidente({
+        protocoloId,
+        claveProtocolo: actualizado.clave ?? "(sin clave)",
+        tituloProtocolo: actualizado.titulo,
+        ipNombre,
+        resumenVoto:
+          "El investigador atendió las observaciones menores y envió sus correcciones.",
+        ganador: "Ratificar correcciones menores (sin nueva votación del comité)",
+        emailPresidente: presidente.email,
+      });
+    }
+  } catch (e) {
+    console.error("[enviarCorreccionesMenoresAction] notificarPresidente:", e);
+  }
+
+  revalidatePath(`/protocolo/${protocoloId}`);
+  revalidatePath(`/comite/protocolo/${protocoloId}`);
+  revalidatePath(`/presidencia/dictamen/${protocoloId}`);
+  revalidatePath("/presidencia");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+// ============================================================
 // Enviar protocolo
 // ============================================================
 
@@ -433,6 +528,17 @@ export async function enviarProtocoloAction(
     .single();
 
   if (!prot) return { ok: false, error: "Protocolo no encontrado." };
+
+  // Las observaciones MENORES tienen su propio carril (ratificación de
+  // Presidencia, sin nueva votación del comité). Este flujo es solo para el
+  // sometimiento inicial y la re-evaluación de observaciones mayores.
+  if (prot.estado === "aprobado_con_observaciones") {
+    return {
+      ok: false,
+      error:
+        "Tu protocolo fue aprobado con observaciones menores. Usa el botón «Enviar correcciones» en el expediente para enviarlas a ratificación.",
+    };
+  }
 
   // Validar completitud de datos básicos
   const validacion = datosBasicosSchema.safeParse({

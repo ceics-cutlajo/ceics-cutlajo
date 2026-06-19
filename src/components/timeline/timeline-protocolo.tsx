@@ -293,6 +293,8 @@ function generarMensajeContextual(
     }
     case "observaciones":
       return "El comité solicitó correcciones. El investigador principal debe atender las observaciones y reenviar.";
+    case "correcciones_menores":
+      return "El investigador atendió las observaciones menores y envió sus correcciones. La Presidencia ratificará y emitirá el dictamen final.";
     case "listo_dictamen":
       return firmaPorDelegacion
         ? "El comité concluyó su evaluación. La Secretaría debe emitir el dictamen final y firmar el acta por delegación del Presidente."

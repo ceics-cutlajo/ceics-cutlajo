@@ -8,6 +8,7 @@ import {
   RESOLUCIONES_ACTA,
 } from "@/lib/actas/schemas";
 import { FormularioDictamen } from "./formulario";
+import { BotonRatificarMenores } from "@/components/actas/boton-ratificar-menores";
 import { SideStrip } from "@/components/visual/SideStrip";
 
 export const dynamic = "force-dynamic";
@@ -85,6 +86,53 @@ export default async function EmitirDictamenPage({
             acta le corresponde a él(ella); la delegación a Secretaría solo
             procede ante COI presidencial.
           </p>
+          <Link
+            href={`/comite/protocolo/${id}`}
+            className="mt-4 inline-block text-sm font-medium text-[var(--accent)] hover:underline"
+          >
+            ← Volver al protocolo
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Carril de observaciones MENORES: el IP envió sus correcciones y el
+  // protocolo espera ratificación de Presidencia (sin nueva votación del comité).
+  if (datos.protocolo.estado === "correcciones_menores") {
+    return (
+      <div className="space-y-6">
+        <header>
+          <p className="text-eyebrow text-ink-500">
+            {firmaPorDelegacion
+              ? "Secretaría · Ratificar correcciones menores"
+              : "Presidencia · Ratificar correcciones menores"}
+          </p>
+          <h1 className="text-display-1 mt-1">Ratificar observaciones menores</h1>
+        </header>
+        <div className="card border border-info/40 bg-info-soft/40 p-6 text-sm leading-relaxed">
+          <p>
+            El Investigador Principal del protocolo{" "}
+            <strong>{datos.protocolo.clave}</strong> ({datos.ip.nombre_completo})
+            atendió las observaciones menores señaladas por el comité y envió sus
+            correcciones.
+          </p>
+          <p className="mt-3 text-ink-700">
+            Al ratificar, se emitirá el acta final de <strong>aprobación</strong>,
+            que conserva el mismo número de protocolo y deja constancia de que se
+            incorporaron las correcciones. No se requiere una nueva votación del
+            comité.
+          </p>
+          {firmaPorDelegacion && (
+            <p className="mt-3 text-ink-700">
+              Como el Presidente (<strong>{datos.presidente.nombre}</strong>) es el
+              Investigador Principal, firmas en delegación por conflicto de interés;
+              así quedará constancia en el acta.
+            </p>
+          )}
+          <div className="mt-5">
+            <BotonRatificarMenores protocoloId={id} />
+          </div>
           <Link
             href={`/comite/protocolo/${id}`}
             className="mt-4 inline-block text-sm font-medium text-[var(--accent)] hover:underline"

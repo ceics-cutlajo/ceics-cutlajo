@@ -117,6 +117,13 @@ function votoDesdeTipoVoto(
 
 export async function obtenerDatosBaseActa(
   protocoloId: string,
+  /**
+   * Ronda de la que tomar los votos. Por defecto = ronda_actual del protocolo.
+   * En la ratificación de correcciones menores se pasa la ronda anterior (la
+   * que el comité votó "aprobado con observaciones menores"), porque la ronda
+   * actual de ratificación no tiene votación propia.
+   */
+  rondaVotos?: number,
 ): Promise<DatosBaseActa | null> {
   const admin = createAdminClient();
 
@@ -254,15 +261,18 @@ export async function obtenerDatosBaseActa(
     });
   }
 
-  // Solo los votos de la ronda en curso participan en este acta.
+  // Solo los votos de la ronda indicada participan en este acta. Por defecto la
+  // ronda en curso; en la ratificación de correcciones menores se usa la ronda
+  // anterior (donde sí hubo votación del comité).
   const rondaActual = (prot.ronda_actual as number | null) ?? 1;
+  const rondaVotacion = rondaVotos ?? rondaActual;
   const { data: evals } = await admin
     .from("evaluaciones")
     .select(
       "miembro_id, voto_global, conflicto_interes, comentario_global, motivo_abstencion",
     )
     .eq("protocolo_id", protocoloId)
-    .eq("ronda", rondaActual);
+    .eq("ronda", rondaVotacion);
 
   const votoPorId = new Map<
     string,
@@ -362,6 +372,45 @@ export async function obtenerDatosBaseActa(
     miembros: miembrosPresentes,
     conteoVotos,
     comentariosComite: comentarios,
+  };
+}
+
+/**
+ * Acta de la ronda inmediatamente anterior a `rondaMenorA` (la de mayor ronda
+ * estrictamente menor). Se usa para construir la nota de re-evaluación que cita
+ * el oficio previo en el acta de una nueva ronda o de ratificación.
+ */
+export async function obtenerActaRondaPrevia(
+  protocoloId: string,
+  rondaMenorA: number,
+): Promise<
+  | {
+      numero_oficio: string;
+      resolucion: "aprobado" | "aprobado_con_observaciones" | "condicionado" | "no_aprobado";
+      fecha_emision: string;
+      vigencia_meses: number;
+    }
+  | null
+> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("actas")
+    .select("numero_oficio, resolucion, fecha_emision, vigencia_meses, ronda")
+    .eq("protocolo_id", protocoloId)
+    .lt("ronda", rondaMenorA)
+    .order("ronda", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    numero_oficio: data.numero_oficio,
+    resolucion: data.resolucion as
+      | "aprobado"
+      | "aprobado_con_observaciones"
+      | "condicionado"
+      | "no_aprobado",
+    fecha_emision: data.fecha_emision,
+    vigencia_meses: data.vigencia_meses,
   };
 }
 

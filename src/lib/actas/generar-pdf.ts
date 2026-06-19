@@ -599,6 +599,18 @@ export async function generarActaPdf(datos: DatosActa): Promise<Buffer> {
   );
   moveDown(s, 10);
 
+  // ----- 4b. Nota de re-evaluación / correcciones (solo ronda > 1) -----
+  if (datos.reevaluacion) {
+    const re = datos.reevaluacion;
+    drawParrafo(
+      s,
+      `Este protocolo fue previamente dictaminado como «${re.resolucion_previa}» mediante el oficio ${re.oficio_previo} de fecha ${re.fecha_previa_larga}. El Investigador Principal incorporó las correcciones solicitadas, las cuales fueron revisadas por este Comité y consideradas satisfactorias. El presente dictamen conserva la misma clave de protocolo (${datos.protocolo.clave}).`,
+      regular,
+      11,
+    );
+    moveDown(s, 10);
+  }
+
   // ----- 5. Caja de identificación -----
   dibujarCajaIdent(
     s,

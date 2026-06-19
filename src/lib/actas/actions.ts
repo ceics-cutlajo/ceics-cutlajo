@@ -22,7 +22,7 @@ import {
   estadoProtocoloDesdeResolucion,
   type EmitirDictamenInput,
 } from "./schemas";
-import { obtenerDatosBaseActa } from "./queries";
+import { obtenerDatosBaseActa, obtenerActaRondaPrevia } from "./queries";
 import { generarActaDocx } from "./generar-docx";
 import { generarActaPdf } from "./generar-pdf";
 import {
@@ -332,6 +332,22 @@ export async function emitirDictamenAction(
       motivo_abstencion: null,
     });
   }
+  // Nota de re-evaluación: si esta es una ronda > 1 (ciclo de correcciones
+  // mayores), citamos el acta de la ronda previa y dejamos constancia de que el
+  // IP incorporó las correcciones. La clave del protocolo se conserva.
+  let reevaluacion: DatosActa["reevaluacion"];
+  if (rondaActual > 1) {
+    const previa = await obtenerActaRondaPrevia(datos.protocoloId, rondaActual);
+    if (previa) {
+      reevaluacion = {
+        oficio_previo: previa.numero_oficio,
+        resolucion_previa: RESOLUCION_UI_DESDE_DB[previa.resolucion],
+        fecha_previa_larga: fechaLarga(previa.fecha_emision),
+        ronda: rondaActual,
+      };
+    }
+  }
+
   const datosActa: DatosActa = {
     numero_oficio: numeroOficioStr,
     anio_oficio: anio,
@@ -369,6 +385,7 @@ export async function emitirDictamenAction(
       vigencia_meses: datos.vigenciaMeses,
       fecha_vencimiento_larga: fechaVencimientoLarga,
     },
+    reevaluacion,
     marco_normativo: marcoNormativo,
     votacion: {
       total_miembros: base.conteoVotos.totalMiembros,
@@ -773,4 +790,411 @@ export async function reenviarActaInvestigadorAction(
   revalidatePath(`/comite/protocolo/${prot.id}`);
   revalidatePath(`/protocolo/${prot.id}`);
   return { ok: true };
+}
+
+// ============================================================
+// ratificarCorreccionesMenoresAction
+// ============================================================
+
+/**
+ * Ratifica el cumplimiento de OBSERVACIONES MENORES sin nueva votación del
+ * comité. El protocolo debe estar en estado 'correcciones_menores' (el IP ya
+ * envió sus correcciones y la ronda se incrementó a N+1). Emite el acta final
+ * 'APROBADO' citando el oficio previo (acta de la ronda N, que dictaminó
+ * "aprobado con observaciones menores"), reutilizando los votos de esa ronda.
+ * Solo Presidente o Secretario(a) por delegación (mismo COI que el dictamen).
+ */
+export async function ratificarCorreccionesMenoresAction(
+  protocoloId: string,
+): Promise<ActionResult<{ actaId: string; numeroOficio: string; advertencia?: string }>> {
+  const admin = createAdminClient();
+
+  const { data: protRow } = await admin
+    .from("protocolos")
+    .select("estado, ronda_actual")
+    .eq("id", protocoloId)
+    .maybeSingle();
+  if (!protRow) return { ok: false, error: "Protocolo no encontrado." };
+  if (protRow.estado !== "correcciones_menores") {
+    return {
+      ok: false,
+      error: `Este protocolo no está en correcciones menores (estado: ${protRow.estado}).`,
+    };
+  }
+  const rondaActa = (protRow.ronda_actual as number | null) ?? 1;
+  const rondaVotos = Math.max(1, rondaActa - 1);
+
+  const base = await obtenerDatosBaseActa(protocoloId, rondaVotos);
+  if (!base) {
+    return { ok: false, error: "No se encontró el protocolo o sus datos están incompletos." };
+  }
+
+  // Firmante (Presidente, o Secretaria por delegación si el Presidente es IP).
+  const firmanteResp = await obtenerFirmanteActual({
+    investigadorPrincipalId: base.protocolo.investigador_principal_id,
+    presidenteTitularId: base.presidente.id,
+  });
+  if (!firmanteResp.ok) return firmanteResp;
+  const firmante = firmanteResp.firmante;
+  if (firmante.porDelegacion && !base.secretario) {
+    return {
+      ok: false,
+      error:
+        "Se requiere delegación al Secretario(a) por COI presidencial, pero no hay un(a) Secretario(a) titular configurado(a).",
+    };
+  }
+
+  // Idempotencia por ronda: si ya existe acta para la ronda de ratificación,
+  // re-aplicamos el estado final si quedó inconsistente y la devolvemos.
+  const { data: actaExistente } = await admin
+    .from("actas")
+    .select("id, numero_oficio")
+    .eq("protocolo_id", protocoloId)
+    .eq("ronda", rondaActa)
+    .maybeSingle();
+  if (actaExistente) {
+    await admin
+      .from("protocolos")
+      .update({ estado: "aprobado", dictaminado_at: new Date().toISOString() })
+      .eq("id", protocoloId)
+      .eq("estado", "correcciones_menores");
+    return {
+      ok: true,
+      data: { actaId: actaExistente.id, numeroOficio: actaExistente.numero_oficio },
+    };
+  }
+
+  // Acta previa (la de observaciones menores) → nota de re-evaluación + vigencia.
+  const previa = await obtenerActaRondaPrevia(protocoloId, rondaActa);
+
+  // Número de oficio nuevo (consecutivo del año).
+  const anio = parseInt(
+    new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City", year: "numeric" }).format(
+      new Date(),
+    ),
+    10,
+  );
+  const { data: numeroOficio, error: errOficio } = await admin.rpc("siguiente_numero_oficio", {
+    p_anio: anio,
+  });
+  if (errOficio || !numeroOficio) {
+    return {
+      ok: false,
+      error: `No se pudo asignar número de oficio: ${errOficio?.message ?? "respuesta vacía"}`,
+    };
+  }
+  const numeroOficioStr = numeroOficio as string;
+  const consecutivo = numeroOficioStr.split("/").pop() ?? "001";
+
+  const fechaEmisionIso = hoyIso();
+  const fechaEmisionLarga = fechaLarga(fechaEmisionIso);
+  const vigenciaMeses = ([6, 12, 24].includes(previa?.vigencia_meses ?? 12)
+    ? (previa?.vigencia_meses ?? 12)
+    : 12) as 6 | 12 | 24;
+  const fechaVencimientoIso = sumarMeses(fechaEmisionIso, vigenciaMeses);
+  const fechaVencimientoLarga = fechaLarga(fechaVencimientoIso);
+  const hashFolio = generarHashFolio({
+    numero_oficio: numeroOficioStr,
+    clave_protocolo: base.protocolo.clave,
+    fecha_emision_iso: fechaEmisionIso,
+    nombre_ip: base.ip.nombre_completo,
+  });
+  const urlValidacion = `${URL_BASE_VALIDACION}${hashFolio}`;
+
+  const reevaluacion: DatosActa["reevaluacion"] = previa
+    ? {
+        oficio_previo: previa.numero_oficio,
+        resolucion_previa: RESOLUCION_UI_DESDE_DB[previa.resolucion],
+        fecha_previa_larga: fechaLarga(previa.fecha_emision),
+        ronda: rondaActa,
+      }
+    : undefined;
+
+  // Tabla de miembros: votos de la ronda previa; si firma la Secretaria por
+  // delegación, se añade con voto=null (igual que en emitirDictamenAction).
+  const miembrosTabla = [...base.miembros];
+  if (
+    firmante.porDelegacion &&
+    base.secretario &&
+    !miembrosTabla.some((m) => m.usuario_id === firmante.usuarioId)
+  ) {
+    miembrosTabla.unshift({
+      usuario_id: firmante.usuarioId,
+      cargo: firmante.cargo,
+      nombre_completo: base.secretario.nombre,
+      codigo_udg: base.secretario.codigo_udg,
+      voto: null,
+      motivo_abstencion: null,
+    });
+  }
+
+  const cargoLineasPresidente = [
+    "Presidente del Comité de Ética en Investigación",
+    "en Ciencias de la Salud (CEICS)",
+    "Centro Universitario de Tlajomulco — Universidad de Guadalajara",
+  ];
+  const cargoLineasSecretaria = [
+    `${firmante.cargo} del Comité de Ética en Investigación`,
+    "en Ciencias de la Salud (CEICS)",
+    "Centro Universitario de Tlajomulco — Universidad de Guadalajara",
+  ];
+
+  const datosActa: DatosActa = {
+    numero_oficio: numeroOficioStr,
+    anio_oficio: anio,
+    consecutivo_oficio: consecutivo,
+    fecha_emision_iso: fechaEmisionIso,
+    fecha_emision_larga: fechaEmisionLarga,
+    ip: {
+      titulo: base.ip.titulo,
+      nombre_completo: base.ip.nombre_completo,
+      codigo_udg: base.ip.codigo_udg,
+      adscripcion: base.ip.adscripcion,
+      correo: base.ip.correo,
+    },
+    protocolo: {
+      clave: base.protocolo.clave,
+      titulo: base.protocolo.titulo,
+      tipo_investigacion: base.protocolo.tipo_investigacion_nombre,
+      clasificacion_riesgo: base.protocolo.clasificacion_riesgo_etiqueta,
+      area_conocimiento: base.protocolo.area_conocimiento_nombre,
+      fecha_sometimiento: base.protocolo.fecha_sometimiento_iso,
+      fecha_sometimiento_larga: fechaLarga(base.protocolo.fecha_sometimiento_iso),
+    },
+    sesion: {
+      tipo: "ordinaria",
+      numero: 1,
+      fecha_iso: fechaEmisionIso,
+      fecha_larga: fechaEmisionLarga,
+    },
+    resolucion: {
+      estado: "APROBADO",
+      tiene_observaciones: false,
+      observaciones: [],
+      vigencia_meses: vigenciaMeses,
+      fecha_vencimiento_larga: fechaVencimientoLarga,
+    },
+    reevaluacion,
+    marco_normativo: [...MARCO_NORMATIVO_DEFAULT],
+    votacion: {
+      total_miembros: base.conteoVotos.totalMiembros,
+      presentes: base.conteoVotos.presentes,
+      favor: base.conteoVotos.favor,
+      contra: base.conteoVotos.contra,
+      abstencion: base.conteoVotos.abstencion,
+      miembros: miembrosTabla.map<MiembroActa>((m) => ({
+        cargo: m.cargo,
+        nombre: m.nombre_completo,
+        codigo_udg: m.codigo_udg,
+        voto: m.voto,
+        motivo_abstencion: m.motivo_abstencion ?? undefined,
+      })),
+    },
+    presidente: {
+      titulo: base.presidente.titulo,
+      nombre: base.presidente.nombre,
+      codigo_udg: base.presidente.codigo_udg,
+    },
+    firmante:
+      firmante.rol === "presidente"
+        ? {
+            titulo: base.presidente.titulo,
+            nombre: base.presidente.nombre,
+            codigo_udg: base.presidente.codigo_udg,
+            rol: "presidente",
+            cargo: "Presidente",
+            cargo_lineas: cargoLineasPresidente,
+            por_delegacion: false,
+          }
+        : {
+            titulo: base.secretario!.titulo,
+            nombre: base.secretario!.nombre,
+            codigo_udg: base.secretario!.codigo_udg,
+            rol: "comite_secretario",
+            cargo: firmante.cargo,
+            cargo_lineas: cargoLineasSecretaria,
+            por_delegacion: true,
+            presidente_titular_nombre: base.presidente.nombre,
+          },
+    folio: { hash: hashFolio, url_verificacion: urlValidacion },
+  };
+
+  // Generar DOCX (obligatorio) + PDF (fail-soft).
+  let docxBuffer: Buffer;
+  try {
+    docxBuffer = await generarActaDocx(datosActa);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Error generando DOCX.";
+    return { ok: false, error: `No se pudo generar el DOCX: ${msg}` };
+  }
+  let pdfBuffer: Buffer | null = null;
+  try {
+    pdfBuffer = await generarActaPdf(datosActa);
+  } catch (e) {
+    console.error(
+      "[ratificarCorreccionesMenoresAction] generarActaPdf fallo (fail-soft):",
+      e instanceof Error ? e.message : e,
+    );
+  }
+
+  const docxPath = pathActa(protocoloId, numeroOficioStr, "docx");
+  let pdfPath = pdfBuffer ? pathActa(protocoloId, numeroOficioStr, "pdf") : null;
+  const upDocx = await admin.storage.from(BUCKET).upload(docxPath, docxBuffer, {
+    contentType:
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    upsert: true,
+  });
+  if (upDocx.error) {
+    return { ok: false, error: `No se pudo subir el DOCX: ${upDocx.error.message}` };
+  }
+  if (pdfBuffer && pdfPath) {
+    const upPdf = await admin.storage.from(BUCKET).upload(pdfPath, pdfBuffer, {
+      contentType: "application/pdf",
+      upsert: true,
+    });
+    if (upPdf.error) {
+      console.error("[ratificarCorreccionesMenoresAction] subida PDF fallo:", upPdf.error.message);
+      pdfBuffer = null;
+      pdfPath = null;
+    }
+  }
+
+  const { data: insertActa, error: errActa } = await admin
+    .from("actas")
+    .insert({
+      protocolo_id: protocoloId,
+      ronda: rondaActa,
+      numero_oficio: numeroOficioStr,
+      fecha_emision: fechaEmisionIso,
+      presidente_id: base.presidente.id,
+      firmante_id: firmante.usuarioId,
+      firmante_rol: firmante.rol,
+      resolucion: "aprobado",
+      vigencia_meses: vigenciaMeses,
+      fecha_vencimiento: fechaVencimientoIso,
+      votos_favor: base.conteoVotos.favor,
+      votos_contra: base.conteoVotos.contra,
+      votos_abstencion: base.conteoVotos.abstencion,
+      observaciones: null,
+      marco_normativo: [...MARCO_NORMATIVO_DEFAULT],
+      hash_folio: hashFolio,
+      url_validacion: urlValidacion,
+      docx_storage_path: docxPath,
+      pdf_storage_path: pdfPath ?? null,
+    })
+    .select("id")
+    .single();
+  if (errActa || !insertActa) {
+    await admin.storage.from(BUCKET).remove([docxPath, ...(pdfPath ? [pdfPath] : [])]);
+    return {
+      ok: false,
+      error: `No se pudo registrar el acta: ${errActa?.message ?? "error desconocido"}`,
+    };
+  }
+
+  const { data: protActualizado, error: errProt } = await admin
+    .from("protocolos")
+    .update({
+      estado: "aprobado",
+      numero_oficio: numeroOficioStr,
+      vigencia_dictamen_meses: vigenciaMeses,
+      fecha_aprobacion: fechaEmisionIso,
+      fecha_vencimiento: fechaVencimientoIso,
+      dictaminado_at: new Date().toISOString(),
+    })
+    .eq("id", protocoloId)
+    .eq("estado", "correcciones_menores")
+    .select("id")
+    .maybeSingle();
+  if (errProt) {
+    return { ok: false, error: `Acta registrada pero no se pudo actualizar el protocolo: ${errProt.message}` };
+  }
+  if (!protActualizado) {
+    return {
+      ok: false,
+      error: "El protocolo cambió de estado durante la ratificación. Acta registrada pero estado inconsistente.",
+    };
+  }
+
+  await admin.from("protocolo_eventos").insert({
+    protocolo_id: protocoloId,
+    tipo: "acta_emitida",
+    descripcion: firmante.porDelegacion
+      ? `Acta de ratificación emitida (${numeroOficioStr}) por ${firmante.cargo} en delegación por COI presidencial — observaciones menores atendidas. Resolución: APROBADO.`
+      : `Acta de ratificación emitida (${numeroOficioStr}) — observaciones menores atendidas. Resolución: APROBADO.`,
+    actor_id: firmante.usuarioId,
+    datos: {
+      numero_oficio: numeroOficioStr,
+      resolucion: "APROBADO",
+      ratificacion_menores: true,
+      oficio_previo: previa?.numero_oficio ?? null,
+      firmante_rol: firmante.rol,
+      por_delegacion: firmante.porDelegacion,
+    },
+  });
+
+  // Email al IP con el acta final (fail-soft).
+  let correoFallo: string | null = null;
+  if (base.ip.correo) {
+    const docxBase64 = docxBuffer.toString("base64");
+    const pdfBase64 = pdfBuffer ? pdfBuffer.toString("base64") : null;
+    const consecutivoSlug = numeroOficioStr.replace(/\//g, "-");
+    const r = await notificarInvestigador({
+      protocoloId,
+      claveProtocolo: base.protocolo.clave,
+      tituloProtocolo: base.protocolo.titulo,
+      ipNombre: base.ip.nombre_completo,
+      ipEmail: base.ip.correo,
+      resolucion: "APROBADO",
+      numeroOficio: numeroOficioStr,
+      vigenciaMeses,
+      fechaVencimientoLarga,
+      observaciones: [],
+      docxBase64,
+      pdfBase64,
+      docxNombreArchivo: `Acta-${consecutivoSlug}.docx`,
+      pdfNombreArchivo: `Acta-${consecutivoSlug}.pdf`,
+    }).catch((e) => {
+      console.error("[ratificarCorreccionesMenoresAction] notificarInvestigador error:", e);
+      return { ok: false as const, error: "Excepción al notificar al investigador." };
+    });
+    if (r.ok) {
+      await admin
+        .from("actas")
+        .update({ enviada_a_investigador_at: new Date().toISOString() })
+        .eq("id", insertActa.id);
+    } else {
+      correoFallo = r.error;
+      await admin.from("protocolo_eventos").insert({
+        protocolo_id: protocoloId,
+        tipo: "notificacion_fallida",
+        descripcion: "No se pudo enviar por correo el acta de ratificación al investigador.",
+        datos: { destino: "investigador", error: r.error, acta_id: insertActa.id },
+      });
+    }
+  }
+
+  revalidatePath(`/comite/protocolo/${protocoloId}`);
+  revalidatePath(`/protocolo/${protocoloId}`);
+  revalidatePath(`/presidencia/dictamen/${protocoloId}`);
+  revalidatePath("/presidencia");
+  revalidatePath("/presidencia/actas");
+  revalidatePath("/comite/bandeja");
+  revalidatePath("/dashboard");
+
+  const advertencias: string[] = [];
+  if (!pdfPath) advertencias.push("El acta quedó solo con DOCX: la versión PDF falló.");
+  if (correoFallo)
+    advertencias.push(
+      "El correo con el acta al investigador NO se envió; puedes reenviarlo desde la tarjeta del acta.",
+    );
+
+  return {
+    ok: true,
+    data: {
+      actaId: insertActa.id,
+      numeroOficio: numeroOficioStr,
+      advertencia: advertencias.length > 0 ? advertencias.join(" ") : undefined,
+    },
+  };
 }

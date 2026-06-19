@@ -153,6 +153,7 @@ function EstadoBadge({ estado }: { estado: EstadoProtocolo }) {
     listo_dictamen: "bg-warn-soft text-warn",
     aprobado: "bg-good-soft text-good",
     aprobado_con_observaciones: "bg-good-soft text-good",
+    correcciones_menores: "bg-info-soft text-info",
     observaciones: "bg-warn-soft text-warn",
     rechazado: "bg-bad-soft text-bad",
     retirado: "bg-ink-100 text-ink-500",

@@ -17,6 +17,7 @@ import { obtenerActaPorProtocolo } from "@/lib/actas/queries";
 import { CardActa } from "@/components/actas/card-acta";
 import { resumenVotacionProtocolo } from "@/lib/evaluaciones/transparencia";
 import { PanelVotacionComite } from "@/components/evaluaciones/panel-votacion-comite";
+import { BotonEnviarCorrecciones } from "@/components/protocolos/boton-enviar-correcciones";
 
 export default async function VerProtocoloPage({
   params,
@@ -60,7 +61,10 @@ export default async function VerProtocoloPage({
   });
 
   const puedeEditar =
-    esPropietario && (protocolo.estado === "borrador" || protocolo.estado === "observaciones");
+    esPropietario &&
+    (protocolo.estado === "borrador" ||
+      protocolo.estado === "observaciones" ||
+      protocolo.estado === "aprobado_con_observaciones");
 
   // Acta (si ya fue emitida)
   const acta = await obtenerActaPorProtocolo(id);
@@ -126,6 +130,56 @@ export default async function VerProtocoloPage({
           >
             Corregir y reenviar
           </Link>
+        </section>
+      )}
+
+      {/* Acción requerida (carril menor): aprobado con observaciones menores */}
+      {esPropietario && protocolo.estado === "aprobado_con_observaciones" && (
+        <section className="card border border-info/40 bg-info-soft/50 p-6">
+          <p className="text-eyebrow text-info">Aprobado con observaciones menores</p>
+          <h2 className="mt-1 text-display-2">
+            Atiende las observaciones menores y envía tus correcciones
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-ink-700">
+            El comité aprobó tu protocolo con observaciones menores. Atiéndelas y,
+            si lo necesitas, actualiza tus documentos. Al enviar tus correcciones,
+            la Presidencia las ratificará y emitirá el dictamen final{" "}
+            <strong>con el mismo número de protocolo</strong>, dejando constancia
+            de que se incorporaron las correcciones. No se requiere una nueva
+            votación del comité.
+          </p>
+          {acta?.observaciones && (
+            <div className="mt-4 rounded-md bg-bg-1 p-4">
+              <p className="text-eyebrow text-ink-500">
+                Observaciones del acta {acta.numero_oficio}
+              </p>
+              <pre className="mt-2 whitespace-pre-wrap font-sans text-sm leading-relaxed text-ink-800">
+                {acta.observaciones}
+              </pre>
+            </div>
+          )}
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Link
+              href={`/protocolo/${id}/editar`}
+              className="btn-secondary inline-block text-sm"
+            >
+              Actualizar documentos
+            </Link>
+          </div>
+          <BotonEnviarCorrecciones protocoloId={id} />
+        </section>
+      )}
+
+      {/* Correcciones menores enviadas: en revisión de Presidencia */}
+      {esPropietario && protocolo.estado === "correcciones_menores" && (
+        <section className="card border border-info/30 bg-info-soft/30 p-6">
+          <p className="text-eyebrow text-info">En revisión</p>
+          <h2 className="mt-1 text-display-2">Correcciones enviadas</h2>
+          <p className="mt-2 text-sm leading-relaxed text-ink-700">
+            Recibimos tus correcciones a las observaciones menores. La Presidencia
+            del CEICS las ratificará y emitirá el dictamen final. Recibirás un
+            correo cuando el acta esté lista.
+          </p>
         </section>
       )}
 

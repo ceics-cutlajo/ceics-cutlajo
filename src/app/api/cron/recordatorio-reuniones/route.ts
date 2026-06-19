@@ -14,6 +14,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { listarMiembrosElegiblesComite } from "@/lib/evaluaciones/queries";
 import { notificarReunion } from "@/lib/email/notificar-reunion";
+import { notificarFalloLoteCorreos } from "@/lib/email/notificar-fallo-lote";
 import {
   enviarConReintento,
   pausa,
@@ -119,6 +120,20 @@ export async function GET(request: Request): Promise<Response> {
     // fallos quedan registrados en `errores`.
     if (miembros.length > 0 && fallosSesion === miembros.length) {
       errores.push(`${s.id}: todos los envíos fallaron; se reintentará en el siguiente tick`);
+      // Nadie recibió el recordatorio de esta sesión: avisar a Presidencia.
+      // Fail-soft: la alerta no debe romper el cron ni el reintento posterior.
+      await notificarFalloLoteCorreos({
+        contexto: `Recordatorio de sesión "${s.titulo}" (${tipo === "7dias" ? "7 días" : "1 día"})`,
+        totalDestinatarios: miembros.length,
+        detalle: "Ningún miembro del comité recibió el recordatorio de la sesión.",
+      }).catch((e) => {
+        errores.push(
+          `${s.id}: no se pudo alertar a Presidencia del fallo total: ${
+            e instanceof Error ? e.message : String(e)
+          }`,
+        );
+        return { ok: false as const };
+      });
       continue;
     }
     const campo = es7d ? "recordatorio_7d_at" : "recordatorio_1d_at";

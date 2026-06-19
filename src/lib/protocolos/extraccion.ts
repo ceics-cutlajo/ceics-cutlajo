@@ -9,10 +9,34 @@
  * (Vercel las instala en el build a partir de package.json).
  */
 
+/**
+ * Resultado de extraer texto plano de un buffer (.docx/.pdf).
+ * (Distinto de `ResultadoExtraccion` en `queries.ts`, que modela el JSON que
+ * devuelve la IA — aquí es el INPUT crudo, allá el OUTPUT estructurado.)
+ */
+export type ExtraccionTextoResultado = {
+  texto: string;
+  warnings: string[];
+  /**
+   * `true` solo para PDFs cuya capa de texto vino esencialmente vacía
+   * (PDF escaneado / solo imágenes). En ese caso `texto` queda vacío y el
+   * documento debe leerse por VISIÓN: enviarlo a Claude como bloque `document`
+   * (base64) en vez de pasar el texto. Ver `procesar-extraccion/route.ts`.
+   * Para DOCX y para PDFs con texto seleccionable es `undefined`.
+   */
+  requiereOcr?: boolean;
+};
+
+// Por debajo de este umbral consideramos que el PDF NO tiene capa de texto
+// utilizable (típico de escaneos): pdf-parse devuelve "" o unos pocos caracteres
+// de ruido. Lo bastante alto para descartar basura, lo bastante bajo para no
+// confundir un PDF real (que tiene cientos/miles de caracteres) con un escaneo.
+const MIN_CARACTERES_PDF = 20;
+
 export async function extraerTextoDeBuffer(
   buffer: Buffer,
   mimeType: string,
-): Promise<{ texto: string; warnings: string[] }> {
+): Promise<ExtraccionTextoResultado> {
   if (
     mimeType ===
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
@@ -33,10 +57,13 @@ export async function extraerTextoDeBuffer(
     const pdfParseModule = await import("pdf-parse/lib/pdf-parse.js");
     const pdfParse = pdfParseModule.default ?? pdfParseModule;
     const result = await pdfParse(buffer);
-    return {
-      texto: limpiarTexto((result.text as string) ?? ""),
-      warnings: [],
-    };
+    const texto = limpiarTexto((result.text as string) ?? "");
+    // PDF escaneado / sin capa de texto: no hay nada que mandar como texto.
+    // Señalamos requiereOcr para que el route lo lea por visión (bloque document).
+    if (texto.length < MIN_CARACTERES_PDF) {
+      return { texto: "", warnings: [], requiereOcr: true };
+    }
+    return { texto, warnings: [] };
   }
 
   throw new Error(`Tipo MIME no soportado para extracción: ${mimeType}`);

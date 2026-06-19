@@ -79,6 +79,18 @@ export type DatosActa = {
     vigencia_meses: 6 | 12 | 24;
     fecha_vencimiento_larga: string;
   };
+  /**
+   * Presente solo cuando el acta es de una re-evaluación (ronda > 1) o de una
+   * ratificación de correcciones menores. Inserta una nota tras el antecedente
+   * que cita el oficio previo y deja constancia de que el IP incorporó las
+   * correcciones solicitadas. Se renderiza idéntico en DOCX y PDF.
+   */
+  reevaluacion?: {
+    oficio_previo: string;
+    resolucion_previa: ResolucionActa;
+    fecha_previa_larga: string;
+    ronda: number;
+  };
   marco_normativo: string[];
   votacion: {
     total_miembros: number;

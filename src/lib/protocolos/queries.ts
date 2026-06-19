@@ -302,6 +302,7 @@ export type ProtocoloBandeja = ProtocoloResumen & {
   resumen: string | null;
   ip_nombre: string;
   conflictoInteres: boolean;
+  solicita_dispensa_consentimiento: boolean;
 };
 
 export async function listarBandejaComite(): Promise<ProtocoloBandeja[]> {
@@ -312,7 +313,7 @@ export async function listarBandejaComite(): Promise<ProtocoloBandeja[]> {
   const { data: prots } = await admin
     .from("protocolos")
     .select(
-      "id, clave, titulo, resumen, estado, created_at, submitted_at, numero_oficio, investigador_principal_id",
+      "id, clave, titulo, resumen, estado, created_at, submitted_at, numero_oficio, investigador_principal_id, solicita_dispensa_consentimiento",
     )
     .in("estado", [
       "en_evaluacion_ia",
@@ -372,6 +373,7 @@ export async function listarBandejaComite(): Promise<ProtocoloBandeja[]> {
           }`
         : "—",
       conflictoInteres,
+      solicita_dispensa_consentimiento: p.solicita_dispensa_consentimiento ?? false,
     };
   });
 }

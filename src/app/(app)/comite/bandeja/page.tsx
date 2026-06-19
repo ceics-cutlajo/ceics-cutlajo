@@ -106,6 +106,11 @@ function ProtocoloRow({
                 Abstención obligatoria
               </span>
             )}
+            {p.solicita_dispensa_consentimiento && (
+              <span className="inline-flex items-center rounded-full bg-info-soft px-2 py-0.5 text-xs font-medium text-info">
+                Dispensa CCI
+              </span>
+            )}
           </div>
           <h3 className="mt-1 line-clamp-2 text-sm font-medium text-ink-900">{p.titulo}</h3>
           <p className="mt-1 text-xs text-ink-500">
@@ -142,6 +147,7 @@ function EstadoBadge({ estado }: { estado: EstadoProtocolo }) {
     listo_dictamen: "bg-warn-soft text-warn",
     aprobado: "bg-good-soft text-good",
     aprobado_con_observaciones: "bg-good-soft text-good",
+    correcciones_menores: "bg-info-soft text-info",
     observaciones: "bg-warn-soft text-warn",
     rechazado: "bg-bad-soft text-bad",
     retirado: "bg-ink-100 text-ink-500",

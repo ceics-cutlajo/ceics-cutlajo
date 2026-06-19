@@ -109,6 +109,7 @@ type DatosProtocolo = {
   involucra_menores: boolean;
   involucra_datos_geneticos: boolean;
   involucra_medicamento: boolean;
+  solicita_dispensa_consentimiento?: boolean;
   objetivo_general: string | null;
   objetivos_especificos: string[];
   criterios_inclusion: string[];
@@ -139,6 +140,11 @@ export function buildUserMessagePreDictamen(
   partes.push(
     `Involucra: humanos=${datos.involucra_humanos}, menores=${datos.involucra_menores}, datos_geneticos=${datos.involucra_datos_geneticos}, medicamento=${datos.involucra_medicamento}`,
   );
+  if (datos.solicita_dispensa_consentimiento) {
+    partes.push(
+      "ATENCIÓN: El investigador SOLICITA DISPENSA DE CONSENTIMIENTO INFORMADO. Aplica la regla R12: marca CHK-035 a CHK-041 como 'no_aplica' y evalúa la solidez de la justificación en CHK-043.",
+    );
+  }
   if (datos.resumen) partes.push(`\nResumen ejecutivo:\n${datos.resumen}`);
   if (datos.objetivo_general) partes.push(`\nObjetivo general:\n${datos.objetivo_general}`);
   if (datos.objetivos_especificos.length > 0) {

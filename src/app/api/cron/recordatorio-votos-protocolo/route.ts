@@ -26,6 +26,7 @@ import {
   obtenerRondaActual,
 } from "@/lib/evaluaciones/queries";
 import { notificarVotoPendiente } from "@/lib/email/notificar-voto-pendiente";
+import { notificarFalloLoteCorreos } from "@/lib/email/notificar-fallo-lote";
 import {
   enviarConReintento,
   pausa,
@@ -169,6 +170,24 @@ export async function GET(request: Request): Promise<Response> {
         fallidos.push(m.email);
         errores.push(`${p.id}/${m.email}: ${res.error}`);
       }
+    }
+
+    // Si TODOS los envíos del lote fallaron (Resend caído, key revocada…),
+    // nadie recibió el recordatorio: avisar a Presidencia. Fail-soft: la alerta
+    // no debe romper el cron, así que se ignora su resultado.
+    if (destinatarios.length > 0 && exitosos.length === 0) {
+      await notificarFalloLoteCorreos({
+        contexto: `Recordatorios de voto pendiente del protocolo ${claveProtocolo} (día ${diaActual}, ronda ${ronda})`,
+        totalDestinatarios: destinatarios.length,
+        detalle: "Ningún miembro sin votar recibió el recordatorio.",
+      }).catch((e) => {
+        errores.push(
+          `${p.id}: no se pudo alertar a Presidencia del fallo total: ${
+            e instanceof Error ? e.message : String(e)
+          }`,
+        );
+        return { ok: false as const };
+      });
     }
 
     // Bitácora honesta: `notificados` solo lleva envíos exitosos; los
