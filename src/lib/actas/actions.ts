@@ -86,6 +86,8 @@ type FirmanteResuelto = {
 async function obtenerFirmanteActual(args: {
   investigadorPrincipalId: string;
   presidenteTitularId: string;
+  /** Secretaria(o) titular, para firmar por delegación cuando el Presidente es el IP. */
+  secretario: { id: string; nombre: string } | null;
 }): Promise<
   { ok: true; firmante: FirmanteResuelto } | { ok: false; error: string }
 > {
@@ -122,13 +124,28 @@ async function obtenerFirmanteActual(args: {
     };
   }
   if (esPresidente && presidenteEsIP) {
+    // COI presidencial: el Presidente es el IP. Puede emitir el acta desde su
+    // propia sesión, pero la firma de REGISTRO es de la Secretaría por
+    // delegación (su nombre NO firma su propia aprobación). Decisión de Jaime
+    // 2026-06-19: operar sin cambiar de cuenta, manteniendo la integridad del COI.
+    if (!args.secretario) {
+      return {
+        ok: false,
+        error:
+          "Eres el Investigador Principal y, por conflicto de interés, el acta debe firmarla " +
+          "el(la) Secretario(a) por delegación; pero no hay Secretario(a) titular configurado(a) en el padrón.",
+      };
+    }
+    const tokens = (args.secretario.nombre ?? "").trim().toLowerCase().split(/\s+/);
+    const algunFemenino = tokens.some((t) => t.endsWith("a") || t.endsWith("á"));
     return {
-      ok: false,
-      error:
-        "Conflicto de interés: eres el Investigador Principal de este protocolo y, " +
-        "como Presidente del CEICS, no puedes emitir su acta. Conforme al Reglamento Interno, " +
-        "la emisión corresponde al(la) Secretario(a) del comité. Cierra sesión e ingresa " +
-        "con la cuenta de Secretaría para emitir este dictamen.",
+      ok: true,
+      firmante: {
+        usuarioId: args.secretario.id,
+        rol: "comite_secretario",
+        cargo: algunFemenino ? "Secretaria" : "Secretario",
+        porDelegacion: true,
+      },
     };
   }
   if (esSecretario && presidenteEsIP) {
@@ -257,6 +274,9 @@ export async function emitirDictamenAction(
   const firmanteResp = await obtenerFirmanteActual({
     investigadorPrincipalId: base.protocolo.investigador_principal_id,
     presidenteTitularId: base.presidente.id,
+    secretario: base.secretario
+      ? { id: base.secretario.id, nombre: base.secretario.nombre }
+      : null,
   });
   if (!firmanteResp.ok) return firmanteResp;
   const firmante = firmanteResp.firmante;
@@ -833,6 +853,9 @@ export async function ratificarCorreccionesMenoresAction(
   const firmanteResp = await obtenerFirmanteActual({
     investigadorPrincipalId: base.protocolo.investigador_principal_id,
     presidenteTitularId: base.presidente.id,
+    secretario: base.secretario
+      ? { id: base.secretario.id, nombre: base.secretario.nombre }
+      : null,
   });
   if (!firmanteResp.ok) return firmanteResp;
   const firmante = firmanteResp.firmante;

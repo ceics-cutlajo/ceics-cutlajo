@@ -20,7 +20,18 @@ const FORMATO_FECHA: Intl.DateTimeFormatOptions = {
 
 const ANIO_ACTUAL = new Date().getFullYear();
 
-export default async function PresidenciaPage() {
+/** Filtros que activa cada tarjeta (KPI) sobre la tabla de protocolos del año. */
+type FiltroTablero = "mes" | "evaluacion" | "dictaminados" | "firma";
+
+const ESTADOS_EVALUACION = ["en_evaluacion_ia", "en_revision_comite", "observaciones"];
+const ESTADOS_DICTAMINADOS = ["aprobado", "aprobado_con_observaciones", "rechazado"];
+const ESTADOS_FIRMA = ["listo_dictamen", "correcciones_menores"];
+
+export default async function PresidenciaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filtro?: string }>;
+}) {
   const usuario = await obtenerUsuarioActual();
   // El tablero es para el comité (presidencia, secretaría, vocales). Los
   // investigadores puros no tienen acceso.
@@ -28,10 +39,45 @@ export default async function PresidenciaPage() {
   const puedeEmitir = puedeEmitirDictamen(usuario.roles);
   const esPresidente = usuario.roles.includes("presidente");
 
+  const { filtro } = await searchParams;
+  const filtroActivo: FiltroTablero | null =
+    filtro === "mes" || filtro === "evaluacion" || filtro === "dictaminados" || filtro === "firma"
+      ? filtro
+      : null;
+
   const [kpis, protocolos] = await Promise.all([
     obtenerKpisPresidencia(),
     listarProtocolosAno(),
   ]);
+
+  // Filtrado de la tabla según la tarjeta activa (mismas definiciones que los KPIs).
+  const inicioMes = new Date(ANIO_ACTUAL, new Date().getMonth(), 1);
+  const inicioAno = new Date(ANIO_ACTUAL, 0, 1);
+  const protocolosFiltrados = protocolos.filter((p) => {
+    switch (filtroActivo) {
+      case "mes":
+        return p.submitted_at != null && new Date(p.submitted_at) >= inicioMes;
+      case "evaluacion":
+        return ESTADOS_EVALUACION.includes(p.estado);
+      case "dictaminados":
+        return (
+          ESTADOS_DICTAMINADOS.includes(p.estado) &&
+          p.dictaminado_at != null &&
+          new Date(p.dictaminado_at) >= inicioAno
+        );
+      case "firma":
+        return ESTADOS_FIRMA.includes(p.estado);
+      default:
+        return true;
+    }
+  });
+
+  const ETIQUETA_FILTRO: Record<FiltroTablero, string> = {
+    mes: "Recibidos este mes",
+    evaluacion: "En evaluación",
+    dictaminados: "Dictaminados",
+    firma: "Pendientes de firma",
+  };
 
   return (
     <div className="space-y-8">
@@ -57,23 +103,36 @@ export default async function PresidenciaPage() {
       )}
 
       <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <Kpi label={`Total ${ANIO_ACTUAL}`} valor={kpis.totalAno} />
-        <Kpi label="Recibidos este mes" valor={kpis.recibidosMes} />
-        <Kpi label="En evaluación" valor={kpis.enEvaluacion} />
-        <Kpi label="Dictaminados (año)" valor={kpis.dictaminadosAno} />
+        <Kpi label={`Total ${ANIO_ACTUAL}`} valor={kpis.totalAno} href="/presidencia" activo={filtroActivo === null} />
+        <Kpi label="Recibidos este mes" valor={kpis.recibidosMes} href="/presidencia?filtro=mes" activo={filtroActivo === "mes"} />
+        <Kpi label="En evaluación" valor={kpis.enEvaluacion} href="/presidencia?filtro=evaluacion" activo={filtroActivo === "evaluacion"} />
+        <Kpi label="Dictaminados (año)" valor={kpis.dictaminadosAno} href="/presidencia?filtro=dictaminados" activo={filtroActivo === "dictaminados"} />
         <Kpi
           label="Pendientes mi firma"
           valor={kpis.pendientesMiFirma}
+          href="/presidencia?filtro=firma"
+          activo={filtroActivo === "firma"}
           highlight={kpis.pendientesMiFirma > 0}
         />
       </section>
 
       <section className="card p-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-display-2">Protocolos del año</h2>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <h2 className="text-display-2">Protocolos del año</h2>
+            {filtroActivo && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-xs font-medium text-[var(--accent)]">
+                {ETIQUETA_FILTRO[filtroActivo]}
+                <Link href="/presidencia" className="hover:underline" aria-label="Quitar filtro">
+                  ✕
+                </Link>
+              </span>
+            )}
+          </div>
           <span className="text-xs text-ink-500">
-            {protocolos.length}{" "}
-            {protocolos.length === 1 ? "protocolo" : "protocolos"}
+            {protocolosFiltrados.length}{" "}
+            {protocolosFiltrados.length === 1 ? "protocolo" : "protocolos"}
+            {filtroActivo && ` de ${protocolos.length}`}
           </span>
         </div>
 
@@ -81,6 +140,13 @@ export default async function PresidenciaPage() {
           <p className="mt-4 text-sm text-ink-500">
             Aún no hay protocolos sometidos en {ANIO_ACTUAL}. Cuando un
             investigador someta uno, aparecerá aquí.
+          </p>
+        ) : protocolosFiltrados.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-500">
+            No hay protocolos en «{filtroActivo ? ETIQUETA_FILTRO[filtroActivo] : ""}».{" "}
+            <Link href="/presidencia" className="font-medium text-[var(--accent)] hover:underline">
+              Ver todos
+            </Link>
           </p>
         ) : (
           <div className="mt-4 overflow-x-auto rounded-md border border-ink-200">
@@ -97,7 +163,7 @@ export default async function PresidenciaPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-100 bg-white">
-                {protocolos.map((p) => (
+                {protocolosFiltrados.map((p) => (
                   <tr key={p.id} className="hover:bg-ink-50">
                     <td className="px-4 py-3 font-mono text-xs text-ink-600 whitespace-nowrap">
                       {p.clave ?? "—"}
@@ -142,7 +208,6 @@ export default async function PresidenciaPage() {
                       <AccionRapida
                         estado={p.estado}
                         protocoloId={p.id}
-                        conflictoInteres={p.conflictoInteres}
                         puedeEmitir={puedeEmitir}
                       />
                     </td>
@@ -169,48 +234,69 @@ export default async function PresidenciaPage() {
 function Kpi({
   label,
   valor,
+  href,
+  activo,
   highlight,
 }: {
   label: string;
   valor: number;
+  href: string;
+  activo?: boolean;
   highlight?: boolean;
 }) {
+  const acentuado = activo || highlight;
   return (
-    <div
-      className={`card p-5 ${
-        highlight ? "border-[var(--accent)]/30 ring-1 ring-[var(--accent)]/20" : ""
+    <Link
+      href={href}
+      className={`card block p-5 transition hover:border-[var(--accent)]/40 hover:shadow-sm ${
+        activo
+          ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/30"
+          : highlight
+            ? "border-[var(--accent)]/30 ring-1 ring-[var(--accent)]/20"
+            : ""
       }`}
     >
       <div className="text-eyebrow text-ink-500">{label}</div>
       <div
         className={`mt-2 font-display text-3xl font-semibold ${
-          highlight ? "text-[var(--accent)]" : "text-ink-900"
+          acentuado ? "text-[var(--accent)]" : "text-ink-900"
         }`}
       >
         {valor}
       </div>
-    </div>
+    </Link>
   );
 }
 
 function AccionRapida({
   estado,
   protocoloId,
-  conflictoInteres,
   puedeEmitir,
 }: {
   estado: EstadoProtocolo;
   protocoloId: string;
-  conflictoInteres: boolean;
   puedeEmitir: boolean;
 }) {
-  if (puedeEmitir && estado === "listo_dictamen" && !conflictoInteres) {
+  // Con conflicto de interés del Presidente (es el IP) el acta se emite igual,
+  // pero la firma de registro es de la Secretaría por delegación — eso lo
+  // resuelve la pantalla de dictamen, así que aquí sí ofrecemos "Emitir".
+  if (puedeEmitir && estado === "listo_dictamen") {
     return (
       <Link
         href={`/presidencia/dictamen/${protocoloId}`}
         className="text-xs font-semibold text-[var(--accent)] hover:underline"
       >
         Emitir dictamen →
+      </Link>
+    );
+  }
+  if (puedeEmitir && estado === "correcciones_menores") {
+    return (
+      <Link
+        href={`/presidencia/dictamen/${protocoloId}`}
+        className="text-xs font-semibold text-[var(--accent)] hover:underline"
+      >
+        Ratificar →
       </Link>
     );
   }

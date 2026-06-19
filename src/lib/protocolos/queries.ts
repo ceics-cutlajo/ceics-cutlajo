@@ -285,7 +285,7 @@ export async function obtenerKpisPresidencia(): Promise<KpisPresidencia> {
     admin
       .from("protocolos")
       .select("id", { count: "exact", head: true })
-      .eq("estado", "listo_dictamen"),
+      .in("estado", ["listo_dictamen", "correcciones_menores"]),
   ]);
 
   return {

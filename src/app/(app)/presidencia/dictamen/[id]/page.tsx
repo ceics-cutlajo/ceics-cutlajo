@@ -40,26 +40,25 @@ export default async function EmitirDictamenPage({
   // Determinar si esta emisión es por delegación a Secretaría.
   const presidenteEsIP =
     datos.presidente.id === datos.protocolo.investigador_principal_id;
-  const firmaPorDelegacion = esSecretario && presidenteEsIP;
+  // El acta va por delegación a la Secretaría siempre que el Presidente sea el
+  // IP (lo emita el propio Presidente o la Secretaría). La firma de registro es
+  // de la Secretaría — el Presidente puede emitir desde su sesión sin firmar él.
+  const firmaPorDelegacion = presidenteEsIP;
 
-  // Casos que no permitimos llegar al formulario.
-  if (esPresidente && presidenteEsIP && !esSecretario) {
+  // Único bloqueo del COI presidencial: que no haya Secretaría para delegar.
+  if (presidenteEsIP && !datos.secretario) {
     return (
       <div className="space-y-6">
         <header>
           <p className="text-eyebrow text-ink-500">Presidencia · Dictamen</p>
-          <h1 className="text-display-1 mt-1">Conflicto de interés</h1>
+          <h1 className="text-display-1 mt-1">Conflicto de interés sin Secretaría</h1>
         </header>
         <div className="card border border-warn/30 bg-warn-soft/40 p-6 text-sm leading-relaxed">
           <p>
             Eres el Investigador Principal del protocolo{" "}
-            <strong>{datos.protocolo.clave}</strong>. Como Presidente del CEICS no
-            puedes emitir su propia acta. Conforme al Reglamento Interno, la
-            emisión corresponde al(la) Secretario(a) del comité.
-          </p>
-          <p className="mt-3 text-ink-700">
-            Cierra sesión e ingresa con la cuenta de Secretaría para emitir este
-            dictamen.
+            <strong>{datos.protocolo.clave}</strong>. Por conflicto de interés, el
+            acta debe firmarla el(la) Secretario(a) por delegación, pero no hay
+            Secretario(a) titular configurado(a) en el padrón del CEICS.
           </p>
           <Link
             href={`/comite/protocolo/${id}`}
@@ -186,7 +185,9 @@ export default async function EmitirDictamenPage({
         <div>
           <p className="text-eyebrow text-ink-500">
             {firmaPorDelegacion
-              ? "Secretaría · Emitir dictamen (delegación)"
+              ? esPresidente
+                ? "Presidencia · Emitir dictamen (firma Secretaría por COI)"
+                : "Secretaría · Emitir dictamen (delegación)"
               : "Presidencia · Emitir dictamen"}
           </p>
           <h1 className="font-display text-3xl font-bold mt-1 text-ink-900">Acta de aprobación CEICS</h1>
@@ -195,7 +196,9 @@ export default async function EmitirDictamenPage({
             {datos.ip.nombre_completo}. El comité cerró la votación con la
             recomendación que verás más abajo.{" "}
             {firmaPorDelegacion
-              ? "Como Secretario(a) del CEICS firmas en delegación por COI presidencial; puedes ratificar la recomendación o ajustar resolución, vigencia y observaciones antes de emitir."
+              ? esPresidente
+                ? "Eres el Investigador Principal, así que por conflicto de interés el acta la firmará la Secretaría por delegación; tú la emites desde aquí. Puedes ajustar resolución, vigencia y observaciones antes de emitir."
+                : "Como Secretario(a) del CEICS firmas en delegación por COI presidencial; puedes ratificar la recomendación o ajustar resolución, vigencia y observaciones antes de emitir."
               : "Como Presidente puedes ratificarla o ajustar resolución, vigencia y observaciones antes de emitir."}
           </p>
         </div>
@@ -216,8 +219,8 @@ export default async function EmitirDictamenPage({
             El Presidente del CEICS (<strong>{datos.presidente.nombre}</strong>)
             figura como Investigador Principal del protocolo{" "}
             <strong>{datos.protocolo.clave}</strong>. Conforme al Reglamento
-            Interno del comité, la emisión y firma del acta corresponde al(la)
-            Secretario(a). Esa constancia quedará impresa en el acta.
+            Interno del comité, la firma del acta corresponde al(la)
+            Secretario(a) por delegación. Esa constancia quedará impresa en el acta.
           </p>
         </div>
       )}
