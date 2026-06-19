@@ -19,7 +19,8 @@ import {
   datosClinicosSchema,
   coInvestigadorSchema,
   documentosObligatorios,
-  TIPOS_DOCUMENTO,
+  TIPOS_DOCUMENTO_TODOS,
+  TIPO_ANEXO,
   ETIQUETAS_AREA,
   ETIQUETAS_TIPO_INV,
   ETIQUETAS_RIESGO,
@@ -301,8 +302,9 @@ export async function subirDocumentoAction(
 
   const tipo = formData.get("tipo_documento_id") as TipoDocumento | null;
   const file = formData.get("archivo") as File | null;
+  const etiqueta = ((formData.get("etiqueta") as string | null) ?? "").trim() || null;
 
-  if (!tipo || !TIPOS_DOCUMENTO.includes(tipo))
+  if (!tipo || !TIPOS_DOCUMENTO_TODOS.includes(tipo))
     return { ok: false, error: "Tipo de documento inválido." };
   if (!file || file.size === 0)
     return { ok: false, error: "Selecciona un archivo." };
@@ -323,19 +325,22 @@ export async function subirDocumentoAction(
       ? check.rondaActual + 1
       : check.rondaActual;
 
-  // Si ya existe un documento de este tipo EN ESTA MISMA RONDA, lo reemplazamos
+  // Los anexos son acumulativos (varios por ronda). Los tipos fijos se
+  // reemplazan: si ya hay uno de este tipo EN ESTA MISMA RONDA, se sustituye
   // (las versiones de rondas anteriores se conservan intactas).
-  const { data: existente } = await admin
-    .from("protocolo_documentos")
-    .select("id, storage_path")
-    .eq("protocolo_id", protocoloId)
-    .eq("tipo_documento_id", tipo)
-    .eq("ronda", rondaDoc)
-    .maybeSingle();
+  if (tipo !== TIPO_ANEXO) {
+    const { data: existente } = await admin
+      .from("protocolo_documentos")
+      .select("id, storage_path")
+      .eq("protocolo_id", protocoloId)
+      .eq("tipo_documento_id", tipo)
+      .eq("ronda", rondaDoc)
+      .maybeSingle();
 
-  if (existente) {
-    await admin.storage.from(BUCKET).remove([existente.storage_path]);
-    await admin.from("protocolo_documentos").delete().eq("id", existente.id);
+    if (existente) {
+      await admin.storage.from(BUCKET).remove([existente.storage_path]);
+      await admin.from("protocolo_documentos").delete().eq("id", existente.id);
+    }
   }
 
   // Subir a Storage — path por ronda: {protocolo}/r{ronda}/{tipo}-{ts}.{ext}
@@ -365,6 +370,7 @@ export async function subirDocumentoAction(
       mime_type: file.type,
       tamano_bytes: file.size,
       ronda: rondaDoc,
+      etiqueta: tipo === TIPO_ANEXO ? (etiqueta ?? "Anexo") : null,
       uploaded_by: check.usuarioId,
     })
     .select("id")

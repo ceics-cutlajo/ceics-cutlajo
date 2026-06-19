@@ -93,6 +93,8 @@ export type DocumentoRow = {
   mime_type: string;
   tamano_bytes: number;
   uploaded_at: string;
+  /** Etiqueta libre (solo anexos); null para los tipos fijos. */
+  etiqueta: string | null;
 };
 
 export type EventoRow = {
@@ -189,7 +191,7 @@ export async function obtenerProtocolo(
       .order("orden"),
     admin
       .from("protocolo_documentos")
-      .select("id, tipo_documento_id, nombre_original, storage_path, mime_type, tamano_bytes, uploaded_at")
+      .select("id, tipo_documento_id, nombre_original, storage_path, mime_type, tamano_bytes, uploaded_at, etiqueta")
       .eq("protocolo_id", protocoloId)
       .order("ronda", { ascending: false })
       .order("uploaded_at", { ascending: false }),
@@ -230,6 +232,12 @@ export async function obtenerProtocolo(
   if (docs) {
     const tiposVistos = new Set<string>();
     for (const d of docs) {
+      // Los anexos NO se deduplican (puede haber varios); los tipos fijos sí
+      // (solo la versión vigente más reciente entre rondas).
+      if (d.tipo_documento_id === "anexo") {
+        docsVigentes.push(d);
+        continue;
+      }
       if (tiposVistos.has(d.tipo_documento_id)) continue;
       tiposVistos.add(d.tipo_documento_id);
       docsVigentes.push(d);

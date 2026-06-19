@@ -38,7 +38,7 @@ import {
   type Categoria,
 } from "@/lib/checklist";
 import { extraerTextoDeBuffer } from "@/lib/protocolos/extraccion";
-import { ETIQUETAS_DOCUMENTO, type TipoDocumento } from "@/lib/protocolos/schemas";
+import { ETIQUETAS_DOCUMENTO, TIPO_ANEXO, type TipoDocumento } from "@/lib/protocolos/schemas";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -206,6 +206,24 @@ export async function POST(req: NextRequest) {
   try {
     const anthropic = getAnthropicClient();
     const documentosPaquete = await cargarDocumentosPaquete(admin, body.protocoloId);
+
+    // Re-evaluación dirigida: en rondas > 1 traemos las observaciones del acta
+    // de la ronda previa para que la IA verifique si fueron atendidas.
+    let observacionesPrevias: string | null = null;
+    if (rondaActual > 1) {
+      const { data: actaPrevia } = await admin
+        .from("actas")
+        .select("observaciones, numero_oficio")
+        .eq("protocolo_id", body.protocoloId)
+        .lt("ronda", rondaActual)
+        .order("ronda", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (actaPrevia?.observaciones) {
+        observacionesPrevias = `Oficio ${actaPrevia.numero_oficio}:\n${actaPrevia.observaciones}`;
+      }
+    }
+
     const datosPrompt = {
       titulo: prot.titulo,
       resumen: prot.resumen,
@@ -227,6 +245,7 @@ export async function POST(req: NextRequest) {
       ip_nombre: ipNombre,
       texto_fuente: extraccion?.texto_fuente ?? null,
       documentos: documentosPaquete,
+      observaciones_previas: observacionesPrevias,
     };
 
     const parciales = await Promise.all(
@@ -430,7 +449,7 @@ async function cargarDocumentosPaquete(
 ): Promise<{ etiqueta: string; texto: string }[]> {
   const { data: rows } = await admin
     .from("protocolo_documentos")
-    .select("tipo_documento_id, storage_path, mime_type, ronda, uploaded_at")
+    .select("tipo_documento_id, storage_path, mime_type, ronda, uploaded_at, etiqueta")
     .eq("protocolo_id", protocoloId)
     .order("ronda", { ascending: false })
     .order("uploaded_at", { ascending: false });
@@ -438,6 +457,9 @@ async function cargarDocumentosPaquete(
   const vistos = new Set<string>();
   const seleccion = rows.filter((r) => {
     const tipo = r.tipo_documento_id as string;
+    // Los anexos (tipo libre) NO se deduplican: pueden ser varios y todos van al
+    // paquete para que la IA los identifique y use.
+    if (tipo === TIPO_ANEXO) return true;
     if (!TIPOS_DOC_PAQUETE.includes(tipo as TipoDocumento)) return false;
     if (vistos.has(tipo)) return false;
     vistos.add(tipo);
@@ -458,8 +480,10 @@ async function cargarDocumentosPaquete(
             ? texto.slice(0, MAX_CHARS_DOC_PAQUETE) + "\n[...documento truncado...]"
             : texto;
         const etiqueta =
-          ETIQUETAS_DOCUMENTO[r.tipo_documento_id as TipoDocumento] ??
-          (r.tipo_documento_id as string);
+          r.tipo_documento_id === TIPO_ANEXO
+            ? `Anexo: ${((r.etiqueta as string | null) ?? "").trim() || "(sin etiqueta)"}`
+            : ETIQUETAS_DOCUMENTO[r.tipo_documento_id as TipoDocumento] ??
+              (r.tipo_documento_id as string);
         return { etiqueta, texto: recortado.trim() };
       } catch {
         return null;

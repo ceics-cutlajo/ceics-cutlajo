@@ -113,6 +113,7 @@ export type CoInvestigadorInput = z.infer<typeof coInvestigadorSchema>;
 
 // ---------------- Paso 3: Documento ----------------
 
+/** Documentos fijos del catálogo (uno por tipo por ronda). */
 export const TIPOS_DOCUMENTO = [
   "carta_presidente",
   "formato_protocolo",
@@ -123,10 +124,16 @@ export const TIPOS_DOCUMENTO = [
   "asentimiento",
 ] as const;
 
-export type TipoDocumento = (typeof TIPOS_DOCUMENTO)[number];
+/** Tipo especial de documento libre: el investigador puede subir VARIOS por ronda. */
+export const TIPO_ANEXO = "anexo" as const;
+
+/** Todos los tipos válidos (fijos + anexo) para validación de subida. */
+export const TIPOS_DOCUMENTO_TODOS = [...TIPOS_DOCUMENTO, TIPO_ANEXO] as const;
+
+export type TipoDocumento = (typeof TIPOS_DOCUMENTO_TODOS)[number];
 
 export const documentoUploadSchema = z.object({
-  tipo_documento_id: z.enum(TIPOS_DOCUMENTO),
+  tipo_documento_id: z.enum(TIPOS_DOCUMENTO_TODOS),
   nombre_original: z.string().min(1),
   mime_type: z.string().min(1),
   tamano_bytes: z.number().int().positive().max(25 * 1024 * 1024, "Máximo 25 MB por archivo"),
@@ -180,6 +187,7 @@ export const ETIQUETAS_DOCUMENTO: Record<TipoDocumento, string> = {
   bpc: "Constancia de Buenas Prácticas Clínicas",
   consentimiento: "Carta de consentimiento informado",
   asentimiento: "Carta de asentimiento (población pediátrica)",
+  anexo: "Anexo",
 };
 
 export const DESCRIPCION_DOCUMENTO: Record<TipoDocumento, string> = {
@@ -196,6 +204,8 @@ export const DESCRIPCION_DOCUMENTO: Record<TipoDocumento, string> = {
     "Modelo del consentimiento informado que firmarán los participantes. Obligatorio si involucra humanos.",
   asentimiento:
     "Asentimiento adaptado a menores de edad. Obligatorio si la población incluye personas <18 años.",
+  anexo:
+    "Documento de apoyo adicional (p.ej. carta de autorización del sitio, oficios). Ponle una etiqueta para que el comité y la IA lo identifiquen.",
 };
 
 /** Devuelve qué documentos son obligatorios según las características del protocolo. */

@@ -214,14 +214,15 @@ export function ProtocoloWizard({
             protocolo={protocolo}
             documentos={documentos}
             pending={pending}
-            onSubir={(tipo, file) => {
+            onSubir={(tipo, file, etiqueta) => {
               const formData = new FormData();
               formData.append("tipo_documento_id", tipo);
               formData.append("archivo", file);
+              if (etiqueta) formData.append("etiqueta", etiqueta);
               startTransition(async () => {
                 const res = await subirDocumentoAction(protocolo.id, formData);
                 if (res.ok) {
-                  notificar("ok", `Documento "${ETIQUETAS_DOCUMENTO[tipo]}" subido`);
+                  notificar("ok", `Documento "${etiqueta || ETIQUETAS_DOCUMENTO[tipo]}" subido`);
                   refrescar();
                 } else {
                   notificar("error", res.error);
@@ -1073,10 +1074,11 @@ function PasoDocumentos({
   protocolo: ProtocoloCompleto;
   documentos: DocumentoRow[];
   pending: boolean;
-  onSubir: (tipo: TipoDocumento, file: File) => void;
+  onSubir: (tipo: TipoDocumento, file: File, etiqueta?: string) => void;
   onEliminar: (documentoId: string) => void;
 }) {
   const subidosPorTipo = new Map(documentos.map((d) => [d.tipo_documento_id, d]));
+  const anexos = documentos.filter((d) => d.tipo_documento_id === "anexo");
   const obligatorios = documentosObligatorios({
     tipo_investigacion_id: protocolo.tipo_investigacion_id ?? "clinica",
     involucra_humanos: protocolo.involucra_humanos,
@@ -1117,6 +1119,93 @@ function PasoDocumentos({
             />
           );
         })}
+      </div>
+
+      <AnexosSection
+        anexos={anexos}
+        pending={pending}
+        onSubir={onSubir}
+        onEliminar={onEliminar}
+      />
+    </div>
+  );
+}
+
+function AnexosSection({
+  anexos,
+  pending,
+  onSubir,
+  onEliminar,
+}: {
+  anexos: DocumentoRow[];
+  pending: boolean;
+  onSubir: (tipo: TipoDocumento, file: File, etiqueta?: string) => void;
+  onEliminar: (id: string) => void;
+}) {
+  const [etiqueta, setEtiqueta] = useState("");
+  return (
+    <div className="rounded-md border border-ink-200 bg-ink-50 p-4">
+      <div className="text-sm font-medium text-ink-900">Anexos (opcional)</div>
+      <p className="mt-1 text-xs text-ink-500">
+        Documentos de apoyo adicionales (p.ej. carta de autorización del sitio,
+        oficios, formatos). Puedes subir varios. La IA los leerá e identificará
+        junto con el resto del paquete; ponle una etiqueta para que se reconozcan.
+      </p>
+
+      {anexos.length > 0 && (
+        <ul className="mt-3 space-y-2">
+          {anexos.map((a) => (
+            <li
+              key={a.id}
+              className="flex items-center justify-between gap-3 rounded border border-ink-200 bg-white px-3 py-2"
+            >
+              <div className="min-w-0">
+                <div className="truncate text-sm text-ink-900">
+                  {a.etiqueta || "Anexo"}
+                </div>
+                <div className="truncate font-mono text-xs text-ink-500">
+                  {a.nombre_original} · {(a.tamano_bytes / 1024 / 1024).toFixed(2)} MB
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onEliminar(a.id)}
+                disabled={pending}
+                className="shrink-0 text-xs text-bad hover:underline disabled:opacity-50"
+              >
+                Eliminar
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <input
+          type="text"
+          value={etiqueta}
+          onChange={(e) => setEtiqueta(e.target.value)}
+          placeholder="Etiqueta (ej. Carta de autorización del sitio)"
+          disabled={pending}
+          className="flex-1 rounded-md border border-ink-300 bg-white px-3 py-2 text-sm text-ink-900 placeholder:text-ink-400 disabled:opacity-50"
+        />
+        <label className="btn-secondary cursor-pointer whitespace-nowrap text-xs">
+          {pending ? "Subiendo..." : "+ Agregar anexo"}
+          <input
+            type="file"
+            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            hidden
+            disabled={pending}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                onSubir("anexo", file, etiqueta.trim() || undefined);
+                setEtiqueta("");
+              }
+              e.target.value = "";
+            }}
+          />
+        </label>
       </div>
     </div>
   );

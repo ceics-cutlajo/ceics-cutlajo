@@ -327,8 +327,10 @@ export default async function VerProtocoloPage({
               >
                 <div>
                   <div className="text-sm font-medium text-ink-900">
-                    {ETIQUETAS_DOCUMENTO[d.tipo_documento_id as TipoDocumento] ??
-                      d.tipo_documento_id}
+                    {d.tipo_documento_id === "anexo"
+                      ? d.etiqueta || "Anexo"
+                      : ETIQUETAS_DOCUMENTO[d.tipo_documento_id as TipoDocumento] ??
+                        d.tipo_documento_id}
                   </div>
                   <div className="font-mono text-xs text-ink-500">
                     {d.nombre_original} · {(d.tamano_bytes / 1024 / 1024).toFixed(2)} MB

@@ -135,6 +135,29 @@ export default async function ComiteProtocoloPage({
   const docxUrl = acta?.docx_storage_path ? `/api/actas/${acta.id}?f=docx` : null;
   const pdfUrl = acta?.pdf_storage_path ? `/api/actas/${acta.id}?f=pdf` : null;
 
+  // Re-evaluación dirigida: si el protocolo va en ronda > 1, mostramos las
+  // observaciones que el comité pidió en la ronda anterior. La IA verifica si
+  // se atendieron (las pendientes salen marcadas en las observaciones críticas).
+  const rondaActualProt =
+    (datos.protocolo as { ronda_actual?: number | null }).ronda_actual ?? 1;
+  let observacionesPrevias: { numero_oficio: string; observaciones: string } | null = null;
+  if (rondaActualProt > 1) {
+    const { data: actaPrev } = await admin
+      .from("actas")
+      .select("numero_oficio, observaciones")
+      .eq("protocolo_id", id)
+      .lt("ronda", rondaActualProt)
+      .order("ronda", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (actaPrev?.observaciones) {
+      observacionesPrevias = {
+        numero_oficio: actaPrev.numero_oficio,
+        observaciones: actaPrev.observaciones,
+      };
+    }
+  }
+
   // Votación del comité (transparencia): quién votó y en qué sentido.
   const votosComite = await resumenVotacionProtocolo(id);
   // El banner se muestra cuando:
@@ -204,6 +227,22 @@ export default async function ComiteProtocoloPage({
       <section className="card p-6">
         <PanelVotacionComite votos={votosComite} />
       </section>
+      {observacionesPrevias && (
+        <section className="card border border-info/40 bg-info-soft/40 p-6">
+          <p className="text-eyebrow text-info">Re-evaluación dirigida</p>
+          <h2 className="mt-1 text-display-2">Observaciones de la ronda anterior</h2>
+          <p className="mt-2 text-sm leading-relaxed text-ink-700">
+            El comité solicitó estas correcciones en el oficio{" "}
+            <strong>{observacionesPrevias.numero_oficio}</strong>. La IA verificó si
+            se atendieron en esta nueva versión; las que sigan pendientes aparecen
+            marcadas como «Observación previa NO atendida» en las observaciones
+            críticas del pre-dictamen.
+          </p>
+          <pre className="mt-3 whitespace-pre-wrap rounded-md bg-bg-1 p-4 font-sans text-sm leading-relaxed text-ink-800">
+            {observacionesPrevias.observaciones}
+          </pre>
+        </section>
+      )}
       <Revisar
         protocoloId={id}
         protocolo={datos.protocolo}

@@ -58,6 +58,8 @@ R14. **Estudios con bases de datos abiertas/públicas o datos secundarios NO tie
 
 R15. **NO exijas cédula profesional ni firma/CV firmado del investigador.** CHK-002: para acreditar al Investigador Principal BASTA con su CV o resumen curricular (aunque NO esté firmado) y su adscripción institucional (UdeG/CUTlajo). El CEICS NO requiere cédula profesional ni firma en el CV. **NUNCA marques "no_cumple" ni generes observación por ausencia de cédula profesional, de firma del CV, o de "CV firmado".** Marca CHK-002 "cumple" cuando el CV/credenciales del IP estén presentes en el paquete (la constancia BPC se rige por R7 y la autorización de sede/titular por R14: no aplican en estudios sin intervención ni sede física).
 
+R16. **Re-evaluación dirigida (rondas posteriores).** Si recibes una sección "OBSERVACIONES DEL COMITÉ — RONDA ANTERIOR", el protocolo fue RE-SOMETIDO tras pedirse correcciones. Verifica PUNTO POR PUNTO si cada observación fue atendida en esta versión, buscando en el protocolo y en los DOCUMENTOS DEL PAQUETE (incluidos los anexos). Cada observación NO atendida (o atendida de forma insuficiente) es una falta dirigida: agrégala a "observaciones_criticas" comenzando EXACTAMENTE con "Observación previa NO atendida:" seguida de la observación y por qué sigue pendiente. No repitas observaciones que YA quedaron resueltas; concéntrate en lo que falta.
+
 REGLAS DE EVALUACIÓN
 
 1. Evalúas POR BLOQUE TEMÁTICO (11 categorías). Internamente consideras todos los ítems aplicables del checklist, pero solo reportas el veredicto del BLOQUE.
@@ -119,6 +121,8 @@ type DatosProtocolo = {
   ip_nombre: string;
   texto_fuente: string | null;
   documentos: { etiqueta: string; texto: string }[];
+  /** Observaciones del comité en la ronda previa (solo re-evaluación, ronda > 1). */
+  observaciones_previas?: string | null;
 };
 
 export function buildUserMessagePreDictamen(
@@ -131,6 +135,17 @@ export function buildUserMessagePreDictamen(
   partes.push(
     `=== INSTRUCCIÓN DE ALCANCE ===\nEn esta llamada EVALÚA EXCLUSIVAMENTE estos bloques (omite cualquier otro): ${bloquesAEvaluar.join(", ")}.\nDevuelve un JSON con la clave "bloques" conteniendo SOLO esos bloques. Sin "resumen_ejecutivo" (lo construimos en código combinando varias llamadas). "observaciones_criticas" y "sugerencias" son opcionales.\n`,
   );
+
+  if (datos.observaciones_previas) {
+    partes.push(
+      `\n=== OBSERVACIONES DEL COMITÉ — RONDA ANTERIOR (RE-EVALUACIÓN DIRIGIDA) ===\n` +
+        `Este protocolo ya fue evaluado y el comité pidió correcciones; el investigador RE-SOMETIÓ. ` +
+        `Conforme a la regla R16, VERIFICA punto por punto si cada observación fue atendida en esta versión ` +
+        `(revisa el protocolo y los DOCUMENTOS DEL PAQUETE, incluidos los anexos). ` +
+        `Para cada observación NO atendida o atendida de forma insuficiente, añade una entrada a "observaciones_criticas" ` +
+        `que EMPIECE con "Observación previa NO atendida:". Observaciones del comité:\n\n${datos.observaciones_previas}\n`,
+    );
+  }
 
   partes.push("\n=== DATOS DEL PROTOCOLO ===\n");
   partes.push(`Título: ${datos.titulo}`);
@@ -189,7 +204,7 @@ export function buildUserMessagePreDictamen(
   if (datos.documentos.length > 0) {
     partes.push("\n=== DOCUMENTOS DEL PAQUETE ENTREGADO ===");
     partes.push(
-      "Estos son los documentos que el investigador adjuntó, además del protocolo. VERIFICA contra ellos los ítems que dependen de documentos (roles del equipo en la carta de delegación, CV/cédula del IP, vigencia de BPC, oficios de autorización de sede, consentimiento). Si un ítem se satisface aquí, márcalo cumple y NO afirmes que falta.",
+      "Estos son los documentos que el investigador adjuntó, además del protocolo. Incluye los tipos fijos y, si los hay, ANEXOS libres (rotulados 'Anexo: ...', p.ej. carta de autorización del sitio, oficios). IDENTIFICA cada anexo por su etiqueta y úsalo en los ítems que correspondan. VERIFICA contra estos documentos los ítems que dependen de ellos (roles del equipo en la carta de delegación, CV/cédula del IP, vigencia de BPC, oficios de autorización de sede, consentimiento). Si un ítem se satisface aquí, márcalo cumple y NO afirmes que falta.",
     );
     for (const doc of datos.documentos) {
       partes.push(`\n--- ${doc.etiqueta} ---\n${doc.texto}`);
